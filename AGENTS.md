@@ -19,4 +19,4 @@ This project is the offline seed vault (remixed from HME Wallet). The everyday w
 - Backups and the vault use the open HMVAULT1 format (`docs/seed-vault-format.md`, `src/lib/vault/format.ts`), and `src/lib/vault/standalone.ts` must keep opening every format we write. Why: seeds must stay recoverable without this app.
 - Capacitor `hostname` (`vault.local`) is fixed after release. Why: localStorage is keyed by origin, so changing it orphans installed vaults.
 - Vault rules (lockout, auto-lock, merge, key derivation) live as pure functions in `src/lib/vault/seeds.ts` with tests beside them. Why: security rules stay testable without a UI.
-- Phase 2 (air-gapped PSBT signing by QR) builds on `deriveKeys` and the existing QR scanner, not on any online code.
+- Offline signing (`src/lib/signer`) only signs PSBTs whose every input matches a stored seed's fingerprint, path and script, and shows the fee from known input values; it outputs signed raw hex by QR. Why: the review screen is the only defence against a tampered unsigned payment.
