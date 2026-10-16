@@ -36,7 +36,7 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
       <div className="max-w-md">
         <h1 className="text-xl font-semibold">Something went wrong</h1>
         <p className="mt-2 text-sm text-muted-foreground">Your stored seeds are not affected.</p>
-        <p className="mt-2 break-words font-mono text-xs text-destructive">{error?.message}</p>
+        <p className="mt-2 break-words font-mono text-xs text-destructive">{(error as Error)?.message}</p>
         <button onClick={reset} className="mt-4 rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground">Try again</button>
       </div>
     </div>
