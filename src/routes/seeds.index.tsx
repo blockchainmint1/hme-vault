@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { KeyRound, Plus, HardDriveDownload, Settings } from "lucide-react";
+import { KeyRound, Plus, HardDriveDownload, Settings, PenLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Unlocked } from "@/components/vault/Unlocked";
@@ -36,6 +36,7 @@ function SeedsPage() {
       </div>
       <div className="mt-4 grid gap-2">
         <Button asChild><Link to="/seeds/new"><Plus className="h-4 w-4 mr-1.5" />Add a seed</Link></Button>
+        <Button asChild variant="outline"><Link to="/sign"><PenLine className="h-4 w-4 mr-1.5" />Sign a payment</Link></Button>
         <div className="grid grid-cols-2 gap-2">
           <Button asChild variant="secondary"><Link to="/backup"><HardDriveDownload className="h-4 w-4 mr-1.5" />Backup</Link></Button>
           <Button asChild variant="secondary"><Link to="/settings"><Settings className="h-4 w-4 mr-1.5" />Settings</Link></Button>

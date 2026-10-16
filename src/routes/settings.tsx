@@ -55,12 +55,6 @@ function SettingsPage() {
           </CardHeader>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Coming later: offline signing</CardTitle>
-            <CardDescription>Scan an unsigned payment from your online wallet, check it here, sign it, and show the result as a QR. Seeds never leave this phone.</CardDescription>
-          </CardHeader>
-        </Card>
 
         <Card className="border-destructive/50">
           <CardHeader>
