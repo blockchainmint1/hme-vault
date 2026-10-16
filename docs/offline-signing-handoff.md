@@ -17,4 +17,10 @@ The Seed Vault phone signs TXC / ISK payments by QR. It never goes online. The o
 - The vault shows the **fully signed raw transaction hex**, using the same `HMQR` framing when it's long. Reassemble it and broadcast as-is.
 
 ## Watch-only pairing
-The vault shows the fingerprint, a TXC account xpub (`m/44'/696969'/0'`) and an EVM address per seed. A fuller pairing QR (84'/49'/44' xpubs for TXC and ISK) is a planned follow-up.
+Each seed page shows a "Pair with online wallet" QR (HMQR-framed if long) containing:
+```json
+{ "hmvault": 1, "fp": "73c5da0a",
+  "txc": { "84": "xpub…", "49": "xpub…", "44": "xpub…" },
+  "isk": { "84": "xpub…", "49": "xpub…", "44": "xpub…" } }
+```
+Keys are account-level (`m/<purpose>'/<coin>'/0'`), standard xpub version bytes. The online wallet derives `/0/i` and `/1/i` from them and uses `fp` + full path in every PSBT `bip32Derivation`.

@@ -85,3 +85,19 @@ export async function deriveKeys(words: string, passphrase = ""): Promise<SeedKe
   const addr = Array.from(keccak_256(pub).slice(-20), (b) => b.toString(16).padStart(2, "0")).join("");
   return { fingerprint, txcXpub: txc.publicExtendedKey, evmAddress: `0x${addr}` };
 }
+
+/**
+ * Watch-only pairing for the online wallet (JSON, safe to share): master
+ * fingerprint plus account xpubs for every script type on TXC and ISK.
+ * Format: docs/offline-signing-handoff.md.
+ */
+export async function pairingPayload(words: string, passphrase = ""): Promise<string> {
+  const root = HDKey.fromMasterSeed(await mnemonicToSeed(normalizeSeed(words), passphrase));
+  const fp = root.fingerprint.toString(16).padStart(8, "0");
+  const acct = (ct: number) => ({
+    "84": root.derive(`m/84'/${ct}'/0'`).publicExtendedKey,
+    "49": root.derive(`m/49'/${ct}'/0'`).publicExtendedKey,
+    "44": root.derive(`m/44'/${ct}'/0'`).publicExtendedKey,
+  });
+  return JSON.stringify({ hmvault: 1, fp, txc: acct(696969), isk: acct(969696) });
+}
