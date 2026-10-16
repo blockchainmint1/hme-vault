@@ -188,6 +188,10 @@ function BackupPage() {
           </CardContent>
         </Card>
       )}
+      <p className="text-sm text-muted-foreground">
+        Want a password-locked copy?{" "}
+        <a href="/vault" className="underline">Open the offline Seed Vault</a>.
+      </p>
     </main>
   );
 }
