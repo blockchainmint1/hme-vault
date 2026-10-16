@@ -1,6 +1,6 @@
 name: Android APK
 
-# Builds an installable Android APK for HME Wallet.
+# Builds an installable Android APK for HME Seed Vault (offline, no internet permission).
 #
 # Triggers:
 #   - manual (workflow_dispatch)   → pick any branch, build release (default) or debug APK
@@ -225,5 +225,5 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: out/*
-          name: HME Wallet Android ${{ steps.ver.outputs.version }}
+          name: HME Seed Vault Android ${{ steps.ver.outputs.version }}
           generate_release_notes: true

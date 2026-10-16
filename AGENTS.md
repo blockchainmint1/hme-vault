@@ -9,33 +9,14 @@
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
 
-## Shared platform capabilities and layout
-- Keep the capability compatibility helpers unrestricted across supported builds; why: existing callers share one feature set without store-specific switches.
-- Render the public footer inside the frame's content scroller; why: legal links must not pin over or reduce the readable homepage content.
+# HME Seed Vault — project rules
 
-## Release delivery is database-driven
+This project is the offline seed vault (remixed from HME Wallet). The everyday wallet lives in its own project; never re-add wallet, price, swap, sign-in or server features here.
 
-`/api/public/apk` resolves what to serve from the newest `app_releases` row
-(`ipfs_cid` + version, or `?v=<version>` for an older build) and only falls back
-to the build baked into the file when the lookup fails. Why: cutting a release
-must never require a website redeploy — pin the file, insert the row with
-`download_url` pointing at the endpoint, and installed apps get the prompt and
-the correct bytes. Keep it that way: never move the pinned CID/filename back
-into a hardcoded constant that the release row has to be kept in sync with.
-
-## Chrome extension
-
-The extension packages the full web app: `bun scripts/build-extension.mjs` runs `vite build`, renders the SPA shell into `extension/popup.html`/`index.html` with inline scripts externalised (MV3 CSP), and `server-fn-bridge` forwards `/_serverFn`+`/api` to mobile.honest.money when `isExtension()`. `src/extension/popup.tsx` is only the approval window (`approve.html`). Why: one app, every fix ships to web, APK and extension.
-
-- Extension web provider: `src/extension/inpage.ts` (EIP-6963 + `window.honestMoney`, `window.ethereum` only if free) → `content.ts` → `background.ts`; keys stay in approval popup. Why: sites never touch keys and signatures need approval.
-- Popup theme follows system by default with a light/dark override saved only in extension localStorage. Why: appearance should not change web/mobile settings or wallet data.
-
-## Trusted ecosystem sites come from honest.money
-Friendly site names/trust badges for sign-in and xpub links load from the HMAC-signed (`HME_ECOSYSTEM`) registry at honest.money (`src/lib/ecosystem-sites*`, spec `docs/ecosystem-trusted-sites.md`); the built-in list in `src/lib/web-login-hosts.ts` is only the offline fallback. Why: adding a partner site must never need a wallet release. The registry only labels — it never relaxes message/path rules.
-
-## Trading links (hm-link-delegate)
-- Spending access is only ever for the Trading pocket account (1106'+, rotated on revoke) and only for sites on the honest.money trusted list; look-only links stay xpub-only. Why: a shared spending key can't be taken back, so the blast radius must be one separate, retirable pocket.
-
-## Tap card (NFC) service
-- We are the card service: card pockets live on HME-reserved branch 1107' (card N = `m/44'/696969'/1107'/0/N`, owner signing key `/1/0`); only that pocket key is sent to the backend, AES-GCM encrypted with `CARD_KEY_ENC` (`src/lib/card/*`). Why: a tapped card must pay while the phone is offline, and the blast radius must stay one small pocket. Trading pocket rotation skips reserved branches.
-- Partners pay via `/api/public/card/pay` signed with `HME_ECOSYSTEM`; over-limit taps go to Telegram approvers via `/api/public/telegram/webhook`. Owner actions are wallet-signed envelopes, never accounts. Why: no extra service and no email logins.
+- No network code in the app: no fetch, server functions, API routes, analytics or error reporting. Why: the vault runs on a never-online phone and the APK ships without the INTERNET permission.
+- `scripts/patch-android-manifest.mjs` must keep removing every network permission with `tools:node="remove"` and keep `allowBackup="false"`. Why: plugins can merge INTERNET back in, and cloud backups would copy the vault off the phone.
+- On disk there is exactly one encrypted HMVAULT1 blob (`src/lib/vault/vault-context.tsx`); decrypted seeds and the password live in memory only and are dropped on lock. Why: a stolen phone image must never hold plaintext.
+- Backups and the vault use the open HMVAULT1 format (`docs/seed-vault-format.md`, `src/lib/vault/format.ts`), and `src/lib/vault/standalone.ts` must keep opening every format we write. Why: seeds must stay recoverable without this app.
+- Capacitor `hostname` (`vault.local`) is fixed after release. Why: localStorage is keyed by origin, so changing it orphans installed vaults.
+- Vault rules (lockout, auto-lock, merge, key derivation) live as pure functions in `src/lib/vault/seeds.ts` with tests beside them. Why: security rules stay testable without a UI.
+- Phase 2 (air-gapped PSBT signing by QR) builds on `deriveKeys` and the existing QR scanner, not on any online code.

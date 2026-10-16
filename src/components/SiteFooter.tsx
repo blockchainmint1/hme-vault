@@ -1,75 +1,23 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { isExtension, isNative } from "@/lib/native/platform";
-import { APK_URL } from "@/lib/app-release";
+import { isNative } from "@/lib/native/platform";
 
-async function openExternal(url: string) {
-  if (isNative()) {
-    try {
-      const { Browser } = await import("@capacitor/browser");
-      await Browser.open({ url });
-      return;
-    } catch {
-      /* fall through */
-    }
-  }
-  window.open(url, "_blank", "noopener,noreferrer");
-}
-
+/** Web-only footer. The offline phone app has no external links at all. */
 export function SiteFooter() {
-  // Inside the native app the footer takes up scarce vertical real estate and
-  // the external <a> targets would try to hijack the WebView. Skip it entirely.
   const [native, setNative] = useState(false);
-  useEffect(() => setNative(isNative() || isExtension()), []);
-  // Marketing/legal footer belongs on the public pages (landing, manifesto,
-  // legal) — never inside the unlocked wallet app, where it eats space and
-  // duplicates in-app navigation.
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
-  if (native || pathname.startsWith("/wallet")) return null;
-
+  useEffect(() => setNative(isNative()), []);
+  if (native) return null;
   return (
-    <footer className="border-t border-border/60 bg-background/60 py-8 mt-12">
-      <div className="mx-auto max-w-5xl px-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between text-sm text-muted-foreground">
-        <p>
+    <footer className="border-t border-border/60 py-6 mt-8">
+      <div className="mx-auto max-w-xl px-4 flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted-foreground">
+        <span>
           Part of the{" "}
-          <button
-            type="button"
-            onClick={() => openExternal("https://honest.money")}
-            className="font-medium text-foreground underline-offset-4 hover:underline"
-          >
-            honest.money
-          </button>{" "}
-          ecosystem.
-        </p>
-        <nav className="flex flex-wrap items-center gap-x-5 gap-y-2">
-          <Link
-            to="/chrome"
-            title="Install the honest.money browser extension (Chrome, Edge, Brave, Arc, Opera)"
-            className="hover:text-foreground"
-          >
-            Chrome
-          </Link>
-          <Link to="/legal/terms" className="hover:text-foreground">
-            Terms
-          </Link>
-          <Link to="/legal/privacy" className="hover:text-foreground">
-            Privacy
-          </Link>
-          <button
-            type="button"
-            onClick={() => openExternal("https://github.com/blockchainmint1/hme-mobile")}
-            className="hover:text-foreground"
-          >
-            GitHub
-          </button>
-          <button
-            type="button"
-            onClick={() => openExternal(APK_URL)}
-            className="hover:text-foreground"
-          >
-            APK
-          </button>
-        </nav>
+          <a href="https://honest.money" target="_blank" rel="noreferrer" className="text-foreground hover:underline">honest.money</a>{" "}
+          ecosystem
+        </span>
+        <Link to="/legal/terms" className="hover:text-foreground">Terms</Link>
+        <Link to="/legal/privacy" className="hover:text-foreground">Privacy</Link>
+        <Link to="/manifesto" className="hover:text-foreground">Manifesto</Link>
       </div>
     </footer>
   );

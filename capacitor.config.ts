@@ -1,53 +1,28 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
 /**
- * Capacitor config for the HME Wallet mobile app.
+ * HME Seed Vault — offline Android seed storage.
  *
- * The web app is served from TanStack Start's static SPA output.
- * `bun run build` writes or mirrors the static bundle to `dist/client` and
- * generates `dist/client/index.html`, which is the native webview entry point.
- * When developing against a live Lovable preview, set `server.url` to the
- * preview URL instead of bundling.
- */
-/**
- * SECURITY: a release build MUST bundle the web assets inside the binary and
- * NOT load them from a remote URL. Loading `server.url` at runtime means the
- * store binary is a thin shell that executes whatever JavaScript the server
- * serves at launch, so a server/CDN compromise or one bad deploy can push code
- * that steals seed phrases from every user. It also has no Subresource
- * Integrity and is a poor fit for Play policy. See
- * SECURITY-AUDIT.md (H1).
+ * SECURITY: always bundled (never `server.url` in a release). The app has no
+ * internet permission (see scripts/patch-android-manifest.mjs), so it could
+ * not load remote code anyway. `HME_REMOTE_URL` is for local dev only.
  *
- * Default here is BUNDLED (no `server.url`). To live-reload against a remote
- * preview during development only, set `HME_REMOTE_URL`, e.g.
- *   HME_REMOTE_URL=https://id-preview--xxxx.lovable.app bunx cap sync android
- * Never ship a release with `HME_REMOTE_URL` set.
- *
- * MIGRATION-CRITICAL: `hostname` is kept at "mobile.honest.money" with the
- * https scheme so the bundled build serves its assets under the SAME origin
- * the remote build used. localStorage (the encrypted wallet) is keyed by
- * origin — if the origin changed (e.g. to capacitor://localhost), existing
- * users' wallets would become unreadable and they'd have to re-import from
- * seed. Do NOT change `hostname` without a data-migration plan. See
- * SECURITY-AUDIT.md (H1 migration note).
+ * `hostname` fixes the storage origin: the encrypted vault lives in
+ * localStorage, which is keyed by origin. Never change it after release
+ * without a migration, or installed vaults become unreadable.
  */
 const REMOTE_URL = process.env.HME_REMOTE_URL;
-const WEBVIEW_HOSTNAME = "mobile.honest.money";
 
 const config: CapacitorConfig = {
-  appId: "money.honest.txcwallet",
-  appName: "honest.money",
+  appId: "money.honest.seedvault",
+  appName: "HME Seed Vault",
   webDir: "dist/client",
   backgroundColor: "#ffffff",
   server: {
     ...(REMOTE_URL ? { url: REMOTE_URL } : {}),
-    // Stable origin across the remote -> bundled switch (see note above).
-    hostname: REMOTE_URL ? new URL(REMOTE_URL).hostname : WEBVIEW_HOSTNAME,
+    hostname: REMOTE_URL ? new URL(REMOTE_URL).hostname : "vault.local",
     cleartext: false,
     androidScheme: "https",
-    // Only the payment processor needs to be navigable; the app itself is
-    // served from the local bundle under the hostname above.
-    allowNavigation: ["nectar-pay.com"],
   },
   android: {
     backgroundColor: "#ffffff",
@@ -55,25 +30,15 @@ const config: CapacitorConfig = {
   },
   plugins: {
     SplashScreen: {
-      // Auto-hide so a JS/hydration failure can never leave an invisible native
-      // splash overlay blocking every tap on the landing page.
       launchAutoHide: true,
-      launchShowDuration: 900,
+      launchShowDuration: 600,
       backgroundColor: "#ffffff",
-      androidScaleType: "CENTER_CROP",
       showSpinner: false,
     },
-    StatusBar: {
-      style: "LIGHT",
-      backgroundColor: "#ffffff",
-    },
     PrivacyScreen: {
-      // Enable the privacy screen explicitly only while the seed is shown.
-      enable: false,
-      imageName: "Splash",
-      contentMode: "center",
-      // Keep the app-switcher privacy cover without globally blocking screenshots.
-      preventScreenshots: false,
+      // App-wide: no screenshots, no screen recording, blank in the app switcher.
+      enable: true,
+      preventScreenshots: true,
     },
   },
 };

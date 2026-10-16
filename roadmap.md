@@ -1,17 +1,9 @@
-# Roadmap
-- [x] Remove native iOS build/review restrictions and let the homepage footer scroll with its content; verified at 393px and desktop, iPhone web installation retained
+# Roadmap — HME Seed Vault
 
-- [x] Make Tap card setup comfortable on actual mobile screens — verified touch-enabled 320/390/430px layouts, 44px controls, PIN modes, Cancel, and no horizontal overflow
-
-- [x] Verify uploaded APK `hme-wallet-0.1.202608300600-release-2.apk` — byte-identical to the already-pinned build (md5 `49523ba1…`), nothing new to pin
-- [x] Show real app version in Settings, and show the available new version before installing (UpdateCheckCard)
-- [x] Stamp versionName/versionCode into Android builds in CI (APKs currently all ship as 1.0/1, breaking native version checks)
-- [x] Fix TXC migration so swept funds and later transaction change stay on the main derivation path; verified tx f23581e5b3fbd3ea91963c1f1d1d8930c121ee41ec5168b6818944922a5170c6 was accepted and has one full-balance output
-- [x] Pin TXC Receive to the canonical m/44'/696969'/0' branch and persist it as primary so imported-wallet metadata can never issue another fresh old-path address
-- [x] Normalize stale encrypted/session TXC primary-path metadata while loading a seed wallet so Settings always reports m/44'/696969'/0' before Receive is opened
-- [x] Add Solana chain support with seed-derived address, balance, activity, send, receive, and chain settings
-
-- [x] Tap card (NFC): server card service, owner settings, NectarPay pay endpoint, Telegram approvals, kill + sweep, NectarPay handoff
-- [x] Tap card uses reserved HME branch 1107 (card N = m/44'/696969'/1107'/0/N); Trading pocket rotation must skip 1107
-- [ ] Tap card: native NFC reading in the APK (needs NFC plugin + new APK build)
-- [x] Offline seed vault: open, documented encrypted seed backup (file + QR) with standalone offline decryptor
+- [x] Turn this copy into the offline seed vault (wallet features removed)
+- [x] Vault password, fingerprint unlock, auto-lock, wrong-password waits
+- [x] Add / make seeds, view words + QR, watch-only TXC/EVM QR, rename, delete, erase
+- [x] Encrypted backup (QR + file), restore with merge, offline unlocker page
+- [x] Android build: no internet permission, no screenshots, no cloud backup, new app name
+- [ ] Build the APK on GitHub and test on the offline phone with dummy seeds (needs Bobby's phone)
+- [ ] Phase 2: air-gapped signing (scan unsigned TXC payment, review, sign, show signed QR)

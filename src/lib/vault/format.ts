@@ -40,17 +40,24 @@ export function normalizeSeed(seed: string): string {
 }
 
 export async function lockSeed(seed: string, password: string, iterations = DEFAULT_ITERATIONS): Promise<string> {
+  return lockText(normalizeSeed(seed), password, iterations);
+}
+
+/** Lock any UTF-8 text (a seed phrase, or a JSON vault/backup payload). */
+export async function lockText(text: string, password: string, iterations = DEFAULT_ITERATIONS): Promise<string> {
   if (password.length < 8) throw new Error("Password must be at least 8 characters.");
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const key = await deriveKey(password, salt, iterations);
   const ct = new Uint8Array(
-    await crypto.subtle.encrypt({ name: "AES-GCM", iv, additionalData: enc.encode(VAULT_PREFIX) }, key, enc.encode(normalizeSeed(seed))),
+    await crypto.subtle.encrypt({ name: "AES-GCM", iv, additionalData: enc.encode(VAULT_PREFIX) }, key, enc.encode(text)),
   );
   return [VAULT_PREFIX, String(iterations), b64u(salt), b64u(iv), b64u(ct)].join(".");
 }
 
-export async function unlockSeed(vault: string, password: string): Promise<string> {
+export const unlockSeed = unlockText;
+
+export async function unlockText(vault: string, password: string): Promise<string> {
   const parts = vault.trim().replace(/\s+/g, "").split(".");
   if (parts.length !== 5 || parts[0] !== VAULT_PREFIX) throw new Error("That isn't a Seed Vault code.");
   const iterations = Number(parts[1]);

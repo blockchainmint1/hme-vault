@@ -1,0 +1,132 @@
+/**
+ * In-memory unlocked vault. On disk there is only one encrypted HMVAULT1 blob.
+ * Decrypted seeds and the password live in memory only and are dropped on lock.
+ */
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { lockText, unlockText } from "./format";
+import { emptyVault, lockoutMs, parsePayload, shouldAutoLock, type SeedEntry } from "./seeds";
+
+const VAULT_KEY = "hmsv.vault.v1";
+const FAILS_KEY = "hmsv.fails.v1";
+
+type Status = "loading" | "none" | "locked" | "unlocked";
+
+interface Ctx {
+  status: Status;
+  seeds: SeedEntry[];
+  waitUntil: number;
+  create: (password: string) => Promise<void>;
+  unlock: (password: string) => Promise<void>;
+  lock: () => void;
+  checkPassword: (password: string) => boolean;
+  save: (seeds: SeedEntry[]) => Promise<void>;
+  wipe: () => void;
+}
+
+const VaultCtx = createContext<Ctx | null>(null);
+
+function readFails(): { n: number; until: number } {
+  try {
+    return JSON.parse(localStorage.getItem(FAILS_KEY) ?? "") as { n: number; until: number };
+  } catch {
+    return { n: 0, until: 0 };
+  }
+}
+
+export function VaultProvider({ children }: { children: ReactNode }) {
+  const [status, setStatus] = useState<Status>("loading");
+  const [seeds, setSeeds] = useState<SeedEntry[]>([]);
+  const [waitUntil, setWaitUntil] = useState(0);
+  const pw = useRef<string | null>(null);
+  const lastActive = useRef(Date.now());
+
+  useEffect(() => {
+    setStatus(localStorage.getItem(VAULT_KEY) ? "locked" : "none");
+    setWaitUntil(readFails().until);
+  }, []);
+
+  const lock = useCallback(() => {
+    pw.current = null;
+    setSeeds([]);
+    setStatus((s) => (s === "unlocked" ? "locked" : s));
+  }, []);
+
+  const persist = useCallback(async (list: SeedEntry[], password: string) => {
+    localStorage.setItem(VAULT_KEY, await lockText(JSON.stringify({ ...emptyVault(), seeds: list }), password));
+  }, []);
+
+  const create = useCallback(async (password: string) => {
+    await persist([], password);
+    pw.current = password;
+    setSeeds([]);
+    setStatus("unlocked");
+  }, [persist]);
+
+  const unlock = useCallback(async (password: string) => {
+    const f = readFails();
+    if (f.until > Date.now()) throw new Error("Too many wrong tries. Please wait.");
+    const blob = localStorage.getItem(VAULT_KEY);
+    if (!blob) throw new Error("No vault on this device.");
+    try {
+      const payload = parsePayload(await unlockText(blob, password));
+      localStorage.removeItem(FAILS_KEY);
+      setWaitUntil(0);
+      pw.current = password;
+      lastActive.current = Date.now();
+      setSeeds(payload.seeds);
+      setStatus("unlocked");
+    } catch {
+      const n = f.n + 1;
+      const until = Date.now() + lockoutMs(n);
+      localStorage.setItem(FAILS_KEY, JSON.stringify({ n, until }));
+      setWaitUntil(until);
+      throw new Error("Wrong password.");
+    }
+  }, []);
+
+  const save = useCallback(async (list: SeedEntry[]) => {
+    if (!pw.current) throw new Error("Vault is locked.");
+    await persist(list, pw.current);
+    setSeeds(list);
+  }, [persist]);
+
+  const checkPassword = useCallback((p: string) => pw.current !== null && p === pw.current, []);
+
+  const wipe = useCallback(() => {
+    localStorage.removeItem(VAULT_KEY);
+    localStorage.removeItem(FAILS_KEY);
+    pw.current = null;
+    setSeeds([]);
+    setStatus("none");
+  }, []);
+
+  // Auto-lock: 2 minutes idle, or as soon as the app is hidden/backgrounded.
+  useEffect(() => {
+    if (status !== "unlocked") return;
+    const touch = () => (lastActive.current = Date.now());
+    const onHide = () => document.visibilityState === "hidden" && lock();
+    const t = setInterval(() => shouldAutoLock(lastActive.current, Date.now()) && lock(), 5_000);
+    const evs = ["pointerdown", "keydown", "scroll", "touchstart"] as const;
+    evs.forEach((e) => window.addEventListener(e, touch, { passive: true }));
+    document.addEventListener("visibilitychange", onHide);
+    window.addEventListener("pagehide", lock);
+    return () => {
+      clearInterval(t);
+      evs.forEach((e) => window.removeEventListener(e, touch));
+      document.removeEventListener("visibilitychange", onHide);
+      window.removeEventListener("pagehide", lock);
+    };
+  }, [status, lock]);
+
+  return (
+    <VaultCtx.Provider value={{ status, seeds, waitUntil, create, unlock, lock, checkPassword, save, wipe }}>
+      {children}
+    </VaultCtx.Provider>
+  );
+}
+
+export function useVault(): Ctx {
+  const c = useContext(VaultCtx);
+  if (!c) throw new Error("useVault outside VaultProvider");
+  return c;
+}

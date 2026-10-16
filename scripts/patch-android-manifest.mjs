@@ -1,18 +1,13 @@
 #!/usr/bin/env node
 /**
- * Applies the HME Wallet-specific tweaks to android/app/src/main/AndroidManifest.xml
- * after `bunx cap add android`. Idempotent — safe to re-run.
+ * HME Seed Vault Android manifest tweaks, run after `bunx cap add android`. Idempotent.
  *
- * Adds:
- *   - CAMERA + camera hardware feature (QR scanner)
- *   - USE_BIOMETRIC (unlock)
- *   - ACCESS_NETWORK_STATE (reachability)
- *   - Deep-link intent filters:
- *       nectar://...
- *       payhme://login (tap-to-sign-in from partner sites)
- *       https://pay.honest.money/...
- *
- * See ANDROID.md for the source-of-truth list.
+ *  - REMOVES all network permissions (INTERNET, ACCESS_NETWORK_STATE, Wi-Fi state),
+ *    even ones a plugin's own manifest merges in, via tools:node="remove".
+ *    With no INTERNET permission Android itself blocks every socket.
+ *  - Adds CAMERA (QR scanning) and USE_BIOMETRIC (fingerprint unlock).
+ *  - Disables Android cloud backup so the vault is never copied off the phone.
+ *  - Sets the app name.
  */
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
@@ -24,65 +19,40 @@ if (!existsSync(manifestPath)) {
 }
 
 let xml = readFileSync(manifestPath, "utf8");
-const original = xml;
 
-const permissions = [
+if (!xml.includes('xmlns:tools=')) {
+  xml = xml.replace(/<manifest\b/, '<manifest xmlns:tools="http://schemas.android.com/tools"');
+}
+
+// Drop any existing plain network permission lines.
+const NET = ["INTERNET", "ACCESS_NETWORK_STATE", "ACCESS_WIFI_STATE", "CHANGE_WIFI_STATE", "CHANGE_NETWORK_STATE"];
+for (const p of NET) {
+  xml = xml.replace(new RegExp(`\\s*<uses-permission[^>]*android\\.permission\\.${p}"[^>]*/>`, "g"), "");
+}
+
+const lines = [
+  ...NET.map((p) => `<uses-permission android:name="android.permission.${p}" tools:node="remove" />`),
   '<uses-permission android:name="android.permission.CAMERA" />',
   '<uses-feature android:name="android.hardware.camera" android:required="false" />',
   '<uses-permission android:name="android.permission.USE_BIOMETRIC" />',
-  '<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />',
 ];
-
-for (const line of permissions) {
-  if (!xml.includes(line)) {
-    xml = xml.replace(/<application\b/, `    ${line}\n\n    <application`);
-  }
+for (const line of lines) {
+  if (!xml.includes(line)) xml = xml.replace(/<application\b/, `    ${line}\n\n    <application`);
 }
 
-// Deep-link intent filters injected into the main activity (the one Capacitor
-// generates with MAIN/LAUNCHER). We look for the closing </activity> of the
-// first activity block and insert before it.
-const deepLinks = `
-            <intent-filter android:autoVerify="true">
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="nectar" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="payhme" android:host="login" />
-            </intent-filter>
-            <intent-filter android:autoVerify="true">
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="pay.honest.money" />
-            </intent-filter>
-`;
+// No cloud / device-transfer backups of app data.
+xml = xml.replace(/android:allowBackup="true"/, 'android:allowBackup="false"');
+if (!xml.includes("android:allowBackup")) xml = xml.replace(/<application\b/, '<application android:allowBackup="false"');
+if (!xml.includes("android:fullBackupContent")) xml = xml.replace(/<application\b/, '<application android:fullBackupContent="false"');
 
-if (!xml.includes('android:scheme="nectar"') || !xml.includes('android:scheme="payhme"')) {
-  xml = xml.replace(/(<\/activity>)/, `${deepLinks}        $1`);
-}
+writeFileSync(manifestPath, xml);
+console.log("Patched AndroidManifest.xml (no network, camera, biometric, no backups).");
 
-if (xml === original) {
-  console.log("AndroidManifest.xml already patched — no changes.");
-} else {
-  writeFileSync(manifestPath, xml);
-  console.log("Patched AndroidManifest.xml (permissions + deep links).");
-}
-
-// App display name (home screen / app switcher). cap sync does not rewrite this.
 const stringsPath = resolve(process.cwd(), "android/app/src/main/res/values/strings.xml");
 if (existsSync(stringsPath)) {
-  let strings = readFileSync(stringsPath, "utf8");
+  const strings = readFileSync(stringsPath, "utf8");
   const next = strings
-    .replace(/(<string name="app_name">)[^<]*(<\/string>)/, "$1honest.money$2")
-    .replace(/(<string name="title_activity_main">)[^<]*(<\/string>)/, "$1honest.money$2");
-  if (next !== strings) {
-    writeFileSync(stringsPath, next);
-    console.log("Set Android app name to honest.money.");
-  }
+    .replace(/(<string name="app_name">)[^<]*(<\/string>)/, "$1HME Seed Vault$2")
+    .replace(/(<string name="title_activity_main">)[^<]*(<\/string>)/, "$1HME Seed Vault$2");
+  if (next !== strings) writeFileSync(stringsPath, next);
 }
