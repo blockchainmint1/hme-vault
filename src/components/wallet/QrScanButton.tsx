@@ -54,7 +54,8 @@ export function QrScanButton({ onScan }: { onScan: (text: string) => void }) {
   );
 }
 
-function ScannerDialog({ onClose, onScan }: { onClose: () => void; onScan: (t: string) => void }) {
+/** `keepScanning`: stay open and report every code (for multi-part QRs); the caller closes it. */
+export function ScannerDialog({ onClose, onScan, keepScanning = false, hint }: { onClose: () => void; onScan: (t: string) => void; keepScanning?: boolean; hint?: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -103,7 +104,7 @@ function ScannerDialog({ onClose, onScan }: { onClose: () => void; onScan: (t: s
       } catch (e) {
         setError(
           e instanceof Error && e.name === "NotAllowedError"
-            ? "Camera access denied. Enable it in Settings → HME Wallet."
+            ? "Camera access denied. Enable it in the phone settings for HME Seed Vault."
             : e instanceof Error
               ? e.message
               : "Camera unavailable",
@@ -137,7 +138,7 @@ function ScannerDialog({ onClose, onScan }: { onClose: () => void; onScan: (t: s
               const codes = await detector.detect(video);
               if (codes.length > 0 && codes[0].rawValue) {
                 onScanRef.current(codes[0].rawValue);
-                return;
+                if (!keepScanning) return;
               }
             } else if (jsQR && ctx) {
               const w = video.videoWidth;
@@ -149,7 +150,7 @@ function ScannerDialog({ onClose, onScan }: { onClose: () => void; onScan: (t: s
               const code = jsQR(img.data, w, h, { inversionAttempts: "attemptBoth" });
               if (code && code.data) {
                 onScanRef.current(code.data);
-                return;
+                if (!keepScanning) return;
               }
             }
           } catch {
@@ -197,7 +198,7 @@ function ScannerDialog({ onClose, onScan }: { onClose: () => void; onScan: (t: s
           {error
             ? error
             : ready
-              ? "Point the camera at a wallet address QR code."
+              ? (hint ?? "Point the camera at a QR code.")
               : "Starting camera…"}
         </div>
       </DialogContent>

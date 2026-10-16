@@ -6,9 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { QrCode } from "@/components/wallet/QrCode";
+import { AnimatedQr } from "@/components/vault/AnimatedQr";
 import { Unlocked } from "@/components/vault/Unlocked";
 import { useVault } from "@/lib/vault/vault-context";
-import { deriveKeys, REVEAL_HIDE_MS, TXC_ACCOUNT_PATH, EVM_PATH, type SeedKeys } from "@/lib/vault/seeds";
+import { deriveKeys, pairingPayload, REVEAL_HIDE_MS, TXC_ACCOUNT_PATH, EVM_PATH, type SeedKeys } from "@/lib/vault/seeds";
 
 export const Route = createFileRoute("/seeds/$id")({
   head: () => ({ meta: [{ title: "Seed — HME Seed Vault" }, { name: "description", content: "View a stored seed." }, { property: "og:title", content: "Seed — HME Seed Vault" }, { property: "og:description", content: "View a stored seed." }] }),
@@ -24,6 +25,7 @@ function SeedPage() {
   const [pw, setPw] = useState("");
   const [err, setErr] = useState("");
   const [keys, setKeys] = useState<SeedKeys | null>(null);
+  const [pairing, setPairing] = useState("");
   const [showKeys, setShowKeys] = useState(false);
   const [del, setDel] = useState(false);
   const [delPw, setDelPw] = useState("");
@@ -79,9 +81,16 @@ function SeedPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             {!showKeys ? (
-              <Button variant="outline" onClick={async () => { setShowKeys(true); setKeys(await deriveKeys(seed.words, seed.passphrase)); }}>Show watch-only QR</Button>
+              <Button variant="outline" onClick={async () => { setShowKeys(true); setKeys(await deriveKeys(seed.words, seed.passphrase)); setPairing(await pairingPayload(seed.words, seed.passphrase)); }}>Show watch-only QR</Button>
             ) : !keys ? <p className="text-sm text-muted-foreground">Working…</p> : (
               <div className="space-y-4">
+                {pairing && (
+                  <div className="flex flex-col items-center gap-1">
+                    <p className="text-sm font-medium">Pair with online wallet (TXC + ISK, all address types)</p>
+                    <AnimatedQr value={pairing} size={240} />
+                    <p className="text-xs text-muted-foreground">Fingerprint {keys.fingerprint}</p>
+                  </div>
+                )}
                 <div className="flex flex-col items-center gap-1">
                   <p className="text-sm font-medium">TEXITcoin watch key</p>
                   <QrCode value={keys.txcXpub} size={220} />
