@@ -14,6 +14,9 @@ import { Route as ManifestoRouteImport } from './routes/manifesto'
 import { Route as VaultRouteImport } from './routes/vault'
 import { Route as LegalPrivacyRouteImport } from './routes/legal.privacy'
 import { Route as LegalTermsRouteImport } from './routes/legal.terms'
+import { Route as SeedsIndexRouteImport } from './routes/seeds.index'
+import { Route as SeedsIdRouteImport } from './routes/seeds.$id'
+import { Route as SeedsNewRouteImport } from './routes/seeds.new'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -40,6 +43,21 @@ const LegalTermsRoute = LegalTermsRouteImport.update({
   path: '/legal/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SeedsIndexRoute = SeedsIndexRouteImport.update({
+  id: '/seeds/',
+  path: '/seeds/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SeedsIdRoute = SeedsIdRouteImport.update({
+  id: '/seeds/$id',
+  path: '/seeds/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SeedsNewRoute = SeedsNewRouteImport.update({
+  id: '/seeds/new',
+  path: '/seeds/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -47,6 +65,9 @@ export interface FileRoutesByFullPath {
   '/vault': typeof VaultRoute
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/terms': typeof LegalTermsRoute
+  '/seeds/$id': typeof SeedsIdRoute
+  '/seeds/new': typeof SeedsNewRoute
+  '/seeds/': typeof SeedsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -54,6 +75,9 @@ export interface FileRoutesByTo {
   '/vault': typeof VaultRoute
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/terms': typeof LegalTermsRoute
+  '/seeds/$id': typeof SeedsIdRoute
+  '/seeds/new': typeof SeedsNewRoute
+  '/seeds': typeof SeedsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -62,12 +86,31 @@ export interface FileRoutesById {
   '/vault': typeof VaultRoute
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/terms': typeof LegalTermsRoute
+  '/seeds/$id': typeof SeedsIdRoute
+  '/seeds/new': typeof SeedsNewRoute
+  '/seeds/': typeof SeedsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/manifesto' | '/vault' | '/legal/privacy' | '/legal/terms'
+  fullPaths:
+    | '/'
+    | '/manifesto'
+    | '/vault'
+    | '/legal/privacy'
+    | '/legal/terms'
+    | '/seeds/$id'
+    | '/seeds/new'
+    | '/seeds/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/manifesto' | '/vault' | '/legal/privacy' | '/legal/terms'
+  to:
+    | '/'
+    | '/manifesto'
+    | '/vault'
+    | '/legal/privacy'
+    | '/legal/terms'
+    | '/seeds/$id'
+    | '/seeds/new'
+    | '/seeds'
   id:
     | '__root__'
     | '/'
@@ -75,6 +118,9 @@ export interface FileRouteTypes {
     | '/vault'
     | '/legal/privacy'
     | '/legal/terms'
+    | '/seeds/$id'
+    | '/seeds/new'
+    | '/seeds/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -83,6 +129,9 @@ export interface RootRouteChildren {
   VaultRoute: typeof VaultRoute
   LegalPrivacyRoute: typeof LegalPrivacyRoute
   LegalTermsRoute: typeof LegalTermsRoute
+  SeedsIdRoute: typeof SeedsIdRoute
+  SeedsNewRoute: typeof SeedsNewRoute
+  SeedsIndexRoute: typeof SeedsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -122,6 +171,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LegalTermsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/seeds/': {
+      id: '/seeds/'
+      path: '/seeds'
+      fullPath: '/seeds/'
+      preLoaderRoute: typeof SeedsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/seeds/$id': {
+      id: '/seeds/$id'
+      path: '/seeds/$id'
+      fullPath: '/seeds/$id'
+      preLoaderRoute: typeof SeedsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/seeds/new': {
+      id: '/seeds/new'
+      path: '/seeds/new'
+      fullPath: '/seeds/new'
+      preLoaderRoute: typeof SeedsNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -131,6 +201,9 @@ const rootRouteChildren: RootRouteChildren = {
   VaultRoute: VaultRoute,
   LegalPrivacyRoute: LegalPrivacyRoute,
   LegalTermsRoute: LegalTermsRoute,
+  SeedsIdRoute: SeedsIdRoute,
+  SeedsNewRoute: SeedsNewRoute,
+  SeedsIndexRoute: SeedsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
