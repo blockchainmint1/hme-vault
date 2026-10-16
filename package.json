@@ -73,6 +73,7 @@
     "@radix-ui/react-toggle-group": "^1.1.11",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@scure/base": "2.2.0",
+    "@scure/bip32": "^2.4.0",
     "@scure/bip39": "^2.2.0",
     "@solana/web3.js": "^1.98.4",
     "@supabase/supabase-js": "^2.112.0",

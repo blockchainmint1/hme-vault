@@ -22,9 +22,9 @@
  */
 import { isNative } from "./platform";
 
-const SECURE_KEY = "txc.wallet.bio.password.v1";
-const FLAG_KEY = "txc.wallet.bio.enabled.v1";
-const LEGACY_FLAG_KEY = "txc.wallet.bio.enabled";
+const SECURE_KEY = "hmsv.bio.password.v1";
+const FLAG_KEY = "hmsv.bio.enabled.v1";
+const LEGACY_FLAG_KEY = "hmsv.bio.enabled";
 
 export interface BiometricStatus {
   available: boolean;
@@ -110,7 +110,7 @@ export async function enableBiometric(password: string): Promise<void> {
   const plugins = await loadPlugins();
   if (!plugins) throw new Error("Biometric unlock is only available on the mobile app.");
   await plugins.BiometricAuth.authenticate({
-    reason: "Enable Face ID / fingerprint unlock for your TXC wallet",
+    reason: "Enable Face ID / fingerprint unlock for your Seed Vault",
     cancelTitle: "Cancel",
     allowDeviceCredential: false,
     iosFallbackTitle: "Use Passcode",
@@ -155,11 +155,11 @@ export async function unlockWithBiometric(): Promise<string | null> {
   if (!enabled) return null;
   try {
     await plugins.BiometricAuth.authenticate({
-      reason: "Unlock your TEXITcoin wallet",
+      reason: "Unlock your Seed Vault",
       cancelTitle: "Use password",
       allowDeviceCredential: false,
       iosFallbackTitle: "Use Passcode",
-      androidTitle: "Unlock wallet",
+      androidTitle: "Unlock Seed Vault",
       androidSubtitle: "Confirm your identity",
     });
     const pw = await plugins.SecureStorage.get(SECURE_KEY, true, false);
