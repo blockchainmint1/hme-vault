@@ -15,5 +15,5 @@ try{const p=document.getElementById('v').value.trim().replace(/\\s+/g,'').split(
 const b=await crypto.subtle.importKey('raw',e.encode(document.getElementById('p').value.normalize('NFKD')),'PBKDF2',false,['deriveKey']);
 const k=await crypto.subtle.deriveKey({name:'PBKDF2',hash:'SHA-512',salt:u(p[2]),iterations:Number(p[1])},b,{name:'AES-GCM',length:256},false,['decrypt']);
 let t;try{t=await crypto.subtle.decrypt({name:'AES-GCM',iv:u(p[3]),additionalData:e.encode('HMVAULT1')},k,u(p[4]))}catch(_){throw new Error('Wrong password, or the code was damaged.')}
-o.textContent=new TextDecoder().decode(t).split(' ').map((w,i)=>(i+1)+'. '+w).join('\\n')}catch(x){o.textContent=x.message}};
+const txt=new TextDecoder().decode(t);if(txt[0]==='{'){const j=JSON.parse(txt);o.textContent=j.seeds.map(s=>s.name+(s.passphrase?' (passphrase: '+s.passphrase+')':'')+'\\n'+s.words.split(' ').map((w,i)=>(i+1)+'. '+w).join('\\n')).join('\\n\\n')}else o.textContent=txt.split(' ').map((w,i)=>(i+1)+'. '+w).join('\\n')}catch(x){o.textContent=x.message}};
 </script></body></html>`;
