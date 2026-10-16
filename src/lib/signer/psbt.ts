@@ -27,6 +27,21 @@ export interface ReviewOutput {
   isData: boolean;
 }
 
+export interface TokenSend { propertyId: number; symbol: string; amount: string; to: string | null }
+
+const KNOWN_TOKENS: Record<number, { symbol: string; divisible: boolean }> = { 39: { symbol: "TSD", divisible: true } };
+
+/** Omni Class C Simple Send (type 0) inside an OP_RETURN script, or null. */
+export function decodeOmniSimpleSend(script: Uint8Array): { propertyId: number; amount: bigint } | null {
+  const h = hex(script);
+  if (!h.startsWith("6a")) return null;
+  const at = h.indexOf("6f6d6e69");
+  if (at < 0) return null;
+  const p = h.slice(at + 8);
+  if (p.length < 32 || parseInt(p.slice(4, 8), 16) !== 0) return null;
+  return { propertyId: parseInt(p.slice(8, 16), 16), amount: BigInt("0x" + p.slice(16, 32)) };
+}
+
 export interface Review {
   coin: CoinId;
   seedName: string;
@@ -35,6 +50,7 @@ export interface Review {
   changeSats: bigint;
   feeSats: bigint;
   outputs: ReviewOutput[];
+  token: TokenSend | null;
   warnings: string[];
 }
 
@@ -153,11 +169,21 @@ export async function reviewPsbt(psbt: Psbt, seeds: SignerSeed[]): Promise<{ rev
   }
   const feeSats = inputsSats - sendSats - changeSats;
   if (feeSats < 0n) throw new Error("This payment spends more than its inputs hold.");
-  if (outputs.some((o) => o.isData)) warnings.push("Includes a data output — usually a token (e.g. TSD) transfer. The token amount can't be shown yet.");
+  let token: TokenSend | null = null;
+  for (const o of psbt.txOutputs) {
+    const d = o.script[0] === 0x6a ? decodeOmniSimpleSend(Uint8Array.from(o.script)) : null;
+    if (!d) continue;
+    const info = KNOWN_TOKENS[d.propertyId];
+    const amount = info?.divisible ? formatCoins(d.amount) : d.amount.toString();
+    const to = outputs.find((x) => !x.isData && !x.isChange)?.address ?? null;
+    token = { propertyId: d.propertyId, symbol: info?.symbol ?? `Token #${d.propertyId}`, amount, to };
+    if (!info) warnings.push(`Token #${d.propertyId} isn't one this vault knows, so the amount is shown as raw units.`);
+  }
+  if (!token && outputs.some((o) => o.isData)) warnings.push("Includes a data output this vault can't read. Only sign if you expected it.");
   if (sendSats > 0n && feeSats * 20n > sendSats) warnings.push("The network fee is more than 5% of what you're sending.");
   if (feeSats > 100_000_000n) warnings.push("The network fee is over 1 coin. Check this carefully.");
 
-  return { review: { coin: coin!, seedName, inputsSats, sendSats, changeSats, feeSats, outputs, warnings }, keys };
+  return { review: { coin: coin!, seedName, inputsSats, sendSats, changeSats, feeSats, outputs, token, warnings }, keys };
 }
 
 export function signPsbt(psbt: Psbt, keys: HDKey[]): { hex: string; txid: string } {

@@ -52,6 +52,14 @@ describe("offline signer", () => {
     const { psbt } = await setup();
     await expect(reviewPsbt(parsePsbt(psbt.toBase64()), [{ id: "b", name: "x", words: OTHER, fingerprint: "deadbeef" }])).rejects.toThrow(/doesn't belong/);
   });
+  it("reads a 100 TSD transfer from the data output", async () => {
+    const { psbt, seeds } = await setup();
+    const payload = Uint8Array.from(Buffer.from("6f6d6e69" + "0000" + "0000" + "00000027" + (100n * 100_000_000n).toString(16).padStart(16, "0"), "hex"));
+    psbt.addOutput({ script: payments.embed({ data: [payload as Buffer] }).output!, value: 0n });
+    const { review } = await reviewPsbt(parsePsbt(psbt.toBase64()), seeds);
+    expect(review.token?.symbol).toBe("TSD");
+    expect(review.token?.amount).toBe("100");
+  });
   it("multi-part QR round-trips", () => {
     const text = "x".repeat(1500);
     const parts = toParts(text);

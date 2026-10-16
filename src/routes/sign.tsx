@@ -84,7 +84,14 @@ function SignPage() {
               <CardDescription>Compare every address with the one you meant to pay.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              {r.outputs.filter((o) => !o.isChange).map((o, i) => (
+              {r.token && (
+                <div className="rounded-md border-2 border-primary p-3">
+                  <p className="text-xs text-muted-foreground">Token transfer</p>
+                  <p className="text-lg font-semibold">{r.token.amount} {r.token.symbol}</p>
+                  {r.token.to && <p className="break-all font-mono text-sm">to {r.token.to}</p>}
+                </div>
+              )}
+              {r.outputs.filter((o) => !o.isChange && !(r.token && o.isData)).map((o, i) => (
                 <div key={i} className="rounded-md border border-border p-3">
                   <p className="text-xs text-muted-foreground">{o.isData ? "Extra data" : "Pay to"}</p>
                   <p className="break-all font-mono text-sm">{o.address}</p>
