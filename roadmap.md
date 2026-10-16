@@ -14,4 +14,4 @@
 - [x] Tap card (NFC): server card service, owner settings, NectarPay pay endpoint, Telegram approvals, kill + sweep, NectarPay handoff
 - [x] Tap card uses reserved HME branch 1107 (card N = m/44'/696969'/1107'/0/N); Trading pocket rotation must skip 1107
 - [ ] Tap card: native NFC reading in the APK (needs NFC plugin + new APK build)
-- [ ] Offline seed vault: open, documented encrypted seed backup (file + QR) with standalone offline decryptor
+- [x] Offline seed vault: open, documented encrypted seed backup (file + QR) with standalone offline decryptor
