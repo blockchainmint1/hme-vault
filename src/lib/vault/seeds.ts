@@ -5,6 +5,7 @@ import { wordlist } from "@scure/bip39/wordlists/english.js";
 import { secp256k1 } from "@noble/curves/secp256k1";
 import { keccak_256 } from "@noble/hashes/sha3.js";
 import { normalizeSeed } from "./format";
+import { validateSecret, MAX_VAULT_CHARS, type SecretEntry } from "./secrets";
 
 export interface SeedEntry {
   id: string;
@@ -19,14 +20,19 @@ export interface VaultPayload {
   v: 1;
   kind: "hm-seed-vault";
   seeds: SeedEntry[];
+  secrets: SecretEntry[];
 }
 
-export const emptyVault = (): VaultPayload => ({ v: 1, kind: "hm-seed-vault", seeds: [] });
+export const emptyVault = (): VaultPayload => ({ v: 1, kind: "hm-seed-vault", seeds: [], secrets: [] });
 
 export function parsePayload(text: string): VaultPayload {
+  if (text.length > MAX_VAULT_CHARS) throw new Error("Vault is too large. Use a smaller collection.");
   const j = JSON.parse(text) as Partial<VaultPayload>;
-  if (j?.kind !== "hm-seed-vault" || !Array.isArray(j.seeds)) throw new Error("That backup isn't a Seed Vault backup.");
-  return { v: 1, kind: "hm-seed-vault", seeds: j.seeds };
+  if (j?.v !== 1 || j.kind !== "hm-seed-vault" || !Array.isArray(j.seeds) || (j.secrets !== undefined && !Array.isArray(j.secrets))) throw new Error("That isn't a supported Vault backup.");
+  for (const s of j.seeds) {
+    if (!s || typeof s.id !== "string" || typeof s.name !== "string" || typeof s.words !== "string" || !isValidSeed(s.words) || typeof s.fingerprint !== "string" || !Number.isFinite(s.createdAt) || (s.passphrase !== undefined && typeof s.passphrase !== "string")) throw new Error("Invalid seed in backup.");
+  }
+  return { v: 1, kind: "hm-seed-vault", seeds: j.seeds, secrets: (j.secrets ?? []).map(validateSecret) };
 }
 
 export function isValidSeed(words: string): boolean {
@@ -81,7 +87,8 @@ export async function deriveKeys(words: string, passphrase = ""): Promise<SeedKe
   const fingerprint = root.fingerprint.toString(16).padStart(8, "0");
   const txc = root.derive(TXC_ACCOUNT_PATH);
   const evm = root.derive(EVM_PATH);
-  const pub = secp256k1.getPublicKey(evm.privateKey!, false).slice(1);
+  if (!evm.privateKey) throw new Error("Could not derive seed key.");
+  const pub = secp256k1.getPublicKey(evm.privateKey, false).slice(1);
   const addr = Array.from(keccak_256(pub).slice(-20), (b) => b.toString(16).padStart(2, "0")).join("");
   return { fingerprint, txcXpub: txc.publicExtendedKey, evmAddress: `0x${addr}` };
 }

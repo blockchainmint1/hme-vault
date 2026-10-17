@@ -46,6 +46,7 @@ export async function lockSeed(seed: string, password: string, iterations = DEFA
 /** Lock any UTF-8 text (a seed phrase, or a JSON vault/backup payload). */
 export async function lockText(text: string, password: string, iterations = DEFAULT_ITERATIONS): Promise<string> {
   if (password.length < 8) throw new Error("Password must be at least 8 characters.");
+  if (!Number.isInteger(iterations) || iterations < 1000 || iterations > 10_000_000) throw new Error("Invalid encryption iteration count.");
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const key = await deriveKey(password, salt, iterations);
@@ -58,6 +59,7 @@ export async function lockText(text: string, password: string, iterations = DEFA
 export const unlockSeed = unlockText;
 
 export async function unlockText(vault: string, password: string): Promise<string> {
+  if (vault.length > 3 * 1024 * 1024) throw new Error("Encrypted backup must be under 3 MB.");
   const parts = vault.trim().replace(/\s+/g, "").split(".");
   if (parts.length !== 5 || parts[0] !== VAULT_PREFIX) throw new Error("That isn't a Seed Vault code.");
   const iterations = Number(parts[1]);

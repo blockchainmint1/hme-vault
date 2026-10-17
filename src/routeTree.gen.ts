@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BackupRouteImport } from './routes/backup'
 import { Route as ManifestoRouteImport } from './routes/manifesto'
+import { Route as SecretsRouteImport } from './routes/secrets'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SignRouteImport } from './routes/sign'
 import { Route as VaultRouteImport } from './routes/vault'
@@ -34,6 +35,11 @@ const BackupRoute = BackupRouteImport.update({
 const ManifestoRoute = ManifestoRouteImport.update({
   id: '/manifesto',
   path: '/manifesto',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SecretsRoute = SecretsRouteImport.update({
+  id: '/secrets',
+  path: '/secrets',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -81,6 +87,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/backup': typeof BackupRoute
   '/manifesto': typeof ManifestoRoute
+  '/secrets': typeof SecretsRoute
   '/settings': typeof SettingsRoute
   '/sign': typeof SignRoute
   '/vault': typeof VaultRoute
@@ -94,6 +101,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/backup': typeof BackupRoute
   '/manifesto': typeof ManifestoRoute
+  '/secrets': typeof SecretsRoute
   '/settings': typeof SettingsRoute
   '/sign': typeof SignRoute
   '/vault': typeof VaultRoute
@@ -108,6 +116,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/backup': typeof BackupRoute
   '/manifesto': typeof ManifestoRoute
+  '/secrets': typeof SecretsRoute
   '/settings': typeof SettingsRoute
   '/sign': typeof SignRoute
   '/vault': typeof VaultRoute
@@ -123,6 +132,7 @@ export interface FileRouteTypes {
     | '/'
     | '/backup'
     | '/manifesto'
+    | '/secrets'
     | '/settings'
     | '/sign'
     | '/vault'
@@ -136,6 +146,7 @@ export interface FileRouteTypes {
     | '/'
     | '/backup'
     | '/manifesto'
+    | '/secrets'
     | '/settings'
     | '/sign'
     | '/vault'
@@ -149,6 +160,7 @@ export interface FileRouteTypes {
     | '/'
     | '/backup'
     | '/manifesto'
+    | '/secrets'
     | '/settings'
     | '/sign'
     | '/vault'
@@ -163,6 +175,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BackupRoute: typeof BackupRoute
   ManifestoRoute: typeof ManifestoRoute
+  SecretsRoute: typeof SecretsRoute
   SettingsRoute: typeof SettingsRoute
   SignRoute: typeof SignRoute
   VaultRoute: typeof VaultRoute
@@ -194,6 +207,13 @@ declare module '@tanstack/react-router' {
       path: '/manifesto'
       fullPath: '/manifesto'
       preLoaderRoute: typeof ManifestoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/secrets': {
+      id: '/secrets'
+      path: '/secrets'
+      fullPath: '/secrets'
+      preLoaderRoute: typeof SecretsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -259,6 +279,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BackupRoute: BackupRoute,
   ManifestoRoute: ManifestoRoute,
+  SecretsRoute: SecretsRoute,
   SettingsRoute: SettingsRoute,
   SignRoute: SignRoute,
   VaultRoute: VaultRoute,

@@ -210,14 +210,14 @@ jobs:
           else
             SRC=$(ls android/app/build/outputs/apk/debug/*.apk | head -n1)
           fi
-          DEST="out/hme-wallet-${{ steps.ver.outputs.version }}-$MODE.apk"
+          DEST="out/hme-vault-${{ steps.ver.outputs.version }}-$MODE.apk"
           cp "$SRC" "$DEST"
           (cd out && sha256sum "$(basename "$DEST")" > SHA256SUMS)
           echo "path=$DEST" >> $GITHUB_OUTPUT
 
       - uses: actions/upload-artifact@v4
         with:
-          name: hme-wallet-${{ steps.ver.outputs.version }}-${{ steps.mode.outputs.mode }}
+          name: hme-vault-${{ steps.ver.outputs.version }}-${{ steps.mode.outputs.mode }}
           path: out/*
 
       - name: Create GitHub Release
@@ -225,5 +225,5 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: out/*
-          name: HME Seed Vault Android ${{ steps.ver.outputs.version }}
+          name: HME Vault Android ${{ steps.ver.outputs.version }}
           generate_release_notes: true

@@ -3,11 +3,15 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 export const Route = createFileRoute("/legal/privacy")({
   head: () => ({
     meta: [
-      { title: "Privacy — HME Wallet" },
+      { title: "Privacy — HME Vault" },
+      { property: "og:title", content: "Privacy — HME Vault" },
+      { property: "og:description", content: "Privacy policy for offline seed and secret storage." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         name: "description",
         content:
-          "Privacy policy for the HME Wallet. No accounts, no analytics, no tracking — your seed never leaves your device.",
+          "Privacy policy for the HME Vault. Offline seed and secret storage, without accounts or tracking.",
       },
     ],
   }),

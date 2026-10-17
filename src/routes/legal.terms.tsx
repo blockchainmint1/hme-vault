@@ -3,11 +3,15 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 export const Route = createFileRoute("/legal/terms")({
   head: () => ({
     meta: [
-      { title: "Terms — HME Wallet" },
+      { title: "Terms — HME Vault" },
+      { property: "og:title", content: "Terms — HME Vault" },
+      { property: "og:description", content: "Terms for offline Vault storage and recovery." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         name: "description",
         content:
-          "Terms of use for the HME Wallet. Self-custodial software provided as-is, no recovery service.",
+          "Terms of use for HME Vault. Offline self-custodial storage provided as-is, with no password recovery service.",
       },
     ],
   }),

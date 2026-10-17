@@ -20,4 +20,8 @@ describe("seed vault", () => {
     const v = await lockSeed(SEED, "correct horse");
     expect(v.split(".")[1]).toBe("600000");
   });
+  it("never writes an iteration count the offline reader refuses", async () => {
+    await expect(lockSeed(SEED, "correct horse", 999)).rejects.toThrow();
+    await expect(lockSeed(SEED, "correct horse", 10_000_001)).rejects.toThrow();
+  });
 });

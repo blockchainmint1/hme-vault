@@ -14,7 +14,7 @@ import { wordsFromScan } from "@/lib/vault/scan-seed";
 import { QrScanButton } from "@/components/wallet/QrScanButton";
 
 export const Route = createFileRoute("/seeds/new")({
-  head: () => ({ meta: [{ title: "Add a seed — HME Seed Vault" }, { name: "description", content: "Create or enter a recovery seed." }, { property: "og:title", content: "Add a seed — HME Seed Vault" }, { property: "og:description", content: "Create or enter a recovery seed." }] }),
+  head: () => ({ meta: [{ title: "Add a seed — HME Vault" }, { name: "description", content: "Create or enter a recovery seed." }, { property: "og:title", content: "Add a seed — HME Vault" }, { property: "og:description", content: "Create or enter a recovery seed." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: NewSeed,
 });
 

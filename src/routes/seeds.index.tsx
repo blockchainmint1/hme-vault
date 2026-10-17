@@ -6,7 +6,7 @@ import { Unlocked } from "@/components/vault/Unlocked";
 import { useVault } from "@/lib/vault/vault-context";
 
 export const Route = createFileRoute("/seeds/")({
-  head: () => ({ meta: [{ title: "My seeds — HME Seed Vault" }, { name: "description", content: "Seeds stored in your offline vault." }, { property: "og:title", content: "My seeds — HME Seed Vault" }, { property: "og:description", content: "Seeds stored in your offline vault." }] }),
+  head: () => ({ meta: [{ title: "My seeds — HME Vault" }, { name: "description", content: "Seeds stored in your offline vault." }, { property: "og:title", content: "My seeds — HME Vault" }, { property: "og:description", content: "Seeds stored in your offline vault." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: SeedsPage,
 });
 
@@ -14,6 +14,7 @@ function SeedsPage() {
   const { seeds } = useVault();
   return (
     <Unlocked title="My seeds">
+      <div className="mb-4 grid grid-cols-2 gap-2"><Button variant="secondary" disabled>Seeds</Button><Button asChild variant="outline"><Link to="/secrets">Secrets</Link></Button></div>
       <div className="space-y-2">
         {seeds.length === 0 && (
           <Card><CardContent className="pt-6 text-sm text-muted-foreground">No seeds yet. Add your first one below.</CardContent></Card>

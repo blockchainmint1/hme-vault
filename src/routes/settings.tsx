@@ -10,7 +10,7 @@ import { useVault } from "@/lib/vault/vault-context";
 import { disableBiometric, enableBiometric, getBiometricStatus, type BiometricStatus } from "@/lib/native/biometric";
 
 export const Route = createFileRoute("/settings")({
-  head: () => ({ meta: [{ title: "Settings — HME Seed Vault" }, { name: "description", content: "Vault settings." }, { property: "og:title", content: "Settings — HME Seed Vault" }, { property: "og:description", content: "Vault settings." }] }),
+  head: () => ({ meta: [{ title: "Settings — HME Vault" }, { name: "description", content: "Manage fingerprint unlock, auto-lock and erase your offline Vault." }, { property: "og:title", content: "Settings — HME Vault" }, { property: "og:description", content: "Security settings for your offline Vault." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: SettingsPage,
 });
 
@@ -59,7 +59,7 @@ function SettingsPage() {
         <Card className="border-destructive/50">
           <CardHeader>
             <CardTitle className="text-base">Erase this vault</CardTitle>
-            <CardDescription>Removes every seed from this phone. Only do this if you have a backup or paper copies. <Link to="/backup" className="underline">Make a backup</Link></CardDescription>
+            <CardDescription>Removes every seed, password, note and file from this phone. Only do this if you have a backup. <Link to="/backup" className="underline">Make a backup</Link></CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
             <Input type="password" placeholder="Vault password" value={wipePw} onChange={(e) => setWipePw(e.target.value)} />
