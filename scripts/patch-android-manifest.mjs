@@ -52,7 +52,24 @@ const stringsPath = resolve(process.cwd(), "android/app/src/main/res/values/stri
 if (existsSync(stringsPath)) {
   const strings = readFileSync(stringsPath, "utf8");
   const next = strings
-    .replace(/(<string name="app_name">)[^<]*(<\/string>)/, "$1HME Seed Vault$2")
-    .replace(/(<string name="title_activity_main">)[^<]*(<\/string>)/, "$1HME Seed Vault$2");
+    .replace(/(<string name="app_name">)[^<]*(<\/string>)/, "$1HME Vault$2")
+    .replace(/(<string name="title_activity_main">)[^<]*(<\/string>)/, "$1HME Vault$2");
   if (next !== strings) writeFileSync(stringsPath, next);
+}
+
+// Install the local SAF plugin into the generated Android project on every build.
+const javaDir = resolve(process.cwd(), "android/app/src/main/java/money/honest/seedvault");
+const mainPath = resolve(javaDir, "MainActivity.java");
+if (!existsSync(mainPath)) throw new Error("Expected Vault MainActivity.java was not found.");
+writeFileSync(resolve(javaDir, "VaultDocumentsPlugin.java"), readFileSync(resolve(process.cwd(), "scripts/native/VaultDocumentsPlugin.java"), "utf8"));
+let main = readFileSync(mainPath, "utf8");
+if (!main.includes("registerPlugin(VaultDocumentsPlugin.class)")) {
+  if (main.includes("void onCreate(")) throw new Error("Review existing MainActivity.onCreate before registering document plugin.");
+  main = main.replace(/extends BridgeActivity\s*\{/, `extends BridgeActivity {
+    @Override public void onCreate(android.os.Bundle savedInstanceState) {
+        registerPlugin(VaultDocumentsPlugin.class);
+        super.onCreate(savedInstanceState);
+    }`);
+  if (!main.includes("registerPlugin(VaultDocumentsPlugin.class)")) throw new Error("Document plugin registration failed.");
+  writeFileSync(mainPath, main);
 }
