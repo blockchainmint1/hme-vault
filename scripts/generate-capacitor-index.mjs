@@ -11,6 +11,7 @@ const staticSpaRoutes = [
   "seeds",
   "seeds/new",
   "backup",
+  "secrets",
   "settings",
   "sign",
   "vault",

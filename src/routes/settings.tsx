@@ -59,7 +59,7 @@ function SettingsPage() {
         <Card className="border-destructive/50">
           <CardHeader>
             <CardTitle className="text-base">Erase this vault</CardTitle>
-            <CardDescription>Removes every seed from this phone. Only do this if you have a backup or paper copies. <Link to="/backup" className="underline">Make a backup</Link></CardDescription>
+            <CardDescription>Removes every seed, password, note and file from this phone. Only do this if you have a backup. <Link to="/backup" className="underline">Make a backup</Link></CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
             <Input type="password" placeholder="Vault password" value={wipePw} onChange={(e) => setWipePw(e.target.value)} />
