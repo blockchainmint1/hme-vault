@@ -4,6 +4,7 @@ import { Download, Eye, FileKey, KeyRound, Plus, ScanLine, StickyNote, Trash2, X
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CredentialInput } from "@/components/vault/CredentialInput";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
