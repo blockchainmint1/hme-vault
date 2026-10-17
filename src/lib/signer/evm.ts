@@ -79,13 +79,16 @@ export async function reviewEvm(text: string, seeds: SignerSeed[]): Promise<EvmR
 export async function signEvm(review: EvmReview, seeds: SignerSeed[]): Promise<{ hex: string; txid: string }> {
   const r = parseRequest(JSON.stringify(review.request));
   const { account } = await accountFor(r, seeds);
-  const tx: TransactionSerializable = {
-    chainId: r.chainId, nonce: r.nonce, gas: BigInt(r.gas), type: r.type,
+  const base = {
+    chainId: r.chainId, nonce: r.nonce, gas: BigInt(r.gas),
     to: getAddress(r.kind === "erc20-transfer" ? r.token : r.to) as Address,
     value: r.kind === "native-transfer" ? BigInt(r.value) : 0n,
     ...(r.kind === "erc20-transfer" ? { data: encodeFunctionData({ abi: TRANSFER_ABI, functionName: "transfer", args: [getAddress(r.to), BigInt(r.amount)] }) } : {}),
-    ...(r.type === "legacy" ? { gasPrice: BigInt(r.gasPrice ?? "0") } : { maxFeePerGas: BigInt(r.maxFeePerGas ?? "0"), maxPriorityFeePerGas: BigInt(r.maxPriorityFeePerGas ?? "0") }),
+
   };
+  const tx: TransactionSerializable = r.type === "legacy"
+    ? { ...base, type: "legacy", gasPrice: BigInt(r.gasPrice ?? "0") }
+    : { ...base, type: "eip1559", maxFeePerGas: BigInt(r.maxFeePerGas ?? "0"), maxPriorityFeePerGas: BigInt(r.maxPriorityFeePerGas ?? "0") };
   const signed = await account.signTransaction(tx);
   return { hex: signed, txid: keccak256(signed) };
 }

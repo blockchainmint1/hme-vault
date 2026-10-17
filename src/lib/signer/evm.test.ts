@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decodeFunctionData, keccak256, parseTransaction, recoverTransactionAddress } from "viem";
+import { decodeFunctionData, keccak256, parseTransaction, recoverTransactionAddress, type TransactionSerialized } from "viem";
 import { reviewEvm, signEvm } from "./evm";
 const words = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
 const seeds = [{ id: "evm-dummy", name: "Dummy", words, fingerprint: "73c5da0a" }];
@@ -18,7 +18,7 @@ describe("offline EVM signing", () => {
     expect(tx.value).toBe(1000000000000000000n);
     expect(tx.maxFeePerGas).toBe(30000000000n);
     expect(signed.txid).toBe(keccak256(hex));
-    expect((await recoverTransactionAddress({ serializedTransaction: hex })).toLowerCase()).toBe(dummyEvm.from);
+    expect((await recoverTransactionAddress({ serializedTransaction: hex as TransactionSerialized })).toLowerCase()).toBe(dummyEvm.from);
   });
   it("supports replay-protected legacy EVM transactions", async () => {
     const { maxFeePerGas, maxPriorityFeePerGas, ...base } = dummyEvm;
