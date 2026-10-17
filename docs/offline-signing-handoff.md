@@ -14,10 +14,10 @@ The Seed Vault phone signs TXC / ISK payments by QR. It never goes online. The o
 - Base64 (or hex) PSBT. If longer than 600 characters, split into frames `HMQR:<n>/<total>:<chunk>` and cycle them (~700 ms per frame).
 
 ## 3. Scan the signed result
-- The vault shows the **fully signed raw transaction hex**, using the same `HMQR` framing when it's long. Reassemble it and broadcast as-is.
+- The vault shows the **fully signed raw transaction hex**, using content-labelled `HMQR2:<8-hex label>:<n>/<total>:<chunk>` framing when it's long. Reassemble it and broadcast as-is. Support both `HMQR2` and legacy `HMQR` on the online side; see `src/lib/signer/qr-parts.ts` for bounds and mixed-transfer rejection. The vault still accepts legacy `HMQR` input.
 
 ## Watch-only pairing
-Each seed page shows a "Pair with online wallet" QR (HMQR-framed if long) containing:
+Each seed page shows a "Pair with online wallet" QR (HMQR2-framed if long) containing:
 ```json
 { "hmvault": 1, "fp": "73c5da0a",
   "txc": { "84": "xpub…", "49": "xpub…", "44": "xpub…" },

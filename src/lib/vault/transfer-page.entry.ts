@@ -15,6 +15,10 @@ async function show() {
   await QRCode.toCanvas(canvas, frames[index], { width: 360, margin: 2, errorCorrectionLevel: "M" });
   const progress = find("progress"); if (progress) progress.textContent = `Part ${index + 1} of ${frames.length}`;
 }
+function clearSource() {
+  for (const id of ["content", "pw", "pw2", "file"]) { const el = find(id); if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) el.value = ""; }
+}
+document.addEventListener("visibilitychange", () => { if (document.hidden) clearSource(); });
 find("go")?.addEventListener("click", async () => {
   const status = find("status"); const go = find("go"); if (!(go instanceof HTMLButtonElement) || !status) return;
   go.disabled = true; status.textContent = "Encrypting…";
@@ -31,7 +35,7 @@ find("go")?.addEventListener("click", async () => {
     if (!content) throw new Error("Enter a secret or choose a non-empty file.");
     const secret = validateSecret({ id: crypto.randomUUID(), name: input("name"), type, content, filename, createdAt: Date.now() });
     encrypted = await lockText(JSON.stringify({ v: 1, kind: "hm-seed-vault", seeds: [], secrets: [secret] }), input("pw"));
-    for (const id of ["content", "pw", "pw2", "file"]) { const el = find(id); if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) el.value = ""; }
+    clearSource();
     frames = toParts(encrypted); index = 0; await show();
     if (result) result.hidden = false;
     if (frames.length > 1) timer = setInterval(() => { index = (index + 1) % frames.length; void show(); }, 700);

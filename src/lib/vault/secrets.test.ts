@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bytesToBase64, base64ToBytes, mergeSecrets, validateSecret, MAX_FILE_BYTES, type SecretEntry } from "./secrets";
+import { bytesToBase64, base64ToBytes, mergeSecrets, validateSecret, MAX_FILE_BYTES, MAX_VAULT_CHARS, type SecretEntry } from "./secrets";
 import { emptyVault, parsePayload } from "./seeds";
 import { lockText, unlockText } from "./format";
 const secret: SecretEntry = { id: "a", name: "Android signing key", type: "file", filename: "release.jks", content: bytesToBase64(new Uint8Array([0, 255, 7, 128])), createdAt: 1 };
@@ -23,5 +23,8 @@ describe("secret storage", () => {
   });
   it("preserves passwords and notes exactly including newlines", () => {
     expect(validateSecret({ ...secret, type: "password", content: " a\nB " }).content).toBe(" a\nB ");
+  });
+  it("rejects whole-vault plaintext above the 2 MB character limit", () => {
+    expect(() => parsePayload(" ".repeat(MAX_VAULT_CHARS + 1))).toThrow("Vault is too large");
   });
 });
