@@ -8,7 +8,7 @@ const wif = base58check(sha256);
 
 /** Old-style coin private key: WIF (any coin prefix, checksum verified) or 64-char hex. */
 function privateKeyFromScan(text: string): string | null {
-  const t = text.replace(/^(wif:|privkey:)/i, "").trim();
+  const t = text.replace(/^(wif:|privkey:|texitcoin:|txc:|isk:|bitcoin:|btc:)/i, "").trim();
   const hex = t.replace(/^0x/i, "");
   if (/^[0-9a-fA-F]{64}$/.test(hex)) {
     if (/^0+$/.test(hex)) throw new Error("That private key is empty.");

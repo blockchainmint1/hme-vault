@@ -43,3 +43,10 @@ describe("old-style private key coins", () => {
     expect(() => coinPasswordFromScan("1GAehh7TsJAHuUAeKZcXf5CnwuGuGgyX2S")).toThrow();
   });
 });
+describe("TXC key labels", () => {
+  it("accepts txc:/bitcoin:-prefixed WIF", () => {
+    expect(coinPasswordFromScan("bitcoin:5HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ")).toBe("5HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ");
+    const k = "KwdMAjGmerYanjeui5SHS7JkmpZvVipYvB2LJGU1ZxJwYvP98617";
+    expect(coinPasswordFromScan("txc:" + k)).toBe(k);
+  });
+});
