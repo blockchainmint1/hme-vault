@@ -1,5 +1,7 @@
 # Roadmap — HME Seed Vault
 
+- [ ] Add coin-based offline QR setup/unlock and optional fingerprint access (needs private coin credential and recovery design confirmed)
+
 - [x] Store passwords, notes and small files in the encrypted vault
 - [x] Standalone encrypted QR transfer page and multi-part scanning (dummy cycling QR camera feed verified)
 - [x] Full-vault cycling QR backups, USB picker and offline recovery for files (Android picker needs the phone test below)
