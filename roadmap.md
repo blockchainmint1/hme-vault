@@ -5,6 +5,7 @@
 - [ ] Enforce fingerprint secret release in Android security hardware and verify on GrapheneOS (requires native implementation and Bobby's actual device verification)
 
 - [x] Store passwords, notes and small files in the encrypted vault
+- [x] Offline TOTP authenticator (scan 2FA QR or paste setup code, live 6/8-digit codes with countdown; RFC 6238 vectors tested, dummy browser flow verified)
 - [x] Standalone encrypted QR transfer page and multi-part scanning (dummy cycling QR camera feed verified)
 - [x] Full-vault cycling QR backups, USB picker and offline recovery for files (Android picker needs the phone test below)
 - [x] Remove signing secrets from future GitHub logs; test complete secret backup/restore

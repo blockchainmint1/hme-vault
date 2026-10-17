@@ -1,10 +1,12 @@
 /** Browser-safe secret validation and merging. Never writes plaintext to disk. */
+import { parseOtpAuth, toOtpAuthUri } from "./totp";
+
 export const MAX_FILE_BYTES = 256 * 1024;
 export const MAX_VAULT_CHARS = 2 * 1024 * 1024;
 export interface SecretEntry {
   id: string;
   name: string;
-  type: "password" | "note" | "file";
+  type: "password" | "note" | "file" | "totp";
   content: string;
   filename?: string;
   createdAt: number;
@@ -21,7 +23,11 @@ export function base64ToBytes(text: string): Uint8Array {
 export function validateSecret(value: unknown): SecretEntry {
   if (!value || typeof value !== "object") throw new Error("Invalid secret entry.");
   const s = value as SecretEntry;
-  if (typeof s.id !== "string" || !s.id || typeof s.name !== "string" || !s.name.trim() || s.name.length > 200 || typeof s.content !== "string" || !Number.isFinite(s.createdAt) || !["password", "note", "file"].includes(s.type)) throw new Error("Invalid secret entry.");
+  if (typeof s.id !== "string" || !s.id || typeof s.name !== "string" || !s.name.trim() || s.name.length > 200 || typeof s.content !== "string" || !Number.isFinite(s.createdAt) || !["password", "note", "file", "totp"].includes(s.type)) throw new Error("Invalid secret entry.");
+  if (s.type === "totp") {
+    // Normalizes to a canonical otpauth URI; throws on anything invalid.
+    return { id: s.id, name: s.name.trim(), type: s.type, content: toOtpAuthUri(parseOtpAuth(s.content)), createdAt: s.createdAt };
+  }
   if (s.type === "file") {
     if (typeof s.filename !== "string" || !s.filename || s.filename.length > 200 || /[\\/\x00-\x1f]/.test(s.filename) || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(s.content)) throw new Error("Invalid secret file.");
     if (s.content.length > Math.ceil(MAX_FILE_BYTES / 3) * 4 || base64ToBytes(s.content).length > MAX_FILE_BYTES) throw new Error("Files must be 256 KB or smaller.");
