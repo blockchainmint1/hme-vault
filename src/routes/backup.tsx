@@ -20,7 +20,7 @@ export const Route = createFileRoute("/backup")({
 });
 
 function BackupPage() {
-  return <Unlocked title="Backup & device copy" back><BackupContent /></Unlocked>;
+  return <Unlocked title="Backup" back><BackupContent /></Unlocked>;
 }
 
 function BackupContent() {

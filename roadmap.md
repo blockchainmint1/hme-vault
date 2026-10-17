@@ -1,6 +1,6 @@
 # Roadmap — HME Seed Vault
 
-- [ ] Same-key encrypted backups, offline QR device copying and simple USB file saving (implement and test with dummy data)
+- [x] Same-key encrypted backups, offline QR device copying and simple USB file saving (dummy two-device import, actual QR decoding, duplicate skipping and receiver-key retention verified; Android USB/fingerprint checks remain part of the phone test below)
 
 - [x] Hidden coin seed QR setup/unlock, existing Vault relinking and scan-based sensitive confirmations (dummy camera flow verified; standard HMVAULT1 recovery retained)
 - [x] Allow coin scanning for existing optional fingerprint enrollment and disclose its app-only protection limitation
