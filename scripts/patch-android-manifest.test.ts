@@ -9,7 +9,8 @@ it("keeps network and cloud backups disabled and registers the USB picker idempo
     const main = join(root, "android/app/src/main");
     const java = join(main, "java/money/honest/seedvault");
     mkdirSync(java, { recursive: true }); mkdirSync(join(main, "res/values"), { recursive: true }); mkdirSync(join(root, "scripts/native"), { recursive: true });
-    copyFileSync(resolve("scripts/native/VaultDocumentsPlugin.java"), join(root, "scripts/native/VaultDocumentsPlugin.java"));
+    for (const f of ["VaultDocumentsPlugin.java", "VaultBiometricKeyPlugin.java"]) copyFileSync(resolve("scripts/native", f), join(root, "scripts/native", f));
+    mkdirSync(join(root, "android/app"), { recursive: true }); writeFileSync(join(root, "android/app/build.gradle"), "dependencies {\n}\n");
     writeFileSync(join(main, "AndroidManifest.xml"), '<manifest xmlns:android="http://schemas.android.com/apk/res/android"><uses-permission android:name="android.permission.INTERNET" /><application android:allowBackup="true"></application></manifest>');
     writeFileSync(join(java, "MainActivity.java"), 'package money.honest.seedvault; import com.getcapacitor.BridgeActivity; public class MainActivity extends BridgeActivity {}');
     writeFileSync(join(main, "res/values/strings.xml"), '<resources><string name="app_name">HME Seed Vault</string></resources>');
@@ -18,6 +19,11 @@ it("keeps network and cloud backups disabled and registers the USB picker idempo
     for (const p of ["INTERNET", "ACCESS_NETWORK_STATE", "ACCESS_WIFI_STATE", "CHANGE_WIFI_STATE", "CHANGE_NETWORK_STATE"]) expect(xml).toContain(`android.permission.${p}" tools:node="remove"`);
     expect(xml).toContain('android:allowBackup="false"'); expect(xml).not.toContain('android:allowBackup="true"');
     expect(readFileSync(join(java, "MainActivity.java"), "utf8").match(/registerPlugin\(VaultDocumentsPlugin.class\)/g)).toHaveLength(1);
+    const act = readFileSync(join(java, "MainActivity.java"), "utf8");
+    expect(act.match(/registerPlugin\(VaultBiometricKeyPlugin.class\)/g)).toHaveLength(1);
+    const bio = readFileSync(join(java, "VaultBiometricKeyPlugin.java"), "utf8");
+    expect(bio).toContain("setUserAuthenticationRequired(true)"); expect(bio).toContain("setInvalidatedByBiometricEnrollment(true)");
+    expect(readFileSync(join(root, "android/app/build.gradle"), "utf8").match(/androidx\.biometric:biometric/g)).toHaveLength(1);
     expect(readFileSync(join(java, "VaultDocumentsPlugin.java"), "utf8")).toContain("Intent.ACTION_CREATE_DOCUMENT");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
