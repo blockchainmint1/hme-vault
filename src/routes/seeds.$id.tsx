@@ -86,7 +86,7 @@ function SeedPage() {
               <div className="space-y-4">
                 {pairing && (
                   <div className="flex flex-col items-center gap-1">
-                    <p className="text-sm font-medium">Pair with online wallet (TXC + ISK, all address types)</p>
+                    <p className="text-sm font-medium">Pair with online wallet (TXC, ISK, BTC, LTC, DOGE + EVM)</p>
                     <AnimatedQr value={pairing} size={240} />
                     <p className="text-xs text-muted-foreground">Fingerprint {keys.fingerprint}</p>
                   </div>
