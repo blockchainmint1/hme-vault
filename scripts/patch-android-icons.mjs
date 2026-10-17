@@ -145,7 +145,7 @@ async function main() {
     const dir = resolve(androidRes, `mipmap-${density}`);
     await ensure(dir);
     await adaptiveForeground(SILVER, canvas, resolve(dir, "ic_launcher_foreground.png"));
-    await monochromeIcon(canvas, resolve(dir, "ic_launcher_monochrome.png"));
+    await monochromeIcon(SILVER, canvas, resolve(dir, "ic_launcher_monochrome.png"));
   }
 
   // 3. Adaptive icon XML (anydpi-v26).
