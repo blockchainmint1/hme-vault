@@ -1,12 +1,16 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Fingerprint, ShieldCheck } from "lucide-react";
+import { Camera, Fingerprint, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useVault } from "@/lib/vault/vault-context";
 import { getBiometricStatus, unlockWithBiometric } from "@/lib/native/biometric";
+import { CoinEnrollment } from "@/components/vault/CoinEnrollment";
+import { ScannerDialog } from "@/components/wallet/QrScanButton";
+import { coinPasswordFromScan } from "@/lib/vault/coin-unlock";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -48,6 +52,7 @@ function Setup() {
   const [pw2, setPw2] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
+  const [mode, setMode] = useState("password");
   async function go() {
     if (pw.length < 8) return setErr("Use at least 8 characters. A long phrase or long number is best.");
     if (pw !== pw2) return setErr("The two passwords don't match.");
@@ -57,11 +62,17 @@ function Setup() {
   return (
     <Card>
       <CardContent className="space-y-3 pt-6">
+        <Tabs value={mode} onValueChange={v => { setMode(v); setPw(""); setPw2(""); setErr(""); }}>
+          <TabsList className="grid w-full grid-cols-2"><TabsTrigger value="password">Password</TabsTrigger><TabsTrigger value="coin">Coin QR</TabsTrigger></TabsList>
+          <TabsContent value="coin"><CoinEnrollment onEnroll={create} /></TabsContent>
+          <TabsContent value="password" className="space-y-3">
         <p className="text-sm">Choose a vault password. <strong>There is no reset</strong> — if you forget it, only your backups and paper copies can bring your seeds back.</p>
         <div><Label htmlFor="pw">Vault password</Label><Input id="pw" type="password" autoComplete="new-password" value={pw} onChange={(e) => setPw(e.target.value)} /></div>
         <div><Label htmlFor="pw2">Password again</Label><Input id="pw2" type="password" autoComplete="new-password" value={pw2} onChange={(e) => setPw2(e.target.value)} /></div>
         {err && <p className="text-sm text-destructive">{err}</p>}
         <Button className="w-full" disabled={busy} onClick={go}>{busy ? "Creating…" : "Create vault"}</Button>
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );
@@ -74,6 +85,7 @@ function UnlockForm() {
   const [busy, setBusy] = useState(false);
   const [bio, setBio] = useState(false);
   const [now, setNow] = useState(Date.now());
+  const [scan, setScan] = useState(false);
   useEffect(() => { getBiometricStatus().then((s) => setBio(s.enabled)); }, []);
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t); }, []);
   const wait = Math.max(0, Math.ceil((waitUntil - now) / 1000));
@@ -95,6 +107,8 @@ function UnlockForm() {
           {wait > 0 && <p className="text-sm text-muted-foreground">Too many wrong tries. Try again in {wait}s.</p>}
           <Button type="submit" className="w-full" disabled={busy || wait > 0 || !pw}>{busy ? "Unlocking…" : "Unlock"}</Button>
         </form>
+        <Button variant="outline" className="w-full" disabled={busy || wait > 0} onClick={() => { setErr(""); setScan(true); }}><Camera className="mr-2 h-4 w-4" />Scan coin to unlock</Button>
+        {scan && <ScannerDialog hint="Scan your coin’s hidden seed QR. The public QR cannot unlock Vault." onClose={() => setScan(false)} onScan={text => { setScan(false); try { void go(coinPasswordFromScan(text)); } catch(e) { setErr((e as Error).message); } }} />}
         {bio && <Button variant="outline" className="w-full" onClick={useBio} disabled={wait > 0}><Fingerprint className="h-4 w-4 mr-1.5" />Use fingerprint</Button>}
       </CardContent>
     </Card>

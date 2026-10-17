@@ -5,7 +5,7 @@ import type { Psbt } from "bitcoinjs-lib";
 import type { HDKey } from "@scure/bip32";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { CredentialInput } from "@/components/vault/CredentialInput";
 import { Label } from "@/components/ui/label";
 import { ScannerDialog } from "@/components/wallet/QrScanButton";
 import { AnimatedQr } from "@/components/vault/AnimatedQr";
@@ -106,7 +106,7 @@ function SignPage() {
           } catch (x) { if (run === generation.current && active.current) setErr((x as Error).message); } finally { if (run === generation.current) setBusy(false); }
         }}>
           <Label htmlFor="epw">Vault password to sign</Label>
-          <Input id="epw" type="password" value={pw} onChange={(e) => setPw(e.target.value)} />
+          <CredentialInput id="epw" type="password" value={pw} onChange={(e) => setPw(e.target.value)} />
           {err && <p className="text-sm text-destructive">{err}</p>}
           <div className="flex gap-2"><Button type="button" variant="ghost" onClick={reset}>Cancel</Button><Button className="flex-1" type="submit" disabled={!pw || busy}><PenLine className="mr-1.5 h-4 w-4" />{busy ? "Signing…" : "Sign"}</Button></div>
         </form>
@@ -157,7 +157,7 @@ function SignPage() {
               try { setSigned(signPsbt(state.psbt, state.keys)); } catch (x) { setErr((x as Error).message); }
             }}>
               <Label htmlFor="spw">Vault password to sign</Label>
-              <Input id="spw" type="password" value={pw} onChange={(e) => setPw(e.target.value)} />
+              <CredentialInput id="spw" type="password" value={pw} onChange={(e) => setPw(e.target.value)} />
               {err && <p className="text-sm text-destructive">{err}</p>}
               <div className="flex gap-2">
                 <Button type="button" variant="ghost" onClick={reset}>Cancel</Button>

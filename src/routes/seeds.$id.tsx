@@ -4,6 +4,7 @@ import { Eye, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { CredentialInput } from "@/components/vault/CredentialInput";
 import { Label } from "@/components/ui/label";
 import { QrCode } from "@/components/wallet/QrCode";
 import { AnimatedQr } from "@/components/vault/AnimatedQr";
@@ -53,8 +54,8 @@ function SeedPage() {
           <CardContent className="space-y-3">
             {!reveal ? (
               <form className="space-y-2" onSubmit={(e) => { e.preventDefault(); if (checkPassword(pw)) { setReveal(true); setErr(""); } else setErr("Wrong password."); setPw(""); }}>
-                <Label htmlFor="rpw">Type your vault password to show the words and QR</Label>
-                <Input id="rpw" type="password" value={pw} onChange={(e) => setPw(e.target.value)} />
+                <Label htmlFor="rpw">Vault password or hidden coin QR to show the words</Label>
+                <CredentialInput id="rpw" type="password" value={pw} onChange={(e) => setPw(e.target.value)} />
                 {err && <p className="text-sm text-destructive">{err}</p>}
                 <Button type="submit" disabled={!pw}><Eye className="h-4 w-4 mr-1.5" />Show seed</Button>
               </form>
@@ -119,7 +120,7 @@ function SeedPage() {
             ) : (
               <div className="space-y-2 rounded-md border border-destructive/50 p-3">
                 <p className="text-sm">This removes the seed from this phone. Make sure you have it on paper or in a backup.</p>
-                <Input placeholder="Vault password" type="password" value={delPw} onChange={(e) => setDelPw(e.target.value)} />
+                <CredentialInput placeholder="Vault password" type="password" value={delPw} onChange={(e) => setDelPw(e.target.value)} />
                 <Input placeholder={`Type "${seed.name}" to confirm`} value={delName} onChange={(e) => setDelName(e.target.value)} />
                 <div className="flex gap-2">
                   <Button variant="ghost" onClick={() => setDel(false)}>Cancel</Button>

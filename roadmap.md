@@ -1,6 +1,8 @@
 # Roadmap — HME Seed Vault
 
-- [ ] Add coin-based offline QR setup/unlock and optional fingerprint access (needs private coin credential and recovery design confirmed)
+- [x] Hidden coin seed QR setup/unlock, existing Vault relinking and scan-based sensitive confirmations (dummy camera flow verified; standard HMVAULT1 recovery retained)
+- [x] Allow coin scanning for existing optional fingerprint enrollment and disclose its app-only protection limitation
+- [ ] Enforce fingerprint secret release in Android security hardware and verify on GrapheneOS (requires native implementation and Bobby's actual device verification)
 
 - [x] Store passwords, notes and small files in the encrypted vault
 - [x] Standalone encrypted QR transfer page and multi-part scanning (dummy cycling QR camera feed verified)

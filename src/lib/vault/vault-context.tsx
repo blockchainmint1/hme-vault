@@ -23,6 +23,7 @@ interface Ctx {
   unlock: (password: string) => Promise<void>;
   lock: () => void;
   checkPassword: (password: string) => boolean;
+  changePassword: (current: string, next: string) => Promise<void>;
   save: (seeds: SeedEntry[]) => Promise<void>;
   saveSecrets: (secrets: SecretEntry[]) => Promise<void>;
   restore: (seeds: SeedEntry[], secrets: SecretEntry[]) => Promise<void>;
@@ -128,6 +129,12 @@ export function VaultProvider({ children }: { children: ReactNode }) {
 
   const checkPassword = useCallback((p: string) => pw.current !== null && p === pw.current, []);
 
+  const changePassword = useCallback(async (current: string, next: string) => {
+    if (pw.current === null || current !== pw.current) throw new Error("Wrong password.");
+    await persist(data.current.seeds, data.current.secrets, next);
+    pw.current = next;
+  }, [persist]);
+
   const wipe = useCallback(() => {
     generation.current++;
     localStorage.removeItem(VAULT_KEY);
@@ -159,7 +166,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
   }, [status, lock]);
 
   return (
-    <VaultCtx.Provider value={{ status, seeds, secrets, pendingCode, setPendingCode, waitUntil, create, unlock, lock, checkPassword, save, saveSecrets, restore, wipe }}>
+    <VaultCtx.Provider value={{ status, seeds, secrets, pendingCode, setPendingCode, waitUntil, create, unlock, lock, checkPassword, changePassword, save, saveSecrets, restore, wipe }}>
       {children}
     </VaultCtx.Provider>
   );
