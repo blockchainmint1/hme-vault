@@ -4,7 +4,7 @@
  */
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { lockText, unlockText } from "./format";
-import { emptyVault, lockoutMs, parsePayload, shouldAutoLock, type SeedEntry } from "./seeds";
+import { emptyVault, encryptVaultBackup, mergeVaultBackup, lockoutMs, parsePayload, shouldAutoLock, type SeedEntry } from "./seeds";
 import { MAX_VAULT_CHARS, type SecretEntry } from "./secrets";
 
 const VAULT_KEY = "hmsv.vault.v1";
@@ -27,6 +27,8 @@ interface Ctx {
   save: (seeds: SeedEntry[]) => Promise<void>;
   saveSecrets: (secrets: SecretEntry[]) => Promise<void>;
   restore: (seeds: SeedEntry[], secrets: SecretEntry[]) => Promise<void>;
+  exportBackup: () => Promise<string>;
+  importBackup: (code: string, sourceCredential?: string) => Promise<{ addedSeeds: number; addedSecrets: number; skipped: number }>;
   wipe: () => void;
 }
 
@@ -129,6 +131,24 @@ export function VaultProvider({ children }: { children: ReactNode }) {
 
   const checkPassword = useCallback((p: string) => pw.current !== null && p === pw.current, []);
 
+  const exportBackup = useCallback(async () => {
+    if (pw.current === null) throw new Error("Vault is locked.");
+    const version = generation.current;
+    const code = await encryptVaultBackup({ ...emptyVault(), ...data.current }, pw.current);
+    if (generation.current !== version) throw new Error("Vault locked. Unlock and try again.");
+    return code;
+  }, []);
+
+  const importBackup = useCallback(async (code: string, sourceCredential?: string) => {
+    if (pw.current === null) throw new Error("Vault is locked.");
+    const version = generation.current;
+    const incoming = parsePayload(await unlockText(code, sourceCredential ?? pw.current));
+    if (generation.current !== version || pw.current === null) throw new Error("Vault locked. Unlock and try again.");
+    const result = mergeVaultBackup({ ...emptyVault(), ...data.current }, incoming);
+    await persist(result.payload.seeds, result.payload.secrets, pw.current);
+    return { addedSeeds: result.addedSeeds, addedSecrets: result.addedSecrets, skipped: result.skipped };
+  }, [persist]);
+
   const changePassword = useCallback(async (current: string, next: string) => {
     if (pw.current === null || current !== pw.current) throw new Error("Wrong password.");
     await persist(data.current.seeds, data.current.secrets, next);
@@ -166,7 +186,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
   }, [status, lock]);
 
   return (
-    <VaultCtx.Provider value={{ status, seeds, secrets, pendingCode, setPendingCode, waitUntil, create, unlock, lock, checkPassword, changePassword, save, saveSecrets, restore, wipe }}>
+    <VaultCtx.Provider value={{ status, seeds, secrets, pendingCode, setPendingCode, waitUntil, create, unlock, lock, checkPassword, changePassword, save, saveSecrets, restore, exportBackup, importBackup, wipe }}>
       {children}
     </VaultCtx.Provider>
   );

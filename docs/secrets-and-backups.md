@@ -13,15 +13,17 @@ Each file is limited to 256 KiB. Cycling hundreds of frames is slow; USB encrypt
 
 ## Whole-vault backup
 
-**Backup → Make a backup** includes every seed, password, note and file. Choose a backup password, then scan the cycling QR with another Vault, or save the encrypted `.txt` file. On Android, the save button opens the system file picker: choose a connected USB drive if Android supports and mounts it. Otherwise save locally and copy the encrypted file to USB. On a computer browser, normal downloads apply.
+**Backup → Save file / USB** includes every seed, password, note, file and authenticator account. It encrypts with the current Vault unlock credential; no separate backup password is chosen. On Android, the save button opens the system file picker: choose a connected USB drive if Android supports and mounts it. Otherwise save locally and copy the encrypted `.txt` file to USB. On a computer browser, normal downloads apply.
 
-On a spare Vault, first choose its own vault password; then **Backup → Restore** and scan the QR or open the encrypted file. Enter the backup password. Existing seeds and identical secrets are skipped; nothing is overwritten. These are independent copies, not automatic syncing. Make a new backup after adding anything and restore it to both spares.
+For device copying, use **Backup → Send QR → Show encrypted QRs** on the source. On a spare Vault, first set up its own unlock credential, then **Backup → Receive → Scan transfer QR** (or open a saved encrypted file). When both devices use the same credential, select **Import into this Vault**, or approve with fingerprint when enabled. If the source uses another key, select **Different key or older backup?** and scan its secret QR or enter its password. Older backups still use the separate backup password chosen when they were made. Existing seeds and identical secrets are skipped; nothing is overwritten or deleted. Names of duplicate entries are not updated. Each device retains its own unlock credential and fingerprint enrollment. These are independent copies, not automatic syncing. Repeat after adding entries; large collections are faster by USB.
 
-Android may lock Vault when you open the system file picker. After choosing the backup, unlock and return to **Backup → Restore** (or **Secrets → Import**); only the encrypted code waits in memory. No plaintext is kept while locked.
+Android may lock Vault when you open the system file picker. After choosing the backup, unlock and return to **Backup → Receive** (or **Secrets → Import**); only the encrypted code waits in memory. No plaintext is kept while locked.
 
 ## Recovery without this app
 
-Save the **offline unlocker** beside the backup. Open it offline, load the encrypted `.txt`, and enter the backup password. It shows words/passwords/notes and offers exact-byte downloads for files. Those recovered downloads are **unencrypted**; handle them accordingly. Never scan the seed QR into an online device for watch-only pairing.
+Save the **offline unlocker** beside the backup. Open it offline, load the encrypted `.txt`, and enter the unlock credential used when that backup was made (the normalized secret QR text or password; older backups use their original backup password). It shows words/passwords/notes and authenticator setup secrets and offers exact-byte downloads for files. Those recovered downloads are **unencrypted**; handle them accordingly. Never scan the seed QR into an online device for watch-only pairing.
+
+Changing the Vault unlock credential does not re-encrypt existing backups. Keep the original secret coin/key to recover those backups, stored separately from the USB. Fingerprint alone cannot recover on another device. Encryption is only as strong as the credential: public QR text is not a strong secret.
 
 ## GitHub signing material
 
