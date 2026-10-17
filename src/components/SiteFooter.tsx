@@ -10,22 +10,24 @@ export function SiteFooter() {
   if (native) return null;
   return (
     <footer className="border-t border-border/60 py-6 mt-8">
-      <div className="mx-auto max-w-xl px-4 flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted-foreground">
-        <span>
+      <div className="mx-auto max-w-xl px-4 space-y-2 text-sm text-muted-foreground">
+        <p>
           Part of the{" "}
           <a href="https://honest.money" target="_blank" rel="noreferrer" className="text-foreground hover:underline">honest.money</a>{" "}
           ecosystem
-        </span>
-        <a
-          href={vaultApk.url}
-          download="hme-vault-release.apk"
-          className="text-foreground hover:underline"
-        >
-          Android app
-        </a>
-        <Link to="/legal/terms" className="hover:text-foreground">Terms</Link>
-        <Link to="/legal/privacy" className="hover:text-foreground">Privacy</Link>
-        <Link to="/manifesto" className="hover:text-foreground">Manifesto</Link>
+        </p>
+        <nav className="flex flex-wrap gap-x-5 gap-y-1">
+          <a
+            href={vaultApk.url}
+            download="hme-vault-release.apk"
+            className="text-foreground hover:underline"
+          >
+            Android app
+          </a>
+          <Link to="/legal/terms" className="hover:text-foreground">Terms</Link>
+          <Link to="/legal/privacy" className="hover:text-foreground">Privacy</Link>
+          <Link to="/manifesto" className="hover:text-foreground">Manifesto</Link>
+        </nav>
       </div>
     </footer>
   );
