@@ -131,14 +131,6 @@ async function monochromeIcon(canvas, outPath) {
   await sharp(Buffer.from(svg)).png().toFile(outPath);
 }
 
-  await sharp({
-    create: { width: canvas, height: canvas, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } },
-  })
-    .composite([{ input: silhouette, gravity: "center" }])
-    .png()
-    .toFile(outPath);
-}
-
 async function main() {
   // 1. Legacy square icons (silver on dark bg, matches the app's dark theme).
   for (const [density, size] of LEGACY) {
@@ -153,7 +145,7 @@ async function main() {
     const dir = resolve(androidRes, `mipmap-${density}`);
     await ensure(dir);
     await adaptiveForeground(SILVER, canvas, resolve(dir, "ic_launcher_foreground.png"));
-    await monochromeIcon(SILVER, canvas, resolve(dir, "ic_launcher_monochrome.png"));
+    await monochromeIcon(canvas, resolve(dir, "ic_launcher_monochrome.png"));
   }
 
   // 3. Adaptive icon XML (anydpi-v26).
