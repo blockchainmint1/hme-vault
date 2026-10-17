@@ -10,6 +10,8 @@ import { Unlocked } from "@/components/vault/Unlocked";
 import { useVault } from "@/lib/vault/vault-context";
 import { deriveKeys, isValidSeed, newSeedWords } from "@/lib/vault/seeds";
 import { normalizeSeed } from "@/lib/vault/format";
+import { wordsFromScan } from "@/lib/vault/scan-seed";
+import { QrScanButton } from "@/components/wallet/QrScanButton";
 
 export const Route = createFileRoute("/seeds/new")({
   head: () => ({ meta: [{ title: "Add a seed — HME Seed Vault" }, { name: "description", content: "Create or enter a recovery seed." }, { property: "og:title", content: "Add a seed — HME Seed Vault" }, { property: "og:description", content: "Create or enter a recovery seed." }] }),
@@ -72,7 +74,11 @@ function EnterSeed() {
   }
   return (
     <Card><CardContent className="space-y-3 pt-6">
-      <div><Label htmlFor="w">Recovery words (12, 15, 18, 21 or 24)</Label><Textarea id="w" rows={4} autoComplete="off" autoCorrect="off" autoCapitalize="none" spellCheck={false} value={words} onChange={(e) => setWords(e.target.value)} /></div>
+      <div>
+        <div className="flex items-center justify-between gap-2"><Label htmlFor="w">Recovery words (12, 15, 18, 21 or 24)</Label><QrScanButton onScan={(t) => { setErr(""); setWords(wordsFromScan(t)); }} /></div>
+        <Textarea id="w" rows={4} autoComplete="off" autoCorrect="off" autoCapitalize="none" spellCheck={false} value={words} onChange={(e) => setWords(e.target.value)} />
+        <p className="mt-1 text-xs text-muted-foreground">Tap the camera to scan a seed QR (plain words or SeedQR).</p>
+      </div>
       <NameAndPass name={name} setName={setName} pass={pass} setPass={setPass} />
       {err && <p className="text-sm text-destructive">{err}</p>}
       <Button className="w-full" disabled={busy || !words} onClick={go}>{busy ? "Saving…" : "Save to vault"}</Button>
