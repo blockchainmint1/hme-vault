@@ -59,8 +59,8 @@ function SignPage() {
         if (run === generation.current && active.current) setState({ psbt, review, keys });
       }
     } catch (e) {
-      setErr((e as Error).message);
-    } finally { setBusy(false); }
+      if (run === generation.current && active.current) setErr((e as Error).message);
+    } finally { if (run === generation.current) setBusy(false); }
   }
 
   function onCode(code: string) {
@@ -77,7 +77,7 @@ function SignPage() {
   }
 
   function reset() {
-    generation.current++; setState(null); setEvm(null); setSigned(null); setPw(""); setPaste(""); setErr("");
+    generation.current++; setBusy(false); setState(null); setEvm(null); setSigned(null); setPw(""); setPaste(""); setErr("");
   }
 
   if (signed && (state || evm)) {
@@ -105,7 +105,7 @@ function SignPage() {
           try {
             const result = await signEvm(evm, seeds);
             if (run === generation.current && active.current) setSigned(result);
-          } catch (x) { setErr((x as Error).message); } finally { setBusy(false); }
+          } catch (x) { if (run === generation.current && active.current) setErr((x as Error).message); } finally { if (run === generation.current) setBusy(false); }
         }}>
           <Label htmlFor="epw">Vault password to sign</Label>
           <Input id="epw" type="password" value={pw} onChange={(e) => setPw(e.target.value)} />
@@ -134,7 +134,7 @@ function SignPage() {
                   {r.token.to && <p className="break-all font-mono text-sm">to {r.token.to}</p>}
                 </div>
               )}
-              {r.outputs.filter((o) => !o.isChange && !(r.token && o.isData)).map((o, i) => (
+              {r.outputs.filter((o) => !o.isChange).map((o, i) => (
                 <div key={i} className="rounded-md border border-border p-3">
                   <p className="text-xs text-muted-foreground">{o.isData ? "Extra data" : "Pay to"}</p>
                   <p className="break-all font-mono text-sm">{o.address}</p>

@@ -13,11 +13,9 @@ const KNOWN_TOKENS: Record<number, { symbol: string; divisible: boolean }> = { 3
 
 export function decodeOmniSimpleSend(script: Uint8Array): { propertyId: number; amount: bigint } | null {
   const h = hex(script);
-  if (!h.startsWith("6a")) return null;
-  const at = h.indexOf("6f6d6e69");
-  if (at < 0) return null;
-  const p = h.slice(at + 8);
-  if (p.length < 32 || parseInt(p.slice(4, 8), 16) !== 0) return null;
+  // OP_RETURN, one exact 20-byte push, Omni marker, version 0 and Simple Send type 0.
+  if (!/^6a146f6d6e6900000000[0-9a-f]{24}$/.test(h)) return null;
+  const p = h.slice(12);
   return { propertyId: parseInt(p.slice(8, 16), 16), amount: BigInt("0x" + p.slice(16, 32)) };
 }
 
@@ -93,6 +91,7 @@ export async function reviewPsbt(psbt: Psbt, seeds: SignerSeed[], selected: Coin
     if (own.purpose === 44 && !prev) throw new Error("Legacy inputs require the full previous transaction to verify the fee.");
     const actual = prev ?? inp.witnessUtxo;
     if (!expected || !actual || hex(expected) !== hex(actual.script)) throw new Error(`Input ${i + 1} isn't an address from your seed.`);
+    if (!prev && !warnings.includes("Input amounts are supplied by your online wallet, not independently checked against the blockchain.")) warnings.push("Input amounts are supplied by your online wallet, not independently checked against the blockchain.");
     inputsSats += actual.value;
     keys.push(own.key);
   }
@@ -121,7 +120,7 @@ export async function reviewPsbt(psbt: Psbt, seeds: SignerSeed[], selected: Coin
     token = { propertyId: d.propertyId, symbol: info?.symbol ?? `Token #${d.propertyId}`, amount: info?.divisible ? formatCoins(d.amount) : d.amount.toString(), to: outputs.find((x) => !x.isData && !x.isChange)?.address ?? null };
     if (!info) warnings.push(`Token #${d.propertyId} isn't one this vault knows, so the amount is shown as raw units.`);
   }
-  if (!token && outputs.some((o) => o.isData)) warnings.push("Includes a data output this vault can't read. Only sign if you expected it.");
+  if (psbt.txOutputs.some((o) => o.script[0] === 0x6a && (!(selected === "TXC" || selected === "ISK") || !decodeOmniSimpleSend(o.script)))) warnings.push("Includes a data output this vault can't read. Only sign if you expected it.");
   if (sendSats > 0n && feeSats * 20n > sendSats) warnings.push("The network fee is more than 5% of what you're sending.");
   if (feeSats > 100_000_000n) warnings.push("The network fee is over 1 coin. Check this carefully.");
   return { review: { coin: selected, seedName: [...names].join(", "), inputsSats, sendSats, changeSats, feeSats, outputs, token, warnings }, keys };
