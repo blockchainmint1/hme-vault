@@ -63,22 +63,22 @@ const CHAINS = [
 
 function SupportedPage() {
   return (
-    <main className="mx-auto max-w-3xl px-4 py-10 prose prose-invert">
+    <main className="mx-auto max-w-3xl px-4 py-10">
       <Link
         to="/"
         className="text-sm text-muted-foreground hover:text-foreground no-underline"
       >
         ← Home
       </Link>
-      <h1>Supported transactions</h1>
-      <p className="lead">
+      <h1 className="mt-4 text-3xl font-semibold tracking-tight">Supported transactions</h1>
+      <p className="mt-4 leading-relaxed text-muted-foreground">
         Vault never connects to the internet. Your online wallet builds an unsigned payment and
         shows it as a QR code; Vault scans it, shows you exactly what is leaving, signs it on the
         phone, and hands the signed payment back as a QR code.
       </p>
 
-      <h2>Bitcoin-family coins</h2>
-      <div className="not-prose overflow-x-auto rounded-lg border border-border">
+      <h2 className="mt-8 text-xl font-semibold tracking-tight">Bitcoin-family coins</h2>
+      <div className="mt-4 not-prose overflow-x-auto rounded-lg border border-border">
         <table className="w-full text-sm">
           <thead className="bg-muted/50 text-left">
             <tr>
