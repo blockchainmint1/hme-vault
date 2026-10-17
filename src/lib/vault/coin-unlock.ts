@@ -23,18 +23,16 @@ function privateKeyFromScan(text: string): string | null {
   return null;
 }
 
-/** Coin credential: hidden BIP39 seed words or an old-style private key. Never a public ID/address. */
+/** Coin credential: whatever the coin QR holds. Seeds and keys are normalized so rescans match; anything else is used exactly as scanned. */
 export function coinPasswordFromScan(text: string): string {
-  if (text.length > 1024) throw new Error("That isn't a hidden seed or private key QR.");
   const trimmed = text.trim();
-  const key = privateKeyFromScan(trimmed);
-  if (key) return key;
-  if (!/^[a-zA-Z\s]+$/.test(trimmed) && !/^\d+$/.test(trimmed)) {
-    throw new Error("Scan the hidden seed or private key QR, not an address, link or public coin label.");
+  if (!trimmed) throw new Error("That QR code is empty.");
+  if (trimmed.length > 4096) throw new Error("That QR code is too large to use as a password.");
+  try { const key = privateKeyFromScan(trimmed); if (key) return key; } catch { /* not a key: use as scanned */ }
+  if (/^[a-zA-Z\s]+$/.test(trimmed) || /^\d+$/.test(trimmed)) {
+    try { const words = wordsFromScan(trimmed); if (validateMnemonic(words, wordlist)) return words; } catch { /* not a seed */ }
   }
-  const words = wordsFromScan(trimmed);
-  if (!validateMnemonic(words, wordlist)) throw new Error("Scan a valid hidden seed or private key QR, not the public coin QR.");
-  return words;
+  return trimmed;
 }
 
 export function confirmCoinPassword(first: string, second: string, acknowledged: boolean): string {

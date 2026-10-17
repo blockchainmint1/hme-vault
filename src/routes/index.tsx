@@ -112,7 +112,7 @@ function UnlockForm() {
           <Button type="submit" className="w-full" disabled={busy || wait > 0 || !pw}>{busy ? "Unlocking…" : "Unlock"}</Button>
         </form>
         <Button variant="outline" className="w-full" disabled={busy || wait > 0} onClick={() => { setErr(""); setScan(true); }}><Camera className="mr-2 h-4 w-4" />Scan coin to unlock</Button>
-        {scan && <ScannerDialog hint="Scan your coin’s hidden seed or private key QR. The public QR cannot unlock Vault." onClose={() => setScan(false)} onScan={text => { setScan(false); try { void go(coinPasswordFromScan(text)); } catch(e) { setErr((e as Error).message); } }} />}
+        {scan && <ScannerDialog hint="Scan your coin’s QR to unlock Vault." onClose={() => setScan(false)} onScan={text => { setScan(false); try { void go(coinPasswordFromScan(text)); } catch(e) { setErr((e as Error).message); } }} />}
         {bio && <Button variant="outline" className="w-full" onClick={useBio} disabled={wait > 0}><Fingerprint className="h-4 w-4 mr-1.5" />Use fingerprint</Button>}
       </CardContent>
     </Card>

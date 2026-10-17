@@ -9,8 +9,9 @@ describe("hidden coin credential", () => {
     expect(coinPasswordFromScan(`  ${seed.toUpperCase().replaceAll(" ", "\n")}  `)).toBe(seed);
     expect(coinPasswordFromScan("0000".repeat(11) + "0003")).toBe(seed);
   });
-  it("never accepts public coin QR or payment addresses", () => {
-    for (const value of ["https://coins.honest.money/coin/123", "0x9858effd232b4033e47d90003d41ec34ecaeda94", "coin-id-123", "abandon ".repeat(12)]) expect(() => coinPasswordFromScan(value)).toThrow();
+  it("accepts any other QR content exactly as scanned", () => {
+    for (const value of ["https://coins.honest.money/coin/123", "coin-id-123", "Some Random Secret!"]) expect(coinPasswordFromScan(`  ${value} `)).toBe(value);
+    expect(() => coinPasswordFromScan("   ")).toThrow();
   });
   it("requires explicit acknowledgement", () => {
     expect(() => confirmCoinPassword(seed, seed, false)).toThrow();
@@ -32,15 +33,15 @@ describe("old-style private key coins", () => {
     expect(coinPasswordFromScan(` ${wifKey}\n`)).toBe(wifKey);
     expect(coinPasswordFromScan("KwdMAjGmerYanjeui5SHS7JkmpZvVipYvB2LJGU1ZxJwYvP98617")).toBe("KwdMAjGmerYanjeui5SHS7JkmpZvVipYvB2LJGU1ZxJwYvP98617");
   });
-  it("rejects a WIF key with a typo", () => {
-    expect(() => coinPasswordFromScan(wifKey.slice(0, -1) + "K")).toThrow();
+  it("treats a non-checksum key-like string as raw text", () => {
+    expect(coinPasswordFromScan(wifKey.slice(0, -1) + "K")).toBe(wifKey.slice(0, -1) + "K");
   });
   it("accepts 64-char hex keys, normalized", () => {
     const hex = "0C28FCA386C7A227600B2FE50B7CAE11EC86D3BF1FBE471BE89827E19D72AA1D";
     expect(coinPasswordFromScan("0x" + hex)).toBe(hex.toLowerCase());
   });
-  it("still rejects addresses", () => {
-    expect(() => coinPasswordFromScan("1GAehh7TsJAHuUAeKZcXf5CnwuGuGgyX2S")).toThrow();
+  it("accepts address-looking QR content as scanned", () => {
+    expect(coinPasswordFromScan("1GAehh7TsJAHuUAeKZcXf5CnwuGuGgyX2S")).toBe("1GAehh7TsJAHuUAeKZcXf5CnwuGuGgyX2S");
   });
 });
 describe("TXC key labels", () => {
