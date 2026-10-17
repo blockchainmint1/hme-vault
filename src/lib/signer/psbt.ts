@@ -1,37 +1,16 @@
-/**
- * Air-gapped PSBT review + signing for TXC / ISK (Bitcoin-style chains).
- *
- * The online wallet builds a standard BIP-174 PSBT that carries, for every
- * input, the previous output (witnessUtxo or nonWitnessUtxo) and a
- * bip32Derivation (master fingerprint + path). Change outputs carry a
- * bip32Derivation too. This module checks all of it against the stored seeds
- * before anything is signed. No network access.
- */
+/** Offline BIP-174 review/signing. The user explicitly selects the network: PSBT has no chain ID. */
 import { address as baddress, payments, Psbt, Transaction } from "bitcoinjs-lib";
 import { HDKey } from "@scure/bip32";
 import { mnemonicToSeed } from "@scure/bip39";
 import { NETWORKS, coinFromCoinType, type CoinId } from "./networks";
 
-export interface SignerSeed {
-  id: string;
-  name: string;
-  words: string;
-  passphrase?: string;
-  fingerprint: string;
-}
-
-export interface ReviewOutput {
-  address: string;
-  sats: bigint;
-  isChange: boolean;
-  isData: boolean;
-}
-
+export interface SignerSeed { id: string; name: string; words: string; passphrase?: string; fingerprint: string }
+export interface ReviewOutput { address: string; sats: bigint; isChange: boolean; isData: boolean }
 export interface TokenSend { propertyId: number; symbol: string; amount: string; to: string | null }
-
+export interface Review { coin: CoinId; seedName: string; inputsSats: bigint; sendSats: bigint; changeSats: bigint; feeSats: bigint; outputs: ReviewOutput[]; token: TokenSend | null; warnings: string[] }
+const hex = (b: Uint8Array) => Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
 const KNOWN_TOKENS: Record<number, { symbol: string; divisible: boolean }> = { 39: { symbol: "TSD", divisible: true } };
 
-/** Omni Class C Simple Send (type 0) inside an OP_RETURN script, or null. */
 export function decodeOmniSimpleSend(script: Uint8Array): { propertyId: number; amount: bigint } | null {
   const h = hex(script);
   if (!h.startsWith("6a")) return null;
@@ -42,163 +21,125 @@ export function decodeOmniSimpleSend(script: Uint8Array): { propertyId: number; 
   return { propertyId: parseInt(p.slice(8, 16), 16), amount: BigInt("0x" + p.slice(16, 32)) };
 }
 
-export interface Review {
-  coin: CoinId;
-  seedName: string;
-  inputsSats: bigint;
-  sendSats: bigint;
-  changeSats: bigint;
-  feeSats: bigint;
-  outputs: ReviewOutput[];
-  token: TokenSend | null;
-  warnings: string[];
+function pathParts(path: string): { purpose: number; ct: number } | null {
+  const m = /^m\/(44|49|84)'\/(0|2|3|696969|969696)'\/(\d+)'\/(0|1)\/(\d+)$/.exec(path);
+  if (!m || Number(m[3]) > 1_000_000 || Number(m[5]) > 1_000_000) return null;
+  return { purpose: Number(m[1]), ct: Number(m[2]) };
 }
 
-const hex = (b: Uint8Array) => Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
-const fpHex = (b: Uint8Array) => hex(b).padStart(8, "0");
-
-function pathToArray(path: string): number[] {
-  return path.replace(/^m\//, "").split("/").map((p) => (p.endsWith("'") || p.endsWith("h") ? (parseInt(p) + 0x80000000) >>> 0 : parseInt(p)));
-}
-
-export function parsePsbt(text: string): Psbt {
+export function parsePsbt(text: string, coin: CoinId = "TXC"): Psbt {
   const t = text.trim();
-  try {
-    return /^[0-9a-f]+$/i.test(t) ? Psbt.fromHex(t, { network: NETWORKS.TXC }) : Psbt.fromBase64(t, { network: NETWORKS.TXC });
-  } catch {
-    throw new Error("That QR isn't an unsigned payment (PSBT).");
-  }
+  if (t.length > 250_000) throw new Error("Unsigned payment is too large.");
+  try { return /^[0-9a-f]+$/i.test(t) ? Psbt.fromHex(t, { network: NETWORKS[coin] }) : Psbt.fromBase64(t, { network: NETWORKS[coin] }); }
+  catch { throw new Error("That QR isn't an unsigned payment (PSBT)."); }
 }
 
-const rootCache = new Map<string, HDKey>();
-async function rootFor(s: SignerSeed): Promise<HDKey> {
-  const k = `${s.id}`;
-  const hit = rootCache.get(k);
-  if (hit) return hit;
-  const root = HDKey.fromMasterSeed(await mnemonicToSeed(s.words, s.passphrase ?? ""));
-  rootCache.set(k, root);
-  return root;
-}
-export function clearSignerCache() {
-  rootCache.clear();
-}
-
-function inputValue(psbt: Psbt, i: number): bigint {
+function previousOutput(psbt: Psbt, i: number) {
   const inp = psbt.data.inputs[i];
-  if (inp.witnessUtxo) return BigInt(inp.witnessUtxo.value);
-  if (inp.nonWitnessUtxo) {
-    const prev = Transaction.fromBuffer(inp.nonWitnessUtxo as Buffer);
-    const txin = psbt.txInputs[i];
-    const prevHash = hex(Uint8Array.from(prev.getHash()));
-    if (prevHash !== hex(Uint8Array.from(txin.hash))) throw new Error(`Input ${i + 1} carries the wrong previous transaction.`);
-    return BigInt(prev.outs[txin.index].value);
-  }
-  throw new Error(`Input ${i + 1} doesn't say how much it's worth, so it can't be checked.`);
+  if (!inp.nonWitnessUtxo) return undefined;
+  const prev = Transaction.fromBuffer(inp.nonWitnessUtxo);
+  const txin = psbt.txInputs[i];
+  if (hex(prev.getHash()) !== hex(txin.hash)) throw new Error(`Input ${i + 1} carries the wrong previous transaction.`);
+  const out = prev.outs[txin.index];
+  if (!out) throw new Error(`Input ${i + 1} refers to a missing previous output.`);
+  if (inp.witnessUtxo && (hex(out.script) !== hex(inp.witnessUtxo.script) || out.value !== inp.witnessUtxo.value)) throw new Error("Conflicting input values.");
+  return out;
 }
-
-/** Script our key would produce for this path's purpose (44 = legacy, 49 = wrapped segwit, 84 = segwit). */
 function scriptFor(pubkey: Uint8Array, purpose: number, coin: CoinId): Uint8Array | undefined {
   const network = NETWORKS[coin];
-  const pk = pubkey as Buffer;
-  if (purpose === 84) return payments.p2wpkh({ pubkey: pk, network }).output;
-  if (purpose === 49) return payments.p2sh({ redeem: payments.p2wpkh({ pubkey: pk, network }), network }).output;
-  if (purpose === 44) return payments.p2pkh({ pubkey: pk, network }).output;
+  if (coin === "DOGE" && purpose !== 44) return undefined;
+  if (purpose === 84) return payments.p2wpkh({ pubkey, network }).output;
+  if (purpose === 49) return payments.p2sh({ redeem: payments.p2wpkh({ pubkey, network }), network }).output;
+  if (purpose === 44) return payments.p2pkh({ pubkey, network }).output;
   return undefined;
 }
-
-interface Owned { seed: SignerSeed; key: HDKey; coin: CoinId }
-
-async function ownerOf(derivs: { masterFingerprint: Uint8Array; path: string; pubkey: Uint8Array }[] | undefined, seeds: SignerSeed[]): Promise<Owned | null> {
+type Derivation = { masterFingerprint: Uint8Array; path: string; pubkey: Uint8Array };
+interface Owned { seed: SignerSeed; key: HDKey; coin: CoinId; purpose: number }
+async function ownerOf(derivs: Derivation[] | undefined, seeds: SignerSeed[], selected: CoinId, roots: Map<string, HDKey>): Promise<Owned | null> {
   for (const d of derivs ?? []) {
-    const seed = seeds.find((s) => s.fingerprint === fpHex(d.masterFingerprint));
-    if (!seed) continue;
-    const parts = pathToArray(d.path);
-    const coin = coinFromCoinType((parts[1] ?? 0) - 0x80000000);
+    const seed = seeds.find((s) => s.fingerprint.toLowerCase() === hex(d.masterFingerprint));
+    const parts = pathParts(d.path);
+    if (!seed || !parts) continue;
+    const coin = coinFromCoinType(parts.ct, selected);
     if (!coin) continue;
-    const key = (await rootFor(seed)).derive(d.path);
-    if (key.publicKey && hex(key.publicKey) === hex(d.pubkey)) return { seed, key, coin };
+    let root = roots.get(seed.id);
+    if (!root) { root = HDKey.fromMasterSeed(await mnemonicToSeed(seed.words, seed.passphrase ?? "")); roots.set(seed.id, root); }
+    if (root.fingerprint.toString(16).padStart(8, "0") !== hex(d.masterFingerprint)) continue;
+    const key = root.derive(d.path);
+    if (key.publicKey && hex(key.publicKey) === hex(d.pubkey)) return { seed, key, coin, purpose: parts.purpose };
   }
   return null;
 }
 
-export async function reviewPsbt(psbt: Psbt, seeds: SignerSeed[]): Promise<{ review: Review; keys: HDKey[] }> {
+export async function reviewPsbt(psbt: Psbt, seeds: SignerSeed[], selected: CoinId = "TXC"): Promise<{ review: Review; keys: HDKey[] }> {
   if (psbt.inputCount === 0) throw new Error("This payment has no inputs.");
+  if (psbt.inputCount > 200 || psbt.txOutputs.length > 200 || !psbt.txOutputs.length) throw new Error("Unsupported payment size.");
+  const roots = new Map<string, HDKey>(); // Only lives during this review, never a global secret cache.
   const warnings: string[] = [];
   const keys: HDKey[] = [];
-  let coin: CoinId | null = null;
-  let seedName = "";
+  const names = new Set<string>();
   let inputsSats = 0n;
-
   for (let i = 0; i < psbt.inputCount; i++) {
     const inp = psbt.data.inputs[i];
-    const own = await ownerOf(inp.bip32Derivation, seeds);
+    if (inp.sighashType !== undefined && inp.sighashType !== Transaction.SIGHASH_ALL) throw new Error("Only SIGHASH_ALL payments are allowed.");
+    if (inp.partialSig?.length || inp.finalScriptSig || inp.finalScriptWitness) throw new Error("This payment is already partly signed. Start with an unsigned payment.");
+    const own = await ownerOf(inp.bip32Derivation, seeds, selected, roots);
     if (!own) throw new Error(`Input ${i + 1} doesn't belong to any seed in this vault.`);
-    if (coin && coin !== own.coin) throw new Error("This payment mixes coins. Refusing to sign.");
-    coin = own.coin;
-    seedName = own.seed.name;
-    const d = inp.bip32Derivation!.find((x) => fpHex(x.masterFingerprint) === own.seed.fingerprint)!;
-    const purpose = pathToArray(d.path)[0] - 0x80000000;
-    const expected = scriptFor(own.key.publicKey!, purpose, own.coin);
-    const actual = inp.witnessUtxo?.script ?? (inp.nonWitnessUtxo ? Transaction.fromBuffer(inp.nonWitnessUtxo as Buffer).outs[psbt.txInputs[i].index].script : undefined);
-    if (!expected || !actual || hex(Uint8Array.from(expected)) !== hex(Uint8Array.from(actual))) throw new Error(`Input ${i + 1} isn't an address from your seed.`);
-    inputsSats += inputValue(psbt, i);
+    if (own.coin !== selected) throw new Error("This payment mixes coins or doesn't match the selected network. Refusing to sign.");
+    names.add(own.seed.name);
+    const pubkey = own.key.publicKey;
+    const expected = pubkey ? scriptFor(pubkey, own.purpose, selected) : undefined;
+    const prev = previousOutput(psbt, i);
+    if (own.purpose === 44 && !prev) throw new Error("Legacy inputs require the full previous transaction to verify the fee.");
+    const actual = prev ?? inp.witnessUtxo;
+    if (!expected || !actual || hex(expected) !== hex(actual.script)) throw new Error(`Input ${i + 1} isn't an address from your seed.`);
+    inputsSats += actual.value;
     keys.push(own.key);
   }
-
-  const network = NETWORKS[coin!];
   const outputs: ReviewOutput[] = [];
   let sendSats = 0n;
   let changeSats = 0n;
   for (let i = 0; i < psbt.txOutputs.length; i++) {
     const o = psbt.txOutputs[i];
-    const sats = BigInt(o.value);
     const isData = o.script[0] === 0x6a;
     let addr = "Data (OP_RETURN)";
-    if (!isData) {
-      try { addr = baddress.fromOutputScript(o.script, network); } catch { throw new Error(`Output ${i + 1} isn't a ${coin} address.`); }
-    }
-    let isChange = false;
-    const own = isData ? null : await ownerOf(psbt.data.outputs[i]?.bip32Derivation, seeds);
-    if (own && own.coin === coin) {
-      const d = psbt.data.outputs[i].bip32Derivation!.find((x) => fpHex(x.masterFingerprint) === own.seed.fingerprint)!;
-      const exp = scriptFor(own.key.publicKey!, pathToArray(d.path)[0] - 0x80000000, own.coin);
-      isChange = !!exp && hex(Uint8Array.from(exp)) === hex(Uint8Array.from(o.script));
-    }
-    if (isChange) changeSats += sats; else sendSats += sats;
-    outputs.push({ address: addr, sats, isChange, isData });
+    if (!isData) { try { addr = baddress.fromOutputScript(o.script, NETWORKS[selected]); } catch { throw new Error(`Output ${i + 1} isn't a ${selected} address.`); } }
+    const own = isData ? null : await ownerOf(psbt.data.outputs[i]?.bip32Derivation, seeds, selected, roots);
+    const pubkey = own?.key.publicKey;
+    const exp = own && pubkey && own.coin === selected ? scriptFor(pubkey, own.purpose, selected) : undefined;
+    const isChange = !!exp && hex(exp) === hex(o.script);
+    if (isChange) changeSats += o.value; else sendSats += o.value;
+    outputs.push({ address: addr, sats: o.value, isChange, isData });
   }
   const feeSats = inputsSats - sendSats - changeSats;
   if (feeSats < 0n) throw new Error("This payment spends more than its inputs hold.");
   let token: TokenSend | null = null;
-  for (const o of psbt.txOutputs) {
-    const d = o.script[0] === 0x6a ? decodeOmniSimpleSend(Uint8Array.from(o.script)) : null;
+  if (selected === "TXC" || selected === "ISK") for (const o of psbt.txOutputs) {
+    const d = o.script[0] === 0x6a ? decodeOmniSimpleSend(o.script) : null;
     if (!d) continue;
     const info = KNOWN_TOKENS[d.propertyId];
-    const amount = info?.divisible ? formatCoins(d.amount) : d.amount.toString();
-    const to = outputs.find((x) => !x.isData && !x.isChange)?.address ?? null;
-    token = { propertyId: d.propertyId, symbol: info?.symbol ?? `Token #${d.propertyId}`, amount, to };
+    token = { propertyId: d.propertyId, symbol: info?.symbol ?? `Token #${d.propertyId}`, amount: info?.divisible ? formatCoins(d.amount) : d.amount.toString(), to: outputs.find((x) => !x.isData && !x.isChange)?.address ?? null };
     if (!info) warnings.push(`Token #${d.propertyId} isn't one this vault knows, so the amount is shown as raw units.`);
   }
   if (!token && outputs.some((o) => o.isData)) warnings.push("Includes a data output this vault can't read. Only sign if you expected it.");
   if (sendSats > 0n && feeSats * 20n > sendSats) warnings.push("The network fee is more than 5% of what you're sending.");
   if (feeSats > 100_000_000n) warnings.push("The network fee is over 1 coin. Check this carefully.");
-
-  return { review: { coin: coin!, seedName, inputsSats, sendSats, changeSats, feeSats, outputs, token, warnings }, keys };
+  return { review: { coin: selected, seedName: [...names].join(", "), inputsSats, sendSats, changeSats, feeSats, outputs, token, warnings }, keys };
 }
 
 export function signPsbt(psbt: Psbt, keys: HDKey[]): { hex: string; txid: string } {
+  if (keys.length !== psbt.inputCount) throw new Error("Missing input signing keys.");
   keys.forEach((k, i) => {
-    psbt.signInput(i, { publicKey: k.publicKey! as Buffer, sign: (hash: Buffer) => k.sign(hash) as Buffer });
+    const publicKey = k.publicKey;
+    if (!publicKey || !k.privateKey) throw new Error("Missing signing key.");
+    psbt.signInput(i, { publicKey, sign: (hash: Uint8Array) => k.sign(hash) }, [Transaction.SIGHASH_ALL]);
   });
   psbt.finalizeAllInputs();
   const tx = psbt.extractTransaction();
   return { hex: tx.toHex(), txid: tx.getId() };
 }
-
 export function formatCoins(sats: bigint): string {
-  const neg = sats < 0n;
-  const v = neg ? -sats : sats;
-  const whole = v / 100_000_000n;
+  const neg = sats < 0n, v = neg ? -sats : sats;
   const frac = (v % 100_000_000n).toString().padStart(8, "0").replace(/0+$/, "");
-  return `${neg ? "-" : ""}${whole}${frac ? "." + frac : ""}`;
+  return `${neg ? "-" : ""}${v / 100_000_000n}${frac ? "." + frac : ""}`;
 }
