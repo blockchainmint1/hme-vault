@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { ScannerDialog } from "@/components/wallet/QrScanButton";
 import { AnimatedQr } from "@/components/vault/AnimatedQr";
 import { Unlocked } from "@/components/vault/Unlocked";
@@ -29,7 +28,6 @@ function SignPage() {
   const [scan, setScan] = useState(false);
   const [progress, setProgress] = useState<{ have: number; total: number } | null>(null);
   const collector = useRef(new PartCollector());
-  const [paste, setPaste] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const [state, setState] = useState<{ psbt: Psbt; review: Review; keys: HDKey[] } | null>(null);
@@ -42,7 +40,7 @@ function SignPage() {
   const active = useRef(status === "unlocked");
   active.current = status === "unlocked";
   useEffect(() => {
-    if (status !== "unlocked") { generation.current++; setState(null); setEvm(null); setSigned(null); setPw(""); setPaste(""); setScan(false); }
+    if (status !== "unlocked") { generation.current++; setState(null); setEvm(null); setSigned(null); setPw(""); setScan(false); }
     return () => { generation.current++; };
   }, [status]);
 
@@ -77,7 +75,7 @@ function SignPage() {
   }
 
   function reset() {
-    generation.current++; setBusy(false); setState(null); setEvm(null); setSigned(null); setPw(""); setPaste(""); setErr("");
+    generation.current++; setBusy(false); setState(null); setEvm(null); setSigned(null); setPw(""); setErr("");
   }
 
   if (signed && (state || evm)) {
@@ -184,11 +182,6 @@ function SignPage() {
         <Button className="w-full" disabled={busy || seeds.length === 0} onClick={() => { collector.current = new PartCollector(); setScan(true); }}>
           <Camera className="h-4 w-4 mr-1.5" />{busy ? "Checking…" : "Scan unsigned payment"}
         </Button>
-        <details className="text-sm">
-          <summary className="cursor-pointer text-muted-foreground">Or paste it</summary>
-          <Textarea className="mt-2" rows={4} spellCheck={false} value={paste} onChange={(e) => setPaste(e.target.value)} />
-          <Button className="mt-2" variant="secondary" disabled={!paste || busy} onClick={() => load(paste)}>Check payment</Button>
-        </details>
         {err && <p className="text-sm text-destructive">{err}</p>}
       </CardContent></Card>
       {scan && (
