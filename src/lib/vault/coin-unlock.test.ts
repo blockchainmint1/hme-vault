@@ -43,3 +43,9 @@ describe("old-style private key coins", () => {
     expect(() => coinPasswordFromScan("1GAehh7TsJAHuUAeKZcXf5CnwuGuGgyX2S")).toThrow();
   });
 });
+describe("TXC key labels", () => {
+  it("accepts a txc:-prefixed WIF", () => {
+    const k = "KwdMAjGmerYanjeui5SHS7JkmpZvVipYvB2LJGU1ZxJwYvP98617";
+    expect(coinPasswordFromScan("txc:" + k)).toBe(k);
+  });
+});
