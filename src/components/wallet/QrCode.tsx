@@ -32,7 +32,8 @@ export function QrCode({ value, size = 240 }: { value: string; size?: number }) 
       width={size}
       height={size}
       alt="QR code"
-      className="rounded-lg border border-border bg-white p-2"
+      draggable={false}
+      className="pointer-events-none select-none rounded-lg border border-border bg-white p-2"
     />
   );
 }

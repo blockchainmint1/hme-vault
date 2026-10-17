@@ -187,7 +187,11 @@ body,
 #root {
   width: 100%;
   max-width: 100%;
+  /* `clip` (not `hidden`) keeps the page itself the scroll container:
+     on the Android WebView, `overflow-x: hidden` on html/body can swallow
+     touch scrolling. Falls back to `hidden` where `clip` is unsupported. */
   overflow-x: hidden;
+  overflow-x: clip;
 }
 
 /* Prevent mobile browser text autosizing from overflowing controls. */
