@@ -41,7 +41,7 @@ function SettingsPage() {
                 setBio(await getBiometricStatus());
                 await changePassword(currentPw, password);
                 setCurrentPw(""); setLinking(false);
-                toast.success("Coin linked. Scan its hidden seed QR to unlock. Make a fresh backup; fingerprint unlock must be enabled again.");
+                toast.success("Coin linked. Scan its hidden seed or private key QR to unlock. Make a fresh backup; fingerprint unlock must be enabled again.");
               }} />
               <Button variant="ghost" onClick={() => { setLinking(false); setCurrentPw(""); }}>Cancel</Button>
             </>}
