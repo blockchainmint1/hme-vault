@@ -97,28 +97,21 @@ async function adaptiveForeground(markPath, canvas, outPath) {
 }
 
 /**
- * Generate a monochrome (single-color) silhouette from the dark source. Android
- * uses the alpha channel and tints it with the system accent color, so we
- * emit a fully-opaque black silhouette.
+ * Monochrome (themed) icon: Android 13+ uses the alpha channel and tints it
+ * with the system accent color, so emit a fully-opaque black silhouette taken
+ * from the mark's own alpha channel (robust for gradient/metallic sources).
  */
-async function monochromeIcon(canvas, outPath) {
+async function monochromeIcon(markPath, canvas, outPath) {
   const inner = Math.round(canvas * SAFE_RATIO);
-  // Flatten dark mark to pure black at full opacity where the mark is.
-  const markBuf = await sharp(DARK)
+  const markBuf = await sharp(markPath)
     .resize({ width: inner, height: inner, fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
-    .threshold(200, { grayscale: true }) // any non-white → black
-    .negate({ alpha: false }) // black shape on white
-    .toColourspace("b-w")
     .png()
     .toBuffer();
-  // Rebuild as alpha silhouette on transparent bg.
+  // Build a solid-black RGBA silhouette keeping the mark's alpha.
   const { data, info } = await sharp(markBuf).raw().toBuffer({ resolveWithObject: true });
   const rgba = Buffer.alloc(info.width * info.height * 4);
   for (let i = 0; i < info.width * info.height; i++) {
-    const gray = data[i];
-    // "dark shape on white" → mark pixels are 0 (black). Convert to
-    // solid-black RGBA with alpha proportional to darkness.
-    const alpha = 255 - gray;
+    const alpha = data[i * 4 + 3];
     rgba[i * 4 + 0] = 0;
     rgba[i * 4 + 1] = 0;
     rgba[i * 4 + 2] = 0;
