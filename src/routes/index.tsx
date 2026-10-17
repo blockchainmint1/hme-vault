@@ -11,10 +11,10 @@ import { getBiometricStatus, unlockWithBiometric } from "@/lib/native/biometric"
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "HME Seed Vault — offline seed storage" },
-      { name: "description", content: "Keep your recovery seeds locked on an offline phone. Show any seed as a QR when you need it." },
-      { property: "og:title", content: "HME Seed Vault" },
-      { property: "og:description", content: "Offline, password-locked seed storage with encrypted backups." },
+      { title: "HME Vault — offline seeds and secrets" },
+      { name: "description", content: "Keep recovery seeds, passwords and small files encrypted on your offline phone." },
+      { property: "og:title", content: "HME Vault — offline seeds and secrets" },
+      { property: "og:description", content: "Offline, password-locked storage with encrypted QR and USB backups." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
