@@ -4,8 +4,8 @@ import { mnemonicToSeed, generateMnemonic, validateMnemonic } from "@scure/bip39
 import { wordlist } from "@scure/bip39/wordlists/english.js";
 import { secp256k1 } from "@noble/curves/secp256k1";
 import { keccak_256 } from "@noble/hashes/sha3.js";
-import { normalizeSeed } from "./format";
-import { validateSecret, MAX_VAULT_CHARS, type SecretEntry } from "./secrets";
+import { lockText, normalizeSeed } from "./format";
+import { mergeSecrets, validateSecret, MAX_VAULT_CHARS, type SecretEntry } from "./secrets";
 
 export interface SeedEntry {
   id: string;
@@ -24,6 +24,20 @@ export interface VaultPayload {
 }
 
 export const emptyVault = (): VaultPayload => ({ v: 1, kind: "hm-seed-vault", seeds: [], secrets: [] });
+
+/** Backups use the current Vault credential, never a separate backup password. */
+export async function encryptVaultBackup(payload: VaultPayload, vaultCredential: string): Promise<string> {
+  const text = JSON.stringify(payload);
+  if (text.length > MAX_VAULT_CHARS) throw new Error("Vault is too large. Use a smaller collection.");
+  return lockText(text, vaultCredential);
+}
+
+/** Offline copying is additive: never overwrite or delete the receiver's entries. */
+export function mergeVaultBackup(existing: VaultPayload, incoming: VaultPayload) {
+  const seeds = mergeSeeds(existing.seeds, incoming.seeds);
+  const secrets = mergeSecrets(existing.secrets, incoming.secrets);
+  return { payload: { ...emptyVault(), seeds: seeds.seeds, secrets: secrets.secrets }, addedSeeds: seeds.added, addedSecrets: secrets.added, skipped: seeds.skipped + secrets.skipped };
+}
 
 export function parsePayload(text: string): VaultPayload {
   if (text.length > MAX_VAULT_CHARS) throw new Error("Vault is too large. Use a smaller collection.");

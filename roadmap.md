@@ -1,5 +1,7 @@
 # Roadmap — HME Seed Vault
 
+- [ ] Same-key encrypted backups, offline QR device copying and simple USB file saving (implement and test with dummy data)
+
 - [x] Hidden coin seed QR setup/unlock, existing Vault relinking and scan-based sensitive confirmations (dummy camera flow verified; standard HMVAULT1 recovery retained)
 - [x] Allow coin scanning for existing optional fingerprint enrollment and disclose its app-only protection limitation
 - [x] Enforce fingerprint secret release in Android security hardware (Keystore/StrongBox, invalidated on new fingerprint)

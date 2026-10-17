@@ -22,3 +22,5 @@ QR transport is separate from encryption: a short code is sent verbatim, longer 
 The computer transfer page encrypts a payload with an empty seed list and one secret, so it uses exactly the same recovery format as a full backup. Never put unencrypted keystores or passwords into a transfer QR. Plaintext file export is a deliberate password-gated action, not a backup.
 
 Reference code: `src/lib/vault/format.ts`; single-file offline unlocker: `src/lib/vault/standalone.ts`.
+
+Whole-vault exports use the current Vault unlock credential as the HMVAULT1 password, with fresh random salt and IV. QR device copies and USB files contain the same format. Older backups made with a separate backup password remain readable using that password. Receiving devices decrypt with the source credential and additively merge into their own vault, encrypted under their own credential. No credential or fingerprint enrollment is included in the payload.

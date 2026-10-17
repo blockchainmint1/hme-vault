@@ -1,10 +1,38 @@
 import { describe, expect, it } from "vitest";
-import { deriveKeys, lockoutMs, mergeSeeds, shouldAutoLock, type SeedEntry } from "./seeds";
+import { deriveKeys, emptyVault, encryptVaultBackup, lockoutMs, mergeSeeds, mergeVaultBackup, parsePayload, shouldAutoLock, type SeedEntry } from "./seeds";
+import { unlockText } from "./format";
 
 const SEED = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
 const e = (id: string, words: string, passphrase?: string): SeedEntry => ({ id, name: id, words, passphrase, fingerprint: "x", createdAt: 0 });
 
 describe("vault rules", () => {
+  it("encrypts full backups using the existing Vault private-key credential, without a separate password", async () => {
+    const key = "1234567890abcdef".repeat(4);
+    const payload = { ...emptyVault(), seeds: [e("seed", SEED)], secrets: [
+      { id: "note", name: "Note", type: "note" as const, content: "dummy note", createdAt: 0 },
+      { id: "file", name: "Keystore", type: "file" as const, filename: "dummy.jks", content: "AAECAw==", createdAt: 0 },
+      { id: "totp", name: "2FA", type: "totp" as const, content: "otpauth://totp/Dummy?secret=JBSWY3DPEHPK3PXP", createdAt: 0 },
+    ] };
+    const code = await encryptVaultBackup(payload, key);
+    expect(code.startsWith("HMVAULT1.600000.")).toBe(true);
+    const restored = parsePayload(await unlockText(code, key));
+    expect(restored.seeds).toEqual(payload.seeds);
+    expect(restored.secrets.map(s => s.type)).toEqual(["note", "file", "totp"]);
+    expect(restored.secrets[1].content).toBe("AAECAw==");
+    await expect(unlockText(code, "different key")).rejects.toThrow("Wrong password");
+  });
+  it("device copying adds missing entries, skips duplicates and never deletes receiver entries", () => {
+    const note = { id: "note", name: "Original", type: "note" as const, content: "same", createdAt: 0 };
+    const current = { ...emptyVault(), seeds: [e("existing", SEED)], secrets: [note] };
+    const incoming = { ...emptyVault(), seeds: [e("duplicate", SEED)], secrets: [{ ...note, name: "Changed label" }, { ...note, id: "new", content: "new" }] };
+    const r = mergeVaultBackup(current, incoming);
+    expect(r.addedSeeds).toBe(0);
+    expect(r.addedSecrets).toBe(1);
+    expect(r.skipped).toBe(2);
+    expect(r.payload.seeds).toEqual(current.seeds);
+    expect(r.payload.secrets).toEqual([note, incoming.secrets[1]]);
+    expect(current.secrets).toEqual([note]);
+  });
   it("restore skips a seed already in the vault", () => {
     const r = mergeSeeds([e("a", SEED)], [e("b", SEED), e("c", "zoo zoo")]);
     expect(r.added).toBe(1);
