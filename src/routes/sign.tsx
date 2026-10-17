@@ -46,14 +46,16 @@ function SignPage() {
   }
 
   function onCode(code: string) {
-    const full = collector.current.add(code);
-    setProgress(collector.current.progress.total ? collector.current.progress : null);
-    if (full) {
-      setScan(false);
-      collector.current = new PartCollector();
-      setProgress(null);
-      void load(full);
-    }
+    try {
+      const full = collector.current.add(code);
+      setProgress(collector.current.progress.total ? collector.current.progress : null);
+      if (full) {
+        setScan(false);
+        collector.current = new PartCollector();
+        setProgress(null);
+        void load(full);
+      }
+    } catch(e) { setScan(false); setErr((e as Error).message); collector.current = new PartCollector(); setProgress(null); }
   }
 
   function reset() {
