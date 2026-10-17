@@ -15,7 +15,7 @@ const REMOTE_URL = process.env.HME_REMOTE_URL;
 
 const config: CapacitorConfig = {
   appId: "money.honest.seedvault",
-  appName: "HME Seed Vault",
+  appName: "HME Vault",
   webDir: "dist/client",
   backgroundColor: "#ffffff",
   server: {
