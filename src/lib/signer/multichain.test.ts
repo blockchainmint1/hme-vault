@@ -56,9 +56,10 @@ describe("multi-chain offline PSBT signing", () => {
     const { psbt, seeds } = await fixture("DOGE");
     const inp = psbt.data.inputs[0];
     const prev = Transaction.fromBuffer(inp.nonWitnessUtxo ?? new Uint8Array());
-    delete inp.nonWitnessUtxo;
-    inp.witnessUtxo = prev.outs[0];
-    await expect(reviewPsbt(psbt, seeds, "DOGE")).rejects.toThrow(/full previous/);
+    const witnessOnly = new Psbt({ network: NETWORKS.DOGE });
+    witnessOnly.addInput({ hash: prev.getId(), index: 0, witnessUtxo: prev.outs[0], bip32Derivation: inp.bip32Derivation });
+    for (const out of psbt.txOutputs) witnessOnly.addOutput({ script: out.script, value: out.value });
+    await expect(reviewPsbt(witnessOnly, seeds, "DOGE")).rejects.toThrow(/full previous/);
   });
   it("refuses changed previous transaction", async () => {
     const { psbt, seeds } = await fixture("BTC");
