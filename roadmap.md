@@ -2,7 +2,8 @@
 
 - [x] Hidden coin seed QR setup/unlock, existing Vault relinking and scan-based sensitive confirmations (dummy camera flow verified; standard HMVAULT1 recovery retained)
 - [x] Allow coin scanning for existing optional fingerprint enrollment and disclose its app-only protection limitation
-- [ ] Enforce fingerprint secret release in Android security hardware and verify on GrapheneOS (requires native implementation and Bobby's actual device verification)
+- [x] Enforce fingerprint secret release in Android security hardware (Keystore/StrongBox, invalidated on new fingerprint)
+- [ ] Verify hardware fingerprint unlock on Bobby's GrapheneOS Pixel (needs APK build + phone test)
 
 - [x] Store passwords, notes and small files in the encrypted vault
 - [x] Offline TOTP authenticator (scan 2FA QR or paste setup code, live 6/8-digit codes with countdown; RFC 6238 vectors tested, dummy browser flow verified)

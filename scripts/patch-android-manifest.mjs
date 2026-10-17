@@ -61,7 +61,9 @@ if (existsSync(stringsPath)) {
 const javaDir = resolve(process.cwd(), "android/app/src/main/java/money/honest/seedvault");
 const mainPath = resolve(javaDir, "MainActivity.java");
 if (!existsSync(mainPath)) throw new Error("Expected Vault MainActivity.java was not found.");
-writeFileSync(resolve(javaDir, "VaultDocumentsPlugin.java"), readFileSync(resolve(process.cwd(), "scripts/native/VaultDocumentsPlugin.java"), "utf8"));
+for (const name of ["VaultDocumentsPlugin.java", "VaultBiometricKeyPlugin.java"]) {
+  writeFileSync(resolve(javaDir, name), readFileSync(resolve(process.cwd(), "scripts/native", name), "utf8"));
+}
 let main = readFileSync(mainPath, "utf8");
 if (!main.includes("registerPlugin(VaultDocumentsPlugin.class)")) {
   if (main.includes("void onCreate(")) throw new Error("Review existing MainActivity.onCreate before registering document plugin.");
@@ -71,5 +73,21 @@ if (!main.includes("registerPlugin(VaultDocumentsPlugin.class)")) {
         super.onCreate(savedInstanceState);
     }`);
   if (!main.includes("registerPlugin(VaultDocumentsPlugin.class)")) throw new Error("Document plugin registration failed.");
-  writeFileSync(mainPath, main);
+}
+if (!main.includes("registerPlugin(VaultBiometricKeyPlugin.class)")) {
+  main = main.replace("registerPlugin(VaultDocumentsPlugin.class);", "registerPlugin(VaultDocumentsPlugin.class);\n        registerPlugin(VaultBiometricKeyPlugin.class);");
+  if (!main.includes("registerPlugin(VaultBiometricKeyPlugin.class)")) throw new Error("Biometric key plugin registration failed.");
+}
+writeFileSync(mainPath, main);
+
+// The hardware-bound fingerprint plugin compiles against androidx.biometric.
+const gradlePath = resolve(process.cwd(), "android/app/build.gradle");
+if (existsSync(gradlePath)) {
+  let gradle = readFileSync(gradlePath, "utf8");
+  const dep = 'implementation "androidx.biometric:biometric:1.1.0"';
+  if (!gradle.includes(dep)) {
+    gradle = gradle.replace(/dependencies\s*\{/, `dependencies {\n    ${dep}`);
+    if (!gradle.includes(dep)) throw new Error("Could not add androidx.biometric dependency.");
+    writeFileSync(gradlePath, gradle);
+  }
 }

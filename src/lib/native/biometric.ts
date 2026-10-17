@@ -1,197 +1,117 @@
 /**
- * Biometric unlock for the HME Wallet.
+ * Hardware-bound fingerprint unlock for HME Vault.
  *
- * Design:
- *  - The wallet itself is always encrypted on disk with the user's password
- *    (PBKDF2 + AES-GCM, see src/lib/txc/storage.ts). That never changes.
- *  - When the user opts in to Face ID / fingerprint unlock, we store the
- *    plaintext password AND the "enabled" flag in the platform secure store
- *    (iOS Keychain, Android Keystore) via @aparajita/capacitor-secure-storage.
- *  - To retrieve it we first call BiometricAuth.authenticate() — the user has
- *    to pass Face ID / Touch ID / fingerprint before we read the password
- *    back and feed it into the normal unlock flow.
- *  - The password is always still required as a recovery fallback and for
- *    sensitive actions (revealing the seed phrase, deleting the wallet).
+ * The vault is always encrypted with the owner's password (or coin words).
+ * When fingerprint unlock is on, that unlock secret is sealed by an AES key
+ * that lives inside the phone's secure hardware (StrongBox / Titan M2 when
+ * present) and can only be used right after a strong fingerprint match. The OS
+ * destroys the key if fingerprints are added or the screen lock is removed;
+ * the owner then unlocks with the password/coin and re-enables fingerprint.
+ * See scripts/native/VaultBiometricKeyPlugin.java.
  *
- * The "enabled" flag lives in SecureStorage rather than localStorage so a
- * jailbroken filesystem attacker cannot toggle it on to phish a Keychain
- * read; the value is only trusted after biometric auth succeeds anyway.
+ * Older builds stored the plaintext password in secure storage; that copy is
+ * deleted on first run and fingerprint must be turned on again.
  *
- * On the web (Lovable preview, browser) all of this is a no-op:
- * `isBiometricAvailable()` returns false and `enableBiometric()` throws.
+ * On the web all of this is a no-op.
  */
+import { registerPlugin } from "@capacitor/core";
 import { isNative } from "./platform";
 
-const SECURE_KEY = "hmsv.bio.password.v1";
-const FLAG_KEY = "hmsv.bio.enabled.v1";
-const LEGACY_FLAG_KEY = "hmsv.bio.enabled";
+const BioKey = registerPlugin<{
+  status(): Promise<{ available: boolean; enrolled: boolean; strongBox: boolean }>;
+  enroll(options: { secret: string }): Promise<{ strongBox: boolean }>;
+  unlock(): Promise<{ secret: string }>;
+  remove(): Promise<void>;
+}>("VaultBiometricKey");
+
+const LEGACY_KEYS = ["hmsv.bio.password.v1", "hmsv.bio.enabled.v1"];
 
 export interface BiometricStatus {
   available: boolean;
   enabled: boolean;
+  strongBox?: boolean;
   reason?: string;
 }
 
-async function loadPlugins() {
-  if (!isNative()) return null;
-  const [{ BiometricAuth }, { SecureStorage }] = await Promise.all([
-    import("@aparajita/capacitor-biometric-auth"),
-    import("@aparajita/capacitor-secure-storage"),
-  ]);
-  return { BiometricAuth, SecureStorage };
-}
-
-export async function isBiometricAvailable(): Promise<boolean> {
-  const plugins = await loadPlugins();
-  if (!plugins) return false;
-  try {
-    const info = await plugins.BiometricAuth.checkBiometry();
-    return info.isAvailable === true;
-  } catch {
-    return false;
-  }
-}
-
-// In-memory shadow so synchronous callers (e.g. unlockWithBiometric's early
-// guard) don't have to await a SecureStorage read every time.
 let cachedFlag: boolean | null = null;
+let legacyCleaned = false;
 
-async function readFlag(): Promise<boolean> {
-  if (cachedFlag !== null) return cachedFlag;
-  const plugins = await loadPlugins();
-  if (!plugins) {
-    cachedFlag = false;
-    return false;
-  }
+async function cleanLegacy() {
+  if (legacyCleaned || !isNative()) return;
+  legacyCleaned = true;
   try {
-    // Migrate from the old plaintext localStorage flag if present.
-    try {
-      const legacy = typeof localStorage !== "undefined" && localStorage.getItem(LEGACY_FLAG_KEY);
-      if (legacy === "1") {
-        await plugins.SecureStorage.set(FLAG_KEY, "1", true, false);
-        try {
-          localStorage.removeItem(LEGACY_FLAG_KEY);
-        } catch {
-          /* ignore */
-        }
-        cachedFlag = true;
-        return true;
-      }
-    } catch {
-      /* ignore migration errors */
-    }
-    const v = await plugins.SecureStorage.get(FLAG_KEY, true, false).catch(() => null);
-    cachedFlag = v === "1";
-    return cachedFlag;
-  } catch {
-    cachedFlag = false;
-    return false;
-  }
-}
-
-export function isBiometricEnabled(): boolean {
-  // Synchronous consumers get whatever's cached; async paths (getBiometricStatus,
-  // unlockWithBiometric) refresh via readFlag first.
-  return cachedFlag === true;
+    const { SecureStorage } = await import("@aparajita/capacitor-secure-storage");
+    for (const k of LEGACY_KEYS) await SecureStorage.remove(k).catch(() => undefined);
+  } catch { /* ignore */ }
+  try { localStorage.removeItem("hmsv.bio.enabled"); } catch { /* ignore */ }
 }
 
 export async function getBiometricStatus(): Promise<BiometricStatus> {
-  const available = await isBiometricAvailable();
-  const enabled = available ? await readFlag() : false;
-  return { available, enabled };
+  if (!isNative()) return { available: false, enabled: false };
+  await cleanLegacy();
+  try {
+    const s = await BioKey.status();
+    cachedFlag = s.available && s.enrolled;
+    return { available: s.available, enabled: cachedFlag, strongBox: s.strongBox };
+  } catch {
+    cachedFlag = false;
+    return { available: false, enabled: false };
+  }
 }
 
-/**
- * Store the wallet password in the OS secure store so the user can unlock
- * with biometrics on the next launch. Requires the caller to already have a
- * verified password (typically right after a successful password unlock).
- */
+export async function isBiometricAvailable(): Promise<boolean> {
+  return (await getBiometricStatus()).available;
+}
+
+export function isBiometricEnabled(): boolean {
+  return cachedFlag === true;
+}
+
+/** Seal an already-verified unlock secret behind the phone's fingerprint hardware. */
 export async function enableBiometric(password: string): Promise<void> {
-  const plugins = await loadPlugins();
-  if (!plugins) throw new Error("Biometric unlock is only available on the mobile app.");
-  await plugins.BiometricAuth.authenticate({
-    reason: "Enable Face ID / fingerprint unlock for your Seed Vault",
-    cancelTitle: "Cancel",
-    allowDeviceCredential: false,
-    iosFallbackTitle: "Use Passcode",
-    androidTitle: "Enable biometric unlock",
-    androidSubtitle: "Confirm your identity to enable biometric unlock",
-  });
-  await plugins.SecureStorage.set(SECURE_KEY, password, true, false);
-  await plugins.SecureStorage.set(FLAG_KEY, "1", true, false);
+  if (!isNative()) throw new Error("Fingerprint unlock is only available in the phone app.");
+  await cleanLegacy();
+  await BioKey.enroll({ secret: password });
   cachedFlag = true;
 }
 
 export async function disableBiometric(): Promise<void> {
-  const plugins = await loadPlugins();
-  if (plugins) {
-    try {
-      await plugins.SecureStorage.remove(SECURE_KEY);
-    } catch {
-      /* ignore */
-    }
-    try {
-      await plugins.SecureStorage.remove(FLAG_KEY);
-    } catch {
-      /* ignore */
-    }
-  }
-  try {
-    localStorage.removeItem(LEGACY_FLAG_KEY);
-  } catch {
-    /* ignore */
+  if (isNative()) {
+    await cleanLegacy();
+    await BioKey.remove().catch(() => undefined);
   }
   cachedFlag = false;
 }
 
 /**
- * Prompt for biometrics and return the stored password on success.
- * Returns null if the user cancels or biometrics is not enabled.
+ * Ask for a fingerprint and return the unsealed unlock secret.
+ * Returns null when cancelled; throws a readable message when the phone
+ * invalidated the key (new fingerprint / screen lock removed).
  */
 export async function unlockWithBiometric(): Promise<string | null> {
-  const plugins = await loadPlugins();
-  if (!plugins) return null;
-  const enabled = await readFlag();
-  if (!enabled) return null;
+  if (!isNative()) return null;
   try {
-    await plugins.BiometricAuth.authenticate({
-      reason: "Unlock your Seed Vault",
-      cancelTitle: "Use password",
-      allowDeviceCredential: false,
-      iosFallbackTitle: "Use Passcode",
-      androidTitle: "Unlock Seed Vault",
-      androidSubtitle: "Confirm your identity",
-    });
-    const pw = await plugins.SecureStorage.get(SECURE_KEY, true, false);
-    return typeof pw === "string" ? pw : null;
-  } catch {
+    const { secret } = await BioKey.unlock();
+    return secret || null;
+  } catch (e) {
+    const code = (e as { code?: string }).code;
+    if (code === "INVALIDATED" || code === "NOT_ENROLLED") {
+      cachedFlag = false;
+      throw new Error((e as Error).message);
+    }
     return null;
   }
 }
 
 /**
- * Re-authenticate the user with biometrics before a sensitive action
- * (e.g. broadcasting a payment). Resolves true on success or when
- * biometrics is unavailable / not enabled on this device (the caller is
- * expected to have its own confirmation UI in that case). Resolves false
- * only when biometrics is available + enabled and the user cancels or
- * fails the prompt.
+ * Fingerprint check before a sensitive action. Uses the same hardware key, so
+ * it only succeeds with a real fingerprint match. Resolves true when fingerprint
+ * is not enabled (caller has its own password confirmation in that case).
  */
-export async function confirmWithBiometric(reason: string): Promise<boolean> {
-  const plugins = await loadPlugins();
-  if (!plugins) return true;
-  const enabled = await readFlag();
-  if (!enabled) return true;
+export async function confirmWithBiometric(_reason: string): Promise<boolean> {
+  if (!isNative() || cachedFlag !== true) return true;
   try {
-    await plugins.BiometricAuth.authenticate({
-      reason,
-      cancelTitle: "Cancel",
-      allowDeviceCredential: false,
-      iosFallbackTitle: "Use Passcode",
-      androidTitle: "Confirm payment",
-      androidSubtitle: reason,
-    });
-    return true;
+    return (await unlockWithBiometric()) !== null;
   } catch {
     return false;
   }

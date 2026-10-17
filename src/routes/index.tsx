@@ -95,8 +95,10 @@ function UnlockForm() {
     try { await unlock(password); } catch (e) { setErr((e as Error).message); setPw(""); } finally { setBusy(false); }
   }
   async function useBio() {
-    const p = await unlockWithBiometric();
-    if (p) await go(p);
+    try {
+      const p = await unlockWithBiometric();
+      if (p) await go(p);
+    } catch (e) { setBio(false); setErr((e as Error).message); }
   }
   return (
     <Card>
