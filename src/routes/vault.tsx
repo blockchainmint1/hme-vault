@@ -16,9 +16,9 @@ import { STANDALONE_UNLOCKER } from "@/lib/vault/standalone";
 export const Route = createFileRoute("/vault")({
   head: () => ({
     meta: [
-      { title: "Offline Seed Vault — HME Wallet" },
+      { title: "Seed encryption tool — HME Vault" },
       { name: "description", content: "Lock your seed phrase with a password into a QR code or file. Open format, works offline, free to recover." },
-      { property: "og:title", content: "Offline Seed Vault — HME Wallet" },
+      { property: "og:title", content: "Seed encryption tool — HME Vault" },
       { property: "og:description", content: "Password-lock your seed into a QR or file. Open, offline, free." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

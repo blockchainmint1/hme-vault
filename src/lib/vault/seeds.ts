@@ -95,7 +95,7 @@ export async function deriveKeys(words: string, passphrase = ""): Promise<SeedKe
 
 /**
  * Watch-only pairing for the online wallet (JSON, safe to share): master
- * fingerprint plus account xpubs for every script type on TXC and ISK.
+ * fingerprint plus account xpubs for supported coins, and the EVM address/path.
  * Format: docs/offline-signing-handoff.md.
  */
 export async function pairingPayload(words: string, passphrase = ""): Promise<string> {
@@ -106,5 +106,6 @@ export async function pairingPayload(words: string, passphrase = ""): Promise<st
     "49": root.derive(`m/49'/${ct}'/0'`).publicExtendedKey,
     "44": root.derive(`m/44'/${ct}'/0'`).publicExtendedKey,
   });
-  return JSON.stringify({ hmvault: 1, fp, txc: acct(696969), isk: acct(969696) });
+  const evm = await deriveKeys(words, passphrase);
+  return JSON.stringify({ hmvault: 1, fp, txc: acct(696969), isk: acct(969696), btc: acct(0), ltc: acct(2), doge: { "44": root.derive("m/44'/3'/0'").publicExtendedKey }, evm: { address: evm.evmAddress, path: EVM_PATH } });
 }

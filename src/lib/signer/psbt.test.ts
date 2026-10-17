@@ -3,7 +3,7 @@ import { HDKey } from "@scure/bip32";
 import { mnemonicToSeed } from "@scure/bip39";
 import { payments, Psbt, Transaction } from "bitcoinjs-lib";
 import { NETWORKS } from "./networks";
-import { parsePsbt, reviewPsbt, signPsbt } from "./psbt";
+import { decodeOmniSimpleSend, parsePsbt, reviewPsbt, signPsbt } from "./psbt";
 import { PartCollector, toParts } from "./qr-parts";
 
 const WORDS = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
@@ -59,6 +59,11 @@ describe("offline signer", () => {
     const { review } = await reviewPsbt(parsePsbt(psbt.toBase64()), seeds);
     expect(review.token?.symbol).toBe("TSD");
     expect(review.token?.amount).toBe("100");
+  });
+  it("rejects trailing Omni data instead of labeling it as a token transfer", () => {
+    const valid = Uint8Array.from(Buffer.from("6a146f6d6e69000000000000002700000002540be400", "hex"));
+    expect(decodeOmniSimpleSend(valid)?.propertyId).toBe(39);
+    expect(decodeOmniSimpleSend(Uint8Array.from([...valid, 0]))).toBeNull();
   });
   it("multi-part QR round-trips", () => {
     const text = "x".repeat(1500);
