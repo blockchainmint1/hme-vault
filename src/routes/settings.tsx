@@ -31,7 +31,7 @@ function SettingsPage() {
     <Unlocked title="Settings" back>
       <div className="space-y-4">
         <Card>
-          <CardHeader><CardTitle className="text-base">Coin QR unlock</CardTitle><CardDescription>Replace this phone’s Vault password with a coin’s hidden recovery words. Existing backups keep their own passwords.</CardDescription></CardHeader>
+          <CardHeader><CardTitle className="text-base">Coin QR unlock</CardTitle><CardDescription>Replace this phone’s Vault password with whatever a coin’s QR holds. Existing backups keep their own passwords.</CardDescription></CardHeader>
           <CardContent className="space-y-3">
             {!linking ? <Button variant="outline" onClick={() => setLinking(true)}>Link a coin</Button> : <>
               <CredentialInput aria-label="Current Vault password" placeholder="Current Vault password" type="password" value={currentPw} onChange={e => setCurrentPw(e.target.value)} />

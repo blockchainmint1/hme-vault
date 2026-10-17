@@ -22,7 +22,7 @@ export function CoinEnrollment({ onEnroll, disabled = false }: { onEnroll: (pass
     <p className="text-sm text-destructive">Anyone with a copy of the hidden QR—including a saved minting file—can open your Vault and spend the coin. Opening its seal may affect its cold-storage status.</p>
     <p className="text-sm text-muted-foreground">Keep a secure paper copy of those words and an encrypted backup with a separate backup password. There is no reset.</p>
     <label className="flex items-start gap-2 text-sm"><Checkbox checked={ack} onCheckedChange={v => setAck(v === true)} aria-label="I understand the coin unlock risks" /><span>I understand these risks and have a recovery copy.</span></label>
-    <Button variant="outline" className="w-full" disabled={!ack || busy || disabled} onClick={() => { setError(""); if (second) { setFirst(""); setSecond(""); } setScan(true); }}><Camera className="mr-2 h-4 w-4" />{second ? "Start scans again" : first ? "Scan same coin again" : "Scan hidden coin QR"}</Button>
+    <Button variant="outline" className="w-full" disabled={!ack || busy || disabled} onClick={() => { setError(""); if (second) { setFirst(""); setSecond(""); } setScan(true); }}><Camera className="mr-2 h-4 w-4" />{second ? "Start scans again" : first ? "Scan same coin again" : "Scan coin QR"}</Button>
     {first && <p className="text-sm text-muted-foreground">{second ? "Both scans match." : "First scan accepted. Scan it again to confirm."}</p>}
     {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
     <Button className="w-full" disabled={!first || !second || !ack || busy || disabled} onClick={async () => {
