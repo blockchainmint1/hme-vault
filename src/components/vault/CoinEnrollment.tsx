@@ -18,7 +18,7 @@ export function CoinEnrollment({ onEnroll, disabled = false }: { onEnroll: (pass
     return () => document.removeEventListener("visibilitychange", clear);
   }, []);
   return <div className="space-y-3">
-    <p className="text-sm">The coin’s hidden recovery words become your Vault password. The public QR cannot unlock it. This does not import the coin or connect to the coin service.</p>
+    <p className="text-sm">Whatever the scanned QR holds (seed words, a private key or any other text) becomes your Vault password. Use a secret QR: anyone who can scan it can open Vault. This does not import the coin or connect to the coin service.</p>
     <p className="text-sm text-destructive">Anyone with a copy of the hidden QR—including a saved minting file—can open your Vault and spend the coin. Opening its seal may affect its cold-storage status.</p>
     <p className="text-sm text-muted-foreground">Keep a secure paper copy of those words and an encrypted backup with a separate backup password. There is no reset.</p>
     <label className="flex items-start gap-2 text-sm"><Checkbox checked={ack} onCheckedChange={v => setAck(v === true)} aria-label="I understand the coin unlock risks" /><span>I understand these risks and have a recovery copy.</span></label>
