@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Camera, Download, Eye, FileKey, KeyRound, Plus, ScanLine, StickyNote, Timer, Trash2, X } from "lucide-react";
+import { Camera, Download, Eye, FileKey, Fingerprint, KeyRound, Plus, ScanLine, StickyNote, Timer, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ import { mergeSecrets, validateSecret, type SecretEntry } from "@/lib/vault/secr
 import { parseOtpAuth } from "@/lib/vault/totp";
 import { TotpCode } from "@/components/vault/TotpCode";
 import { ScannerDialog } from "@/components/wallet/QrScanButton";
+import { confirmWithBiometric, getBiometricStatus } from "@/lib/native/biometric";
 import { lockText, unlockText } from "@/lib/vault/format";
 import { saveBinaryFile, saveTextFile } from "@/lib/vault/save-file";
 import { OFFLINE_TRANSFER_PAGE } from "@/lib/vault/transfer-page";
