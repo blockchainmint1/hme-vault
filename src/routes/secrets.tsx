@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Camera, Download, Eye, FileKey, KeyRound, Plus, ScanLine, StickyNote, Timer, Trash2, X } from "lucide-react";
+import { Camera, Download, Eye, FileKey, Fingerprint, KeyRound, Plus, ScanLine, StickyNote, Timer, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ import { mergeSecrets, validateSecret, type SecretEntry } from "@/lib/vault/secr
 import { parseOtpAuth } from "@/lib/vault/totp";
 import { TotpCode } from "@/components/vault/TotpCode";
 import { ScannerDialog } from "@/components/wallet/QrScanButton";
+import { confirmWithBiometric, getBiometricStatus } from "@/lib/native/biometric";
 import { lockText, unlockText } from "@/lib/vault/format";
 import { saveBinaryFile, saveTextFile } from "@/lib/vault/save-file";
 import { OFFLINE_TRANSFER_PAGE } from "@/lib/vault/transfer-page";
@@ -33,6 +34,8 @@ function SecretsContent() {
   const [name, setName] = useState(""); const [type, setType] = useState<"password" | "note" | "totp">("password"); const [content, setContent] = useState("");
   const [code, setCode] = useState(""); const [pw, setPw] = useState(""); const [err, setErr] = useState(""); const [busy, setBusy] = useState(false);
   const [scan, setScan] = useState(false);
+  const [bio, setBio] = useState(false);
+  useEffect(() => { getBiometricStatus().then(s => setBio(s.enabled)); }, []);
   const [selected, setSelected] = useState<SecretEntry | null>(null); const [revealed, setRevealed] = useState(false); const [confirmation, setConfirmation] = useState("");
   const [exportCode, setExportCode] = useState(""); const [pw2, setPw2] = useState("");
   useEffect(() => { if (!revealed) return; const t = setTimeout(() => { setRevealed(false); setExportCode(""); setPw(""); }, REVEAL_HIDE_MS); return () => clearTimeout(t); }, [revealed]);
@@ -43,7 +46,7 @@ function SecretsContent() {
   if (selected) return <div className="space-y-4">
     <div className="flex items-center justify-between gap-3"><h2 className="break-words font-medium">{selected.name}</h2><Button variant="ghost" size="icon" aria-label="Close secret" onClick={reset}><X className="h-4 w-4" /></Button></div>
     <p className="text-xs text-muted-foreground">{selected.type === "file" ? selected.filename : selected.type === "password" ? "Password" : selected.type === "totp" ? "Authenticator" : "Secure note"}</p>
-    {!revealed ? <div className="space-y-3"><Label htmlFor="secret-pw">Vault password</Label><CredentialInput id="secret-pw" type="password" value={pw} onChange={e => setPw(e.target.value)} /><Button onClick={() => { if (!checkPassword(pw)) { setPw(""); setErr("Wrong password."); return; } setPw(""); setErr(""); setRevealed(true); }}><Eye className="mr-1.5 h-4 w-4" />Open secret</Button></div> : <div className="space-y-3">
+    {!revealed ? <div className="space-y-3"><Label htmlFor="secret-pw">Vault password</Label><CredentialInput id="secret-pw" type="password" value={pw} onChange={e => setPw(e.target.value)} /><Button onClick={() => { if (!checkPassword(pw)) { setPw(""); setErr("Wrong password."); return; } setPw(""); setErr(""); setRevealed(true); }}><Eye className="mr-1.5 h-4 w-4" />Open secret</Button>{bio && <Button variant="outline" onClick={() => void run(async () => { if (await confirmWithBiometric("Show this secret")) { setErr(""); setRevealed(true); } })}><Fingerprint className="mr-1.5 h-4 w-4" />Use fingerprint</Button>}</div> : <div className="space-y-3">
       {selected.type === "totp" && <TotpCode uri={selected.content} />}
       {selected.type !== "file" && selected.type !== "totp" && <pre className="whitespace-pre-wrap break-all rounded-md border border-border p-4 text-sm">{selected.content}</pre>}
       <Button variant="outline" onClick={() => void run(async () => { if (selected.type === "file") await saveBinaryFile(selected.filename ?? "secret.bin", selected.content); else await saveTextFile("secret.txt", selected.content); toast.success("Secret exported. This file is NOT encrypted."); })}><Download className="mr-1.5 h-4 w-4" />Export unencrypted {selected.type === "file" ? "file" : "text"}</Button>
