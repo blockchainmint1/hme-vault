@@ -109,7 +109,7 @@ export async function unlockWithBiometric(): Promise<string | null> {
  * is not enabled (caller has its own password confirmation in that case).
  */
 export async function confirmWithBiometric(_reason: string): Promise<boolean> {
-  if (!isNative() || cachedFlag !== true) return !isNative() || cachedFlag !== true ? cachedFlag !== true : false;
+  if (!isNative() || cachedFlag !== true) return true;
   try {
     return (await unlockWithBiometric()) !== null;
   } catch {
