@@ -5,6 +5,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { lockText, unlockText } from "./format";
 import { emptyVault, lockoutMs, parsePayload, shouldAutoLock, type SeedEntry } from "./seeds";
+import { MAX_VAULT_CHARS, type SecretEntry } from "./secrets";
 
 const VAULT_KEY = "hmsv.vault.v1";
 const FAILS_KEY = "hmsv.fails.v1";
@@ -14,12 +15,15 @@ type Status = "loading" | "none" | "locked" | "unlocked";
 interface Ctx {
   status: Status;
   seeds: SeedEntry[];
+  secrets: SecretEntry[];
   waitUntil: number;
   create: (password: string) => Promise<void>;
   unlock: (password: string) => Promise<void>;
   lock: () => void;
   checkPassword: (password: string) => boolean;
   save: (seeds: SeedEntry[]) => Promise<void>;
+  saveSecrets: (secrets: SecretEntry[]) => Promise<void>;
+  restore: (seeds: SeedEntry[], secrets: SecretEntry[]) => Promise<void>;
   wipe: () => void;
 }
 
@@ -36,6 +40,10 @@ function readFails(): { n: number; until: number } {
 export function VaultProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<Status>("loading");
   const [seeds, setSeeds] = useState<SeedEntry[]>([]);
+  const [secrets, setSecrets] = useState<SecretEntry[]>([]);
+  const data = useRef({ seeds: [] as SeedEntry[], secrets: [] as SecretEntry[] });
+  const generation = useRef(0);
+  const writing = useRef(false);
   const [waitUntil, setWaitUntil] = useState(0);
   const pw = useRef<string | null>(null);
   const lastActive = useRef(Date.now());
@@ -46,17 +54,31 @@ export function VaultProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const lock = useCallback(() => {
+    generation.current++;
     pw.current = null;
     setSeeds([]);
+    setSecrets([]);
+    data.current = { seeds: [], secrets: [] };
     setStatus((s) => (s === "unlocked" ? "locked" : s));
   }, []);
 
-  const persist = useCallback(async (list: SeedEntry[], password: string) => {
-    localStorage.setItem(VAULT_KEY, await lockText(JSON.stringify({ ...emptyVault(), seeds: list }), password));
+  const persist = useCallback(async (list: SeedEntry[], items: SecretEntry[], password: string) => {
+    if (writing.current) throw new Error("Another save is in progress. Please try again.");
+    writing.current = true;
+    const version = generation.current;
+    try {
+      const text = JSON.stringify({ ...emptyVault(), seeds: list, secrets: items });
+      if (text.length > MAX_VAULT_CHARS) throw new Error("Vault is full. Keep the collection under 2 MB.");
+      const encrypted = await lockText(text, password);
+      if (generation.current !== version) throw new Error("Vault locked before saving. Unlock and try again.");
+      try { localStorage.setItem(VAULT_KEY, encrypted); } catch { throw new Error("Not enough device storage. Nothing was changed."); }
+      data.current = { seeds: list, secrets: items };
+      setSeeds(list); setSecrets(items);
+    } finally { writing.current = false; }
   }, []);
 
   const create = useCallback(async (password: string) => {
-    await persist([], password);
+    await persist([], [], password);
     pw.current = password;
     setSeeds([]);
     setStatus("unlocked");
@@ -74,6 +96,8 @@ export function VaultProvider({ children }: { children: ReactNode }) {
       pw.current = password;
       lastActive.current = Date.now();
       setSeeds(payload.seeds);
+      setSecrets(payload.secrets);
+      data.current = { seeds: payload.seeds, secrets: payload.secrets };
       setStatus("unlocked");
     } catch {
       const n = f.n + 1;
@@ -86,17 +110,28 @@ export function VaultProvider({ children }: { children: ReactNode }) {
 
   const save = useCallback(async (list: SeedEntry[]) => {
     if (!pw.current) throw new Error("Vault is locked.");
-    await persist(list, pw.current);
-    setSeeds(list);
+    await persist(list, data.current.secrets, pw.current);
+  }, [persist]);
+
+  const saveSecrets = useCallback(async (items: SecretEntry[]) => {
+    if (!pw.current) throw new Error("Vault is locked.");
+    await persist(data.current.seeds, items, pw.current);
+  }, [persist]);
+  const restore = useCallback(async (list: SeedEntry[], items: SecretEntry[]) => {
+    if (!pw.current) throw new Error("Vault is locked.");
+    await persist(list, items, pw.current);
   }, [persist]);
 
   const checkPassword = useCallback((p: string) => pw.current !== null && p === pw.current, []);
 
   const wipe = useCallback(() => {
+    generation.current++;
     localStorage.removeItem(VAULT_KEY);
     localStorage.removeItem(FAILS_KEY);
     pw.current = null;
     setSeeds([]);
+    setSecrets([]);
+    data.current = { seeds: [], secrets: [] };
     setStatus("none");
   }, []);
 
@@ -119,7 +154,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
   }, [status, lock]);
 
   return (
-    <VaultCtx.Provider value={{ status, seeds, waitUntil, create, unlock, lock, checkPassword, save, wipe }}>
+    <VaultCtx.Provider value={{ status, seeds, secrets, waitUntil, create, unlock, lock, checkPassword, save, saveSecrets, restore, wipe }}>
       {children}
     </VaultCtx.Provider>
   );

@@ -1,5 +1,10 @@
 # Roadmap — HME Seed Vault
 
+- [ ] Store passwords, notes and small files in the encrypted vault
+- [ ] Standalone encrypted QR transfer page and multi-part scanning
+- [ ] Full-vault cycling QR backups, USB picker and offline recovery for files
+- [ ] Remove signing secrets from GitHub logs; test complete secret backup/restore
+
 - [x] Turn this copy into the offline seed vault (wallet features removed)
 - [x] Vault password, fingerprint unlock, auto-lock, wrong-password waits
 - [x] Add / make seeds, view words + QR, watch-only TXC/EVM QR, rename, delete, erase
