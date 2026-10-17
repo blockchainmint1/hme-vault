@@ -16,6 +16,13 @@ export function SiteFooter() {
           <a href="https://honest.money" target="_blank" rel="noreferrer" className="text-foreground hover:underline">honest.money</a>{" "}
           ecosystem
         </span>
+        <a
+          href={vaultApk.url}
+          download="hme-vault-release.apk"
+          className="text-foreground hover:underline"
+        >
+          Android app
+        </a>
         <Link to="/legal/terms" className="hover:text-foreground">Terms</Link>
         <Link to="/legal/privacy" className="hover:text-foreground">Privacy</Link>
         <Link to="/manifesto" className="hover:text-foreground">Manifesto</Link>
