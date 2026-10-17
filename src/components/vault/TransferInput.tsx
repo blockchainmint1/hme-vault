@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Camera, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -6,8 +6,11 @@ import { Label } from "@/components/ui/label";
 import { ScannerDialog } from "@/components/wallet/QrScanButton";
 import { PartCollector } from "@/lib/signer/qr-parts";
 import { openBackupFile } from "@/lib/vault/save-file";
+import { useVault } from "@/lib/vault/vault-context";
 
 export function TransferInput({ value, onChange }: { value: string; onChange: (text: string) => void }) {
+  const { pendingCode, setPendingCode } = useVault();
+  useEffect(() => { if (pendingCode) { onChange(pendingCode); setPendingCode(""); } }, [pendingCode, onChange, setPendingCode]);
   const [scan, setScan] = useState(false);
   const [progress, setProgress] = useState("");
   const [err, setErr] = useState("");
@@ -17,7 +20,7 @@ export function TransferInput({ value, onChange }: { value: string; onChange: (t
     <Textarea id="transfer-code" rows={3} value={value} spellCheck={false} onChange={e => onChange(e.target.value)} />
     <div className="flex flex-wrap gap-2">
       <Button variant="outline" onClick={() => { collector.current = new PartCollector(); setErr(""); setProgress(""); setScan(true); }}><Camera className="mr-1.5 h-4 w-4" />Scan transfer QR</Button>
-      <Button variant="outline" onClick={async () => { try { const text = await openBackupFile(); if (text !== null) onChange(text.trim()); } catch(e) { setErr((e as Error).message); } }}><Upload className="mr-1.5 h-4 w-4" />Open backup file</Button>
+      <Button variant="outline" onClick={async () => { try { const text = await openBackupFile(); if (text !== null) { if (!text.trim().startsWith("HMVAULT1.")) throw new Error("Choose an encrypted HMVAULT1 backup."); setPendingCode(text.trim()); } } catch(e) { setErr((e as Error).message); } }}><Upload className="mr-1.5 h-4 w-4" />Open backup file</Button>
     </div>
     {err && <p role="alert" className="text-sm text-destructive">{err}</p>}
     {scan && <ScannerDialog keepScanning hint={progress || "Point at the encrypted QR. Keep scanning until all parts arrive."} onClose={() => setScan(false)} onScan={code => {

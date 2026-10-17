@@ -16,6 +16,8 @@ interface Ctx {
   status: Status;
   seeds: SeedEntry[];
   secrets: SecretEntry[];
+  pendingCode: string;
+  setPendingCode: (code: string) => void;
   waitUntil: number;
   create: (password: string) => Promise<void>;
   unlock: (password: string) => Promise<void>;
@@ -41,6 +43,8 @@ export function VaultProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<Status>("loading");
   const [seeds, setSeeds] = useState<SeedEntry[]>([]);
   const [secrets, setSecrets] = useState<SecretEntry[]>([]);
+  // Ciphertext only: survives Android's file picker background lock, never stored on disk.
+  const [pendingCode, setPendingCode] = useState("");
   const data = useRef({ seeds: [] as SeedEntry[], secrets: [] as SecretEntry[] });
   const generation = useRef(0);
   const writing = useRef(false);
@@ -133,6 +137,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     setSecrets([]);
     data.current = { seeds: [], secrets: [] };
     setStatus("none");
+    setPendingCode("");
   }, []);
 
   // Auto-lock: 2 minutes idle, or as soon as the app is hidden/backgrounded.
@@ -154,7 +159,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
   }, [status, lock]);
 
   return (
-    <VaultCtx.Provider value={{ status, seeds, secrets, waitUntil, create, unlock, lock, checkPassword, save, saveSecrets, restore, wipe }}>
+    <VaultCtx.Provider value={{ status, seeds, secrets, pendingCode, setPendingCode, waitUntil, create, unlock, lock, checkPassword, save, saveSecrets, restore, wipe }}>
       {children}
     </VaultCtx.Provider>
   );
