@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatorRouteImport } from './routes/authenticator'
 import { Route as BackupRouteImport } from './routes/backup'
 import { Route as ManifestoRouteImport } from './routes/manifesto'
 import { Route as SecretsRouteImport } from './routes/secrets'
@@ -26,6 +27,11 @@ import { Route as SeedsNewRouteImport } from './routes/seeds.new'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatorRoute = AuthenticatorRouteImport.update({
+  id: '/authenticator',
+  path: '/authenticator',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BackupRoute = BackupRouteImport.update({
@@ -91,6 +97,7 @@ const SeedsNewRoute = SeedsNewRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/authenticator': typeof AuthenticatorRoute
   '/backup': typeof BackupRoute
   '/manifesto': typeof ManifestoRoute
   '/secrets': typeof SecretsRoute
@@ -106,6 +113,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/authenticator': typeof AuthenticatorRoute
   '/backup': typeof BackupRoute
   '/manifesto': typeof ManifestoRoute
   '/secrets': typeof SecretsRoute
@@ -122,6 +130,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/authenticator': typeof AuthenticatorRoute
   '/backup': typeof BackupRoute
   '/manifesto': typeof ManifestoRoute
   '/secrets': typeof SecretsRoute
@@ -139,6 +148,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/authenticator'
     | '/backup'
     | '/manifesto'
     | '/secrets'
@@ -154,6 +164,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/authenticator'
     | '/backup'
     | '/manifesto'
     | '/secrets'
@@ -169,6 +180,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/authenticator'
     | '/backup'
     | '/manifesto'
     | '/secrets'
@@ -185,6 +197,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatorRoute: typeof AuthenticatorRoute
   BackupRoute: typeof BackupRoute
   ManifestoRoute: typeof ManifestoRoute
   SecretsRoute: typeof SecretsRoute
@@ -206,6 +219,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/authenticator': {
+      id: '/authenticator'
+      path: '/authenticator'
+      fullPath: '/authenticator'
+      preLoaderRoute: typeof AuthenticatorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/backup': {
@@ -297,6 +317,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatorRoute: AuthenticatorRoute,
   BackupRoute: BackupRoute,
   ManifestoRoute: ManifestoRoute,
   SecretsRoute: SecretsRoute,
