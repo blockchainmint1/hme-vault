@@ -31,10 +31,11 @@ if (!existsSync(resolve(root, "android/app"))) {
   process.exit(0);
 }
 
-const SILVER = resolve(root, "src/assets/brand/dollar-mark-silver.png");
-const DARK = resolve(root, "src/assets/brand/dollar-mark-dark.png");
-if (!existsSync(SILVER) || !existsSync(DARK)) {
-  console.error("patch-android-icons: source brand mark(s) missing. Aborting.");
+// The Vault mark (steel vault door). One source: launcher icons are silver on
+// dark, and the monochrome layer is derived from its alpha silhouette.
+const SILVER = resolve(root, "src/assets/brand/vault-mark.png");
+if (!existsSync(SILVER)) {
+  console.error("patch-android-icons: source vault mark missing. Aborting.");
   process.exit(1);
 }
 
@@ -96,45 +97,38 @@ async function adaptiveForeground(markPath, canvas, outPath) {
 }
 
 /**
- * Generate a monochrome (single-color) silhouette from the dark source. Android
- * uses the alpha channel and tints it with the system accent color, so we
- * emit a fully-opaque black silhouette.
+ * Monochrome (themed) icon: Android 13+ tints the alpha channel with the
+ * system accent color. Photoreal metal thresholds into noise, so draw a crisp
+ * simplified vault silhouette (ring, 5-spoke handle, hub) instead — matching
+ * the launcher mark's geometry.
  */
 async function monochromeIcon(canvas, outPath) {
-  const inner = Math.round(canvas * SAFE_RATIO);
-  // Flatten dark mark to pure black at full opacity where the mark is.
-  const markBuf = await sharp(DARK)
-    .resize({ width: inner, height: inner, fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
-    .threshold(200, { grayscale: true }) // any non-white → black
-    .negate({ alpha: false }) // black shape on white
-    .toColourspace("b-w")
-    .png()
-    .toBuffer();
-  // Rebuild as alpha silhouette on transparent bg.
-  const { data, info } = await sharp(markBuf).raw().toBuffer({ resolveWithObject: true });
-  const rgba = Buffer.alloc(info.width * info.height * 4);
-  for (let i = 0; i < info.width * info.height; i++) {
-    const gray = data[i];
-    // "dark shape on white" → mark pixels are 0 (black). Convert to
-    // solid-black RGBA with alpha proportional to darkness.
-    const alpha = 255 - gray;
-    rgba[i * 4 + 0] = 0;
-    rgba[i * 4 + 1] = 0;
-    rgba[i * 4 + 2] = 0;
-    rgba[i * 4 + 3] = alpha;
-  }
-  const silhouette = await sharp(rgba, {
-    raw: { width: info.width, height: info.height, channels: 4 },
-  })
-    .png()
-    .toBuffer();
-
-  await sharp({
-    create: { width: canvas, height: canvas, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } },
-  })
-    .composite([{ input: silhouette, gravity: "center" }])
-    .png()
-    .toFile(outPath);
+  const safe = canvas * SAFE_RATIO; // mark size inside the 108dp canvas
+  const c = canvas / 2;
+  const s = safe / 2; // mark radius
+  const ring = s * 0.11; // outer ring stroke width
+  const outer = s - ring / 2; // outer ring centerline radius
+  const inner = s * 0.52; // inner rim ring radius
+  const hub = s * 0.16;
+  const spokes = [0, 72, 144, 216, 288]
+    .map((deg) => {
+      const rad = (deg * Math.PI) / 180;
+      const x1 = c + Math.cos(rad) * hub * 0.7;
+      const y1 = c + Math.sin(rad) * hub * 0.7;
+      const x2 = c + Math.cos(rad) * inner;
+      const y2 = c + Math.sin(rad) * inner;
+      return `<line x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}" />`;
+    })
+    .join("\n    ");
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${canvas}" height="${canvas}" viewBox="0 0 ${canvas} ${canvas}">
+  <g fill="none" stroke="#000" stroke-linecap="round">
+    <circle cx="${c}" cy="${c}" r="${outer.toFixed(2)}" stroke-width="${ring.toFixed(2)}" />
+    <circle cx="${c}" cy="${c}" r="${inner.toFixed(2)}" stroke-width="${(ring * 0.45).toFixed(2)}" />
+    <g stroke-width="${(ring * 0.9).toFixed(2)}">${spokes}</g>
+    <circle cx="${c}" cy="${c}" r="${hub.toFixed(2)}" fill="#000" stroke="none" />
+  </g>
+</svg>`;
+  await sharp(Buffer.from(svg)).png().toFile(outPath);
 }
 
 async function main() {
