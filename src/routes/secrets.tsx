@@ -30,12 +30,13 @@ function SecretsPage() { return <Unlocked title="Secrets" back><SecretsContent /
 function SecretsContent() {
   const { seeds, secrets, saveSecrets, restore, checkPassword } = useVault();
   const [mode, setMode] = useState("list");
-  const [name, setName] = useState(""); const [type, setType] = useState<"password" | "note">("password"); const [content, setContent] = useState("");
+  const [name, setName] = useState(""); const [type, setType] = useState<"password" | "note" | "totp">("password"); const [content, setContent] = useState("");
   const [code, setCode] = useState(""); const [pw, setPw] = useState(""); const [err, setErr] = useState(""); const [busy, setBusy] = useState(false);
+  const [scan, setScan] = useState(false);
   const [selected, setSelected] = useState<SecretEntry | null>(null); const [revealed, setRevealed] = useState(false); const [confirmation, setConfirmation] = useState("");
   const [exportCode, setExportCode] = useState(""); const [pw2, setPw2] = useState("");
   useEffect(() => { if (!revealed) return; const t = setTimeout(() => { setRevealed(false); setExportCode(""); setPw(""); }, REVEAL_HIDE_MS); return () => clearTimeout(t); }, [revealed]);
-  function reset() { setMode("list"); setSelected(null); setRevealed(false); setExportCode(""); setPw(""); setPw2(""); setConfirmation(""); setErr(""); setContent(""); setCode(""); setName(""); }
+  function reset() { setMode("list"); setSelected(null); setRevealed(false); setExportCode(""); setPw(""); setPw2(""); setConfirmation(""); setErr(""); setContent(""); setCode(""); setName(""); setScan(false); }
   async function run(action: () => Promise<void>) { setBusy(true); setErr(""); try { await action(); } catch(e) { setErr((e as Error).message); } finally { setBusy(false); } }
   const error = err && <p role="alert" className="text-sm text-destructive">{err}</p>;
 
