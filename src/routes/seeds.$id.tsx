@@ -12,7 +12,7 @@ import { useVault } from "@/lib/vault/vault-context";
 import { deriveKeys, pairingPayload, REVEAL_HIDE_MS, TXC_ACCOUNT_PATH, EVM_PATH, type SeedKeys } from "@/lib/vault/seeds";
 
 export const Route = createFileRoute("/seeds/$id")({
-  head: () => ({ meta: [{ title: "Seed — HME Seed Vault" }, { name: "description", content: "View a stored seed." }, { property: "og:title", content: "Seed — HME Seed Vault" }, { property: "og:description", content: "View a stored seed." }] }),
+  head: () => ({ meta: [{ title: "Seed — HME Vault" }, { name: "description", content: "View a stored seed." }, { property: "og:title", content: "Seed — HME Vault" }, { property: "og:description", content: "View a stored seed." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: SeedPage,
 });
 

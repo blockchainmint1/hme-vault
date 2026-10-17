@@ -6,7 +6,7 @@ import { Unlocked } from "@/components/vault/Unlocked";
 import { useVault } from "@/lib/vault/vault-context";
 
 export const Route = createFileRoute("/seeds/")({
-  head: () => ({ meta: [{ title: "My seeds — HME Seed Vault" }, { name: "description", content: "Seeds stored in your offline vault." }, { property: "og:title", content: "My seeds — HME Seed Vault" }, { property: "og:description", content: "Seeds stored in your offline vault." }] }),
+  head: () => ({ meta: [{ title: "My seeds — HME Vault" }, { name: "description", content: "Seeds stored in your offline vault." }, { property: "og:title", content: "My seeds — HME Vault" }, { property: "og:description", content: "Seeds stored in your offline vault." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: SeedsPage,
 });
 

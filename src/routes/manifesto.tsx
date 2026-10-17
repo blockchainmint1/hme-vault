@@ -3,13 +3,15 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 export const Route = createFileRoute("/manifesto")({
   head: () => ({
     meta: [
-      { title: "Manifesto — HME Wallet" },
+      { title: "Manifesto — HME Vault" },
       {
         name: "description",
         content:
-          "Why HME Wallet exists: honest money, self custody, open code, no rent-seeking middlemen.",
+          "Why HME Vault exists: honest money, self custody and recoverable offline storage.",
       },
-      { property: "og:title", content: "Manifesto — HME Wallet" },
+      { property: "og:title", content: "Manifesto — HME Vault" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         property: "og:description",
         content: "Honest money. Self custody. Open code. No middlemen.",

@@ -16,7 +16,7 @@ import { clearSignerCache, formatCoins, parsePsbt, reviewPsbt, signPsbt, type Re
 import { PartCollector } from "@/lib/signer/qr-parts";
 
 export const Route = createFileRoute("/sign")({
-  head: () => ({ meta: [{ title: "Sign a payment — HME Seed Vault" }, { name: "description", content: "Sign a TEXITcoin or IskanderCoin payment offline by QR." }, { property: "og:title", content: "Sign a payment — HME Seed Vault" }, { property: "og:description", content: "Sign a payment offline by QR." }] }),
+  head: () => ({ meta: [{ title: "Sign a payment — HME Vault" }, { name: "description", content: "Sign a TEXITcoin or IskanderCoin payment offline by QR." }, { property: "og:title", content: "Sign a payment — HME Vault" }, { property: "og:description", content: "Sign a payment offline by QR." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: SignPage,
 });
 
