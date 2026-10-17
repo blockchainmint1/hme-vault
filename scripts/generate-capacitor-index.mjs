@@ -8,26 +8,17 @@ const capacitorWebDir = resolve(root, "dist/client");
 const publicCandidates = [resolve(root, "dist/client"), resolve(root, ".output/public")];
 const serverCandidates = [resolve(root, "dist/server/index.mjs"), resolve(root, ".output/server/index.mjs")];
 const staticSpaRoutes = [
-  "create",
-  "import",
+  "seeds",
+  "seeds/new",
+  "backup",
+  "settings",
+  "sign",
+  "vault",
   "manifesto",
   "legal/privacy",
   "legal/terms",
-  "wallet",
-  "wallet/backup",
-  "wallet/contacts",
-  "wallet/receive",
-  "wallet/send",
-  "wallet/settings",
-  "wallet/watch-add",
 ];
-const prerenderedNativeRoutes = new Set(["create", "import"]);
 const stableRootAssets = ["icon-512.webp"];
-const nativeClickFallbackScript = `<script>(function(){if(window.__HME_NATIVE_NAV_FALLBACK__)return;window.__HME_NATIVE_NAV_FALLBACK__=true;function routeFromEvent(e){var t=e.target;if(!t||!t.closest)return null;var a=t.closest('a[data-native-route],a[href="/import"],a[href="/create"]');if(!a)return null;var h=a.getAttribute('data-native-route')||a.getAttribute('href');return h==='/import'||h==='/create'?h:null}function go(e){if(document.documentElement&&document.documentElement.dataset&&document.documentElement.dataset.hmeHydrated==='true')return;var h=routeFromEvent(e);if(!h)return;e.preventDefault();e.stopPropagation();location.assign(h)}document.addEventListener('pointerup',go,true);document.addEventListener('touchend',go,true);document.addEventListener('click',go,true);})();</script>`;
-
-function hardenNativeHomeHtml(html) {
-  return html.replace(/<a href="\/(import|create)" class=/g, '<a href="/$1" data-native-route="/$1" class=');
-}
 
 
 async function isDirectory(path) {
@@ -75,8 +66,7 @@ async function renderSpaShell(serverEntryPath, route = "/") {
   if (!html.includes("$_TSR") || !html.includes("/assets/")) {
     throw new Error(`Generated SPA shell for ${route} is missing TanStack hydration data or asset links.`);
   }
-  const hardened = route === "/" ? hardenNativeHomeHtml(html) : html;
-  return hardened.includes("</body>") ? hardened.replace("</body>", `${nativeClickFallbackScript}</body>`) : hardened;
+  return html;
 }
 
 const publicDir = await findFirstDirectory(publicCandidates);
@@ -101,10 +91,7 @@ const routeHtml = new Map();
 const homeHtml = await renderSpaShell(serverEntryPath, "/");
 routeHtml.set("", homeHtml);
 for (const route of staticSpaRoutes) {
-  routeHtml.set(
-    route,
-    prerenderedNativeRoutes.has(route) ? await renderSpaShell(serverEntryPath, `/${route}`) : homeHtml,
-  );
+  routeHtml.set(route, homeHtml);
 }
 
 for (const outputDir of outputDirs) {
