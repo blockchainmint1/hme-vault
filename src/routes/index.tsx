@@ -11,6 +11,7 @@ import { CoinEnrollment } from "@/components/vault/CoinEnrollment";
 import { ScannerDialog } from "@/components/wallet/QrScanButton";
 import { coinPasswordFromScan } from "@/lib/vault/coin-unlock";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { HomeBlurbs } from "@/components/vault/HomeBlurbs";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -42,6 +43,7 @@ function Home() {
       </div>
       {status === "none" && <Setup />}
       {status === "locked" && <UnlockForm />}
+      <HomeBlurbs />
     </main>
   );
 }
