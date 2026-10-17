@@ -12,16 +12,20 @@ import { ScannerDialog } from "@/components/wallet/QrScanButton";
 import { AnimatedQr } from "@/components/vault/AnimatedQr";
 import { Unlocked } from "@/components/vault/Unlocked";
 import { useVault } from "@/lib/vault/vault-context";
-import { clearSignerCache, formatCoins, parsePsbt, reviewPsbt, signPsbt, type Review } from "@/lib/signer/psbt";
+import { formatCoins, parsePsbt, reviewPsbt, signPsbt, type Review } from "@/lib/signer/psbt";
+import { reviewEvm, signEvm, type EvmReview } from "@/lib/signer/evm";
+import { COIN_IDS, type CoinId } from "@/lib/signer/networks";
+import { EvmPaymentReview } from "@/components/vault/EvmPaymentReview";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PartCollector } from "@/lib/signer/qr-parts";
 
 export const Route = createFileRoute("/sign")({
-  head: () => ({ meta: [{ title: "Sign a payment — HME Vault" }, { name: "description", content: "Sign a TEXITcoin or IskanderCoin payment offline by QR." }, { property: "og:title", content: "Sign a payment — HME Vault" }, { property: "og:description", content: "Sign a payment offline by QR." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
+  head: () => ({ meta: [{ title: "Sign a payment — HME Vault" }, { name: "description", content: "Sign TXC, ISK, BTC, LTC, DOGE and EVM transfers offline by QR." }, { property: "og:title", content: "Sign a payment — HME Vault" }, { property: "og:description", content: "Sign a payment offline by QR." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: SignPage,
 });
 
 function SignPage() {
-  const { seeds, checkPassword } = useVault();
+  const { seeds, checkPassword, status } = useVault();
   const [scan, setScan] = useState(false);
   const [progress, setProgress] = useState<{ have: number; total: number } | null>(null);
   const collector = useRef(new PartCollector());
@@ -32,14 +36,28 @@ function SignPage() {
   const [pw, setPw] = useState("");
   const [signed, setSigned] = useState<{ hex: string; txid: string } | null>(null);
 
-  useEffect(() => () => clearSignerCache(), []);
+  const [network, setNetwork] = useState<CoinId | "EVM">("TXC");
+  const [evm, setEvm] = useState<EvmReview | null>(null);
+  const generation = useRef(0);
+  const active = useRef(status === "unlocked");
+  active.current = status === "unlocked";
+  useEffect(() => {
+    if (status !== "unlocked") { generation.current++; setState(null); setEvm(null); setSigned(null); setPw(""); setPaste(""); setScan(false); }
+    return () => { generation.current++; };
+  }, [status]);
 
   async function load(text: string) {
-    setErr(""); setBusy(true);
+    setErr(""); setBusy(true); setState(null); setEvm(null); setSigned(null);
+    const run = ++generation.current;
     try {
-      const psbt = parsePsbt(text);
-      const { review, keys } = await reviewPsbt(psbt, seeds);
-      setState({ psbt, review, keys });
+      if (network === "EVM") {
+        const review = await reviewEvm(text, seeds);
+        if (run === generation.current && active.current) setEvm(review);
+      } else {
+        const psbt = parsePsbt(text, network);
+        const { review, keys } = await reviewPsbt(psbt, seeds, network);
+        if (run === generation.current && active.current) setState({ psbt, review, keys });
+      }
     } catch (e) {
       setErr((e as Error).message);
     } finally { setBusy(false); }
@@ -59,10 +77,10 @@ function SignPage() {
   }
 
   function reset() {
-    setState(null); setSigned(null); setPw(""); setPaste(""); setErr("");
+    generation.current++; setState(null); setEvm(null); setSigned(null); setPw(""); setPaste(""); setErr("");
   }
 
-  if (signed && state) {
+  if (signed && (state || evm)) {
     return (
       <Unlocked title="Signed" back>
         <Card><CardContent className="space-y-3 pt-6">
@@ -74,6 +92,29 @@ function SignPage() {
       </Unlocked>
     );
   }
+
+  if (evm) return (
+    <Unlocked title="Check this payment" back>
+      <div className="space-y-3">
+        <EvmPaymentReview review={evm} />
+        <form className="space-y-2" onSubmit={async (e) => {
+          e.preventDefault();
+          if (!checkPassword(pw)) { setErr("Wrong password."); setPw(""); return; }
+          setPw(""); setBusy(true); setErr("");
+          const run = generation.current;
+          try {
+            const result = await signEvm(evm, seeds);
+            if (run === generation.current && active.current) setSigned(result);
+          } catch (x) { setErr((x as Error).message); } finally { setBusy(false); }
+        }}>
+          <Label htmlFor="epw">Vault password to sign</Label>
+          <Input id="epw" type="password" value={pw} onChange={(e) => setPw(e.target.value)} />
+          {err && <p className="text-sm text-destructive">{err}</p>}
+          <div className="flex gap-2"><Button type="button" variant="ghost" onClick={reset}>Cancel</Button><Button className="flex-1" type="submit" disabled={!pw || busy}><PenLine className="mr-1.5 h-4 w-4" />{busy ? "Signing…" : "Sign"}</Button></div>
+        </form>
+      </div>
+    </Unlocked>
+  );
 
   if (state) {
     const r = state.review;
@@ -114,6 +155,7 @@ function SignPage() {
             <form className="space-y-2" onSubmit={(e) => {
               e.preventDefault();
               if (!checkPassword(pw)) { setErr("Wrong password."); setPw(""); return; }
+              setPw("");
               try { setSigned(signPsbt(state.psbt, state.keys)); } catch (x) { setErr((x as Error).message); }
             }}>
               <Label htmlFor="spw">Vault password to sign</Label>
@@ -133,7 +175,12 @@ function SignPage() {
   return (
     <Unlocked title="Sign a payment" back>
       <Card><CardContent className="space-y-3 pt-6">
-        <p className="text-sm">On your online wallet, make the payment as “unsigned / for offline signing”, then scan its QR here. TEXITcoin and IskanderCoin for now.</p>
+        <p className="text-sm">On your online wallet, make the payment as “unsigned / for offline signing”, then scan its QR here. TXC, ISK, BTC, LTC, DOGE or EVM transfers.</p>
+        <Label htmlFor="sign-network">Payment network</Label>
+        <Select value={network} disabled={busy} onValueChange={(value) => { if (value === "EVM" || COIN_IDS.includes(value as CoinId)) { reset(); setNetwork(value as CoinId | "EVM"); } }}>
+          <SelectTrigger id="sign-network"><SelectValue /></SelectTrigger>
+          <SelectContent>{[...COIN_IDS, "EVM"].map((coin) => <SelectItem key={coin} value={coin}>{coin}</SelectItem>)}</SelectContent>
+        </Select>
         <Button className="w-full" disabled={busy || seeds.length === 0} onClick={() => { collector.current = new PartCollector(); setScan(true); }}>
           <Camera className="h-4 w-4 mr-1.5" />{busy ? "Checking…" : "Scan unsigned payment"}
         </Button>
