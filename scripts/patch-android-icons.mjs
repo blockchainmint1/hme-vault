@@ -31,10 +31,11 @@ if (!existsSync(resolve(root, "android/app"))) {
   process.exit(0);
 }
 
-const SILVER = resolve(root, "src/assets/brand/dollar-mark-silver.png");
-const DARK = resolve(root, "src/assets/brand/dollar-mark-dark.png");
-if (!existsSync(SILVER) || !existsSync(DARK)) {
-  console.error("patch-android-icons: source brand mark(s) missing. Aborting.");
+// The Vault mark (steel vault door). One source: launcher icons are silver on
+// dark, and the monochrome layer is derived from its alpha silhouette.
+const SILVER = resolve(root, "src/assets/brand/vault-mark.png");
+if (!existsSync(SILVER)) {
+  console.error("patch-android-icons: source vault mark missing. Aborting.");
   process.exit(1);
 }
 
