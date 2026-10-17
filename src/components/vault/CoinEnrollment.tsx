@@ -31,7 +31,7 @@ export function CoinEnrollment({ onEnroll, disabled = false }: { onEnroll: (pass
       catch(e) { setError((e as Error).message); }
       finally { setBusy(false); }
     }}>{busy ? "Saving…" : "Use coin as Vault password"}</Button>
-    {scan && <ScannerDialog hint="Scan the hidden seed QR, not the public label." onClose={() => setScan(false)} onScan={text => {
+    {scan && <ScannerDialog hint="Scan the hidden seed or private key QR, not the public label." onClose={() => setScan(false)} onScan={text => {
       setScan(false);
       try { const words = coinPasswordFromScan(text); if (!first) setFirst(words); else { confirmCoinPassword(first, words, ack); setSecond(words); } }
       catch(e) { setError((e as Error).message); }

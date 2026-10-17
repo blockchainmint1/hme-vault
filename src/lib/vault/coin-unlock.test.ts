@@ -26,3 +26,20 @@ describe("hidden coin credential", () => {
     await expect(unlockText(blob, other)).rejects.toThrow();
   });
 });
+describe("old-style private key coins", () => {
+  const wifKey = "5HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ";
+  it("accepts a checksum-valid WIF key verbatim", () => {
+    expect(coinPasswordFromScan(` ${wifKey}\n`)).toBe(wifKey);
+    expect(coinPasswordFromScan("KwdMAjGmerYanjeui5SHS7JkmpZvVipYvB2LJGU1ZxJwYvP98617")).toBe("KwdMAjGmerYanjeui5SHS7JkmpZvVipYvB2LJGU1ZxJwYvP98617");
+  });
+  it("rejects a WIF key with a typo", () => {
+    expect(() => coinPasswordFromScan(wifKey.slice(0, -1) + "K")).toThrow();
+  });
+  it("accepts 64-char hex keys, normalized", () => {
+    const hex = "0C28FCA386C7A227600B2FE50B7CAE11EC86D3BF1FBE471BE89827E19D72AA1D";
+    expect(coinPasswordFromScan("0x" + hex)).toBe(hex.toLowerCase());
+  });
+  it("still rejects addresses", () => {
+    expect(() => coinPasswordFromScan("1GAehh7TsJAHuUAeKZcXf5CnwuGuGgyX2S")).toThrow();
+  });
+});
