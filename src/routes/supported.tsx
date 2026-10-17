@@ -98,33 +98,33 @@ function SupportedPage() {
           </tbody>
         </table>
       </div>
-      <p>
+      <p className="mt-4 leading-relaxed text-muted-foreground">
         Before signing, Vault checks every input against the seed stored on the device — master
         fingerprint, derivation path and script — and requires the standard SIGHASH_ALL signing
         mode. You also choose the network yourself, so a TXC payment can never be signed as BTC.
       </p>
 
-      <h2>Ethereum and other EVM networks</h2>
-      <p>
+      <h2 className="mt-8 text-xl font-semibold tracking-tight">Ethereum and other EVM networks</h2>
+      <p className="mt-4 leading-relaxed text-muted-foreground">
         Two kinds of payment: a plain coin transfer, and an ERC-20 token transfer. Both must name
         the chain, the sender and the fee up front — Vault will not sign an opaque contract call.
       </p>
-      <p>
+      <p className="mt-3 leading-relaxed text-muted-foreground">
         Networks recognised by name: {CHAINS.join(", ")}. Any other EVM chain ID can still be
         signed; its amounts and fees are then shown as raw base units and you verify the chain ID
         yourself.
       </p>
 
-      <h2>Watch-only</h2>
-      <p>
+      <h2 className="mt-8 text-xl font-semibold tracking-tight">Watch-only</h2>
+      <p className="mt-4 leading-relaxed text-muted-foreground">
         A pairing code shares the master fingerprint and account public keys (xpubs) for TXC, ISK,
         BTC, LTC and DOGE, plus the EVM address — enough for an online wallet to watch balances and
         prepare payments, never enough to spend. ZCU is watched by pasting or scanning its 0x
         address.
       </p>
 
-      <h2>What Vault will not sign</h2>
-      <ul>
+      <h2 className="mt-8 text-xl font-semibold tracking-tight">What Vault will not sign</h2>
+      <ul className="mt-4 list-disc space-y-1 pl-5 leading-relaxed text-muted-foreground">
         <li>Contract approvals, allowances, swaps, staking or arbitrary contract calls</li>
         <li>Message or "sign in" signatures</li>
         <li>Anything where the fee, recipient or network is unclear</li>
