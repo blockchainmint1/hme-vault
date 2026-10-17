@@ -15,3 +15,7 @@
 - [ ] Online HME Wallet: add 'make unsigned payment' + scan signed QR (handoff in docs/offline-signing-handoff.md — needs the wallet project)
 - [x] Pairing QR (TXC + ISK, all address types)
 - [x] Show TSD token amounts on the signing review
+
+- [ ] Add BTC, LTC and DOGE PSBT signing with explicit network selection and legacy TXC path protection
+- [ ] Add offline EVM native and ERC-20 transfer signing with readable review and no blind calls
+- [ ] Expand pairing codes and online-wallet handoff; test all new signing flows
