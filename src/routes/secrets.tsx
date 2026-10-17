@@ -34,6 +34,8 @@ function SecretsContent() {
   const [name, setName] = useState(""); const [type, setType] = useState<"password" | "note" | "totp">("password"); const [content, setContent] = useState("");
   const [code, setCode] = useState(""); const [pw, setPw] = useState(""); const [err, setErr] = useState(""); const [busy, setBusy] = useState(false);
   const [scan, setScan] = useState(false);
+  const [bio, setBio] = useState(false);
+  useEffect(() => { getBiometricStatus().then(s => setBio(s.enabled)); }, []);
   const [selected, setSelected] = useState<SecretEntry | null>(null); const [revealed, setRevealed] = useState(false); const [confirmation, setConfirmation] = useState("");
   const [exportCode, setExportCode] = useState(""); const [pw2, setPw2] = useState("");
   useEffect(() => { if (!revealed) return; const t = setTimeout(() => { setRevealed(false); setExportCode(""); setPw(""); }, REVEAL_HIDE_MS); return () => clearTimeout(t); }, [revealed]);
