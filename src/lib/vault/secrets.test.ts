@@ -24,6 +24,11 @@ describe("secret storage", () => {
   it("preserves passwords and notes exactly including newlines", () => {
     expect(validateSecret({ ...secret, type: "password", content: " a\nB " }).content).toBe(" a\nB ");
   });
+  it("validates authenticator entries and normalizes them to otpauth URIs", () => {
+    const t = validateSecret({ id: "t", name: "GitHub", type: "totp", content: "  gezdgnbvgy3tqojqgezdgnbvgy3tqojq  ", createdAt: 1 });
+    expect(t.content).toBe("otpauth://totp/?secret=GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ&digits=6&period=30");
+    expect(() => validateSecret({ id: "t", name: "Bad", type: "totp", content: "https://example.com", createdAt: 1 })).toThrow();
+  });
   it("rejects whole-vault plaintext above the 2 MB character limit", () => {
     expect(() => parsePayload(" ".repeat(MAX_VAULT_CHARS + 1))).toThrow("Vault is too large");
   });
