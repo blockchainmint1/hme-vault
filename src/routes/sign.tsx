@@ -17,6 +17,8 @@ import { COIN_IDS, type CoinId } from "@/lib/signer/networks";
 import { EvmPaymentReview } from "@/components/vault/EvmPaymentReview";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PartCollector } from "@/lib/signer/qr-parts";
+import { Fingerprint } from "lucide-react";
+import { getBiometricStatus, unlockWithBiometric } from "@/lib/native/biometric";
 
 export const Route = createFileRoute("/sign")({
   head: () => ({ meta: [{ title: "Sign a payment — HME Vault" }, { name: "description", content: "Sign TXC, ISK, BTC, LTC, DOGE and EVM transfers offline by QR." }, { property: "og:title", content: "Sign a payment — HME Vault" }, { property: "og:description", content: "Sign a payment offline by QR." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
@@ -37,6 +39,38 @@ function SignPage() {
   const [network, setNetwork] = useState<CoinId | "EVM">("TXC");
   const [evm, setEvm] = useState<EvmReview | null>(null);
   const generation = useRef(0);
+  const [bioOn, setBioOn] = useState(false);
+  useEffect(() => { getBiometricStatus().then((b) => setBioOn(b.enabled)).catch(() => setBioOn(false)); }, []);
+
+  async function withFingerprint(doSign: () => void | Promise<void>) {
+    setErr("");
+    try {
+      const secret = await unlockWithBiometric();
+      if (!secret) return;
+      if (!checkPassword(secret)) { setErr("Fingerprint didn't match this Vault. Use your password."); return; }
+      await doSign();
+    } catch (e) { setBioOn(false); setErr((e as Error).message); }
+  }
+
+  async function signEvmNow() {
+    if (!evm) return;
+    setPw(""); setBusy(true); setErr("");
+    const run = generation.current;
+    try {
+      const result = await signEvm(evm, seeds);
+      if (run === generation.current && active.current) setSigned(result);
+    } catch (x) { if (run === generation.current && active.current) setErr((x as Error).message); } finally { if (run === generation.current) setBusy(false); }
+  }
+
+  function signPsbtNow() {
+    if (!state) return;
+    setPw("");
+    try { setSigned(signPsbt(state.psbt, state.keys)); } catch (x) { setErr((x as Error).message); }
+  }
+
+  const fpButton = (doSign: () => void | Promise<void>) => bioOn ? (
+    <Button type="button" variant="outline" className="w-full" disabled={busy} onClick={() => void withFingerprint(doSign)}><Fingerprint className="mr-1.5 h-4 w-4" />Approve with fingerprint</Button>
+  ) : null;
   const active = useRef(status === "unlocked");
   active.current = status === "unlocked";
   useEffect(() => {
@@ -98,14 +132,10 @@ function SignPage() {
         <form className="space-y-2" onSubmit={async (e) => {
           e.preventDefault();
           if (!checkPassword(pw)) { setErr("Wrong password."); setPw(""); return; }
-          setPw(""); setBusy(true); setErr("");
-          const run = generation.current;
-          try {
-            const result = await signEvm(evm, seeds);
-            if (run === generation.current && active.current) setSigned(result);
-          } catch (x) { if (run === generation.current && active.current) setErr((x as Error).message); } finally { if (run === generation.current) setBusy(false); }
+          await signEvmNow();
         }}>
-          <Label htmlFor="epw">Vault password to sign</Label>
+          {fpButton(signEvmNow)}
+          <Label htmlFor="epw">{bioOn ? "Or type your Vault password" : "Vault password to sign"}</Label>
           <CredentialInput id="epw" type="password" value={pw} onChange={(e) => setPw(e.target.value)} />
           {err && <p className="text-sm text-destructive">{err}</p>}
           <div className="flex gap-2"><Button type="button" variant="ghost" onClick={reset}>Cancel</Button><Button className="flex-1" type="submit" disabled={!pw || busy}><PenLine className="mr-1.5 h-4 w-4" />{busy ? "Signing…" : "Sign"}</Button></div>
@@ -153,10 +183,10 @@ function SignPage() {
             <form className="space-y-2" onSubmit={(e) => {
               e.preventDefault();
               if (!checkPassword(pw)) { setErr("Wrong password."); setPw(""); return; }
-              setPw("");
-              try { setSigned(signPsbt(state.psbt, state.keys)); } catch (x) { setErr((x as Error).message); }
+              signPsbtNow();
             }}>
-              <Label htmlFor="spw">Vault password to sign</Label>
+              {fpButton(signPsbtNow)}
+              <Label htmlFor="spw">{bioOn ? "Or type your Vault password" : "Vault password to sign"}</Label>
               <CredentialInput id="spw" type="password" value={pw} onChange={(e) => setPw(e.target.value)} />
               {err && <p className="text-sm text-destructive">{err}</p>}
               <div className="flex gap-2">
