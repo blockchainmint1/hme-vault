@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { isNative } from "@/lib/native/platform";
+import vaultApk from "@/assets/vault-apk.apk.asset.json";
 
 /** Web-only footer. The offline phone app has no external links at all. */
 export function SiteFooter() {
