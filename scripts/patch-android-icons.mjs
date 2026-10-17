@@ -98,8 +98,10 @@ async function adaptiveForeground(markPath, canvas, outPath) {
 
 /**
  * Monochrome (themed) icon: Android 13+ uses the alpha channel and tints it
- * with the system accent color, so emit a fully-opaque black silhouette taken
- * from the mark's own alpha channel (robust for gradient/metallic sources).
+ * with the system accent color. The vault door is an opaque disc, so a plain
+ * alpha silhouette would be a featureless dot — instead keep only the bright
+ * metal details (spokes, hub, rivets, ring highlights) inside the disc as the
+ * opaque shape.
  */
 async function monochromeIcon(markPath, canvas, outPath) {
   const inner = Math.round(canvas * SAFE_RATIO);
@@ -107,15 +109,20 @@ async function monochromeIcon(markPath, canvas, outPath) {
     .resize({ width: inner, height: inner, fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
     .png()
     .toBuffer();
-  // Build a solid-black RGBA silhouette keeping the mark's alpha.
   const { data, info } = await sharp(markBuf).raw().toBuffer({ resolveWithObject: true });
   const rgba = Buffer.alloc(info.width * info.height * 4);
   for (let i = 0; i < info.width * info.height; i++) {
-    const alpha = data[i * 4 + 3];
+    const r = data[i * 4 + 0];
+    const g = data[i * 4 + 1];
+    const b = data[i * 4 + 2];
+    const a = data[i * 4 + 3];
+    const luma = 0.299 * r + 0.587 * g + 0.114 * b;
+    // Bright metal details only; smooth edge between them and the rest.
+    const detail = Math.max(0, Math.min(1, (luma - 160) / 60));
     rgba[i * 4 + 0] = 0;
     rgba[i * 4 + 1] = 0;
     rgba[i * 4 + 2] = 0;
-    rgba[i * 4 + 3] = alpha;
+    rgba[i * 4 + 3] = Math.round(a * detail);
   }
   const silhouette = await sharp(rgba, {
     raw: { width: info.width, height: info.height, channels: 4 },
