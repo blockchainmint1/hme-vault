@@ -17,14 +17,6 @@ export default defineConfig({
     define: {
       __BUILD_ID__: JSON.stringify(BUILD_ID),
     },
-    resolve: {
-      alias: {
-        // @solana/web3.js pulls rpc-websockets for subscriptions we never use,
-        // and that package has no Worker-compatible export condition.
-        "rpc-websockets": new URL("./src/lib/solana/rpc-websockets-stub.ts", import.meta.url)
-          .pathname,
-      },
-    },
   },
 
   tanstackStart: {

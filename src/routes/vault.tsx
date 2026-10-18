@@ -1,3 +1,4 @@
+import { assessPassword } from "@/lib/security/password-strength";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { validateMnemonic } from "@scure/bip39";
@@ -87,7 +88,7 @@ function LockPanel() {
     setErr("");
     const s = normalizeSeed(seed);
     if (!validateMnemonic(s, wordlist)) return setErr("Those words aren't a valid recovery phrase. Check spelling and count.");
-    if (pw.length < 8) return setErr("Use a password of at least 8 characters — longer is much safer.");
+    { const v = assessPassword(pw); if (!v.ok) return setErr(v.message); }
     if (pw !== pw2) return setErr("The two passwords don't match.");
     setBusy(true);
     try {

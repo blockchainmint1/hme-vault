@@ -136,7 +136,7 @@ function MakeSeed() {
     <Card><CardContent className="space-y-3 pt-6">
       <p className="text-sm">Check your paper copy: type these words.</p>
       {quiz.map((i) => (
-        <div key={i}><Label htmlFor={`q${i}`}>Word #{i + 1}</Label><Input id={`q${i}`} autoComplete="off" autoCapitalize="none" value={answers[i] ?? ""} onChange={(e) => setAnswers({ ...answers, [i]: e.target.value })} /></div>
+        <div key={i}><Label htmlFor={`q${i}`}>Word #{i + 1}</Label><Input id={`q${i}`} autoComplete="off" autoCorrect="off" spellCheck={false} autoCapitalize="none" value={answers[i] ?? ""} onChange={(e) => setAnswers({ ...answers, [i]: e.target.value })} /></div>
       ))}
       <NameAndPass name={name} setName={setName} pass={pass} setPass={setPass} />
       {err && <p className="text-sm text-destructive">{err}</p>}

@@ -1,3 +1,4 @@
+import { assessPassword } from "@/lib/security/password-strength";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Camera, Fingerprint } from "lucide-react";
@@ -64,7 +65,7 @@ function Setup() {
   const [busy, setBusy] = useState(false);
   const [mode, setMode] = useState("password");
   async function go() {
-    if (pw.length < 8) return setErr("Use at least 8 characters. A long phrase or long number is best.");
+    { const v = assessPassword(pw); if (!v.ok) return setErr(v.message); }
     if (pw !== pw2) return setErr("The two passwords don't match.");
     setBusy(true);
     try { await create(pw); } catch (e) { setErr((e as Error).message); } finally { setBusy(false); }
@@ -132,7 +133,7 @@ function UnlockForm() {
         }} />}
         {pendingCoin && (
           <form className="space-y-3 rounded-md border p-3" onSubmit={(e) => { e.preventDefault(); const c = pendingCoin; setPendingCoin(""); void go(combineCoinPassword(c, extra)); }}>
-            <div><Label htmlFor="coin-extra-unlock">Extra secret word</Label><Input id="coin-extra-unlock" type="password" autoFocus autoComplete="current-password" value={extra} onChange={(e) => setExtra(e.target.value)} /></div>
+            <div><Label htmlFor="coin-extra-unlock">Extra secret word</Label><Input id="coin-extra-unlock" type="password" autoFocus autoComplete="off" autoCorrect="off" spellCheck={false} value={extra} onChange={(e) => setExtra(e.target.value)} /></div>
             <div className="flex gap-2">
               <Button type="submit" className="flex-1" disabled={busy || wait > 0 || !extra.trim()}>Unlock</Button>
               <Button type="button" variant="ghost" onClick={() => { setPendingCoin(""); setExtra(""); }}>Cancel</Button>

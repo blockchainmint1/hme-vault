@@ -74,7 +74,7 @@ function AuthenticatorPage() {
           <Button variant="outline" className="w-full" onClick={() => { setErr(""); setScan(true); }}><Camera className="mr-2 h-4 w-4" />{content ? "Scan again" : "Scan 2FA QR"}</Button>
           {content && <p className="text-sm text-muted-foreground">Scanned: {(() => { try { const p = parseOtpAuth(content); return p.issuer || p.label || "authenticator"; } catch { return "invalid code"; } })()}</p>}
           <Label htmlFor="totp-paste">Or paste the setup code</Label>
-          <Input id="totp-paste" value={content} onChange={e => setContent(e.target.value)} autoComplete="off" placeholder="otpauth://totp/… or base32 secret" />
+          <Input id="totp-paste" value={content} onChange={e => setContent(e.target.value)} autoComplete="off" autoCorrect="off" autoCapitalize="none" spellCheck={false} placeholder="otpauth://totp/… or base32 secret" />
           <Label htmlFor="totp-name">Name</Label>
           <Input id="totp-name" maxLength={200} value={name} onChange={e => setName(e.target.value)} placeholder="e.g. GitHub, email" />
           <div className="grid grid-cols-2 gap-2">

@@ -25,5 +25,9 @@ it("keeps network and cloud backups disabled and registers the USB picker idempo
     expect(bio).toContain("setUserAuthenticationRequired(true)"); expect(bio).toContain("setInvalidatedByBiometricEnrollment(true)");
     expect(readFileSync(join(root, "android/app/build.gradle"), "utf8").match(/androidx\.biometric:biometric/g)).toHaveLength(1);
     expect(readFileSync(join(java, "VaultDocumentsPlugin.java"), "utf8")).toContain("Intent.ACTION_CREATE_DOCUMENT");
+    expect(xml.match(/android:dataExtractionRules="@xml\/data_extraction_rules"/g)).toHaveLength(1);
+    const rules = readFileSync(join(main, "res/xml/data_extraction_rules.xml"), "utf8");
+    expect(rules).toContain("<device-transfer>"); expect(rules).toContain("<cloud-backup>");
+    expect(readFileSync(join(main, "res/xml/file_paths.xml"), "utf8")).not.toContain('path="."');
   } finally { rmSync(root, { recursive: true, force: true }); }
 });

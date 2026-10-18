@@ -37,3 +37,10 @@
 - [x] Expand pairing codes and online-wallet handoff; test all new signing flows (62 tests; dummy vault browser approval/signing/QR verified for BTC, LTC, DOGE and EVM)
 
 - [ ] Verify new coin signing on the APK and complete small real-chain payments plus independent security review (needs Bobby’s device, online-wallet changes and external review)
+
+## Security review 2026-10-18 (owner/outside-app items)
+- [ ] GitHub: protect `main` (reviewed PRs, no force-push), protect `android-v*` tags, create `release` environment with owner as required reviewer and move the 4 ANDROID_* secrets into it — needs Bobby in GitHub settings
+- [ ] Confirm every phone is on 0.1.202610181456+ (reinstall older ones after backing up) — needs Bobby
+- [ ] Wrap stored vault with Android Keystore key (N10/N14) — larger native change, next round
+- [ ] Remove 'unsafe-inline' from CSP and platform scripts on web vault (M1/O1) — needs hosting changes
+- [ ] Native tamper-proof lockout clock (optional)

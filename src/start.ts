@@ -2,7 +2,6 @@ import { createStart, createMiddleware } from "@tanstack/react-start";
 
 import { renderErrorPage } from "./lib/error-page";
 import { SECURITY_HEADERS } from "./lib/security/headers";
-import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
 
 const IS_PROD = process.env.NODE_ENV === "production";
 
@@ -75,6 +74,5 @@ const securityMiddleware = createMiddleware().server(async ({ next, request }) =
 });
 
 export const startInstance = createStart(() => ({
-  functionMiddleware: [attachSupabaseAuth],
   requestMiddleware: [securityMiddleware],
 }));

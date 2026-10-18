@@ -47,6 +47,8 @@ export function parseOtpAuth(text: string): TotpParams {
   const secret = (url.searchParams.get("secret") ?? "").toUpperCase().replace(/=+$/, "").replace(/\s+/g, "");
   const bytes = base32ToBytes(secret);
   if (bytes.length < 10) throw new Error("That setup code is too short to be safe.");
+  const algorithm = (url.searchParams.get("algorithm") ?? "SHA1").toUpperCase();
+  if (algorithm !== "SHA1") throw new Error("This account uses " + algorithm + " codes, which Vault does not support yet.");
   const digits = Number(url.searchParams.get("digits") ?? "6");
   const period = Number(url.searchParams.get("period") ?? "30");
   if (digits !== 6 && digits !== 8) throw new Error("Only 6 or 8 digit codes are supported.");

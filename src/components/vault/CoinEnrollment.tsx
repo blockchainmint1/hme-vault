@@ -5,7 +5,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ScannerDialog } from "@/components/wallet/QrScanButton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { coinPasswordFromScan, combineCoinPassword, confirmCoinPassword, setCoinExtraRequired } from "@/lib/vault/coin-unlock";
+import { coinPasswordFromScan, combineCoinPassword, confirmCoinPassword, isCoinExtraRequired, setCoinExtraRequired } from "@/lib/vault/coin-unlock";
 
 export function CoinEnrollment({ onEnroll, disabled = false }: { onEnroll: (password: string) => Promise<void>; disabled?: boolean }) {
   const [first, setFirst] = useState("");
@@ -38,8 +38,10 @@ export function CoinEnrollment({ onEnroll, disabled = false }: { onEnroll: (pass
       try {
         const password = combineCoinPassword(confirmCoinPassword(first, second, ack), extra);
         setFirst(""); setSecond("");
-        await onEnroll(password);
+        // Write the extra-word flag first so a failed second write can't leave coin-only unlock.
+        const hadExtra = isCoinExtraRequired();
         setCoinExtraRequired(extra.trim().length > 0);
+        try { await onEnroll(password); } catch (e) { setCoinExtraRequired(hadExtra); throw e; }
         setExtra("");
       }
       catch(e) { setError((e as Error).message); }

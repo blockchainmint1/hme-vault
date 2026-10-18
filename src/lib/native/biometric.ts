@@ -25,7 +25,6 @@ const BioKey = registerPlugin<{
   remove(): Promise<void>;
 }>("VaultBiometricKey");
 
-const LEGACY_KEYS = ["hmsv.bio.password.v1", "hmsv.bio.enabled.v1"];
 
 export interface BiometricStatus {
   available: boolean;
@@ -40,10 +39,6 @@ let legacyCleaned = false;
 async function cleanLegacy() {
   if (legacyCleaned || !isNative()) return;
   legacyCleaned = true;
-  try {
-    const { SecureStorage } = await import("@aparajita/capacitor-secure-storage");
-    for (const k of LEGACY_KEYS) await SecureStorage.remove(k).catch(() => undefined);
-  } catch { /* ignore */ }
   try { localStorage.removeItem("hmsv.bio.enabled"); } catch { /* ignore */ }
 }
 

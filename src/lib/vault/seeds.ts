@@ -1,6 +1,6 @@
 /** Pure seed-vault helpers: payload shape, merge, lockout, key info. No storage, no network. */
 import { HDKey } from "@scure/bip32";
-import { mnemonicToSeed, generateMnemonic, validateMnemonic } from "@scure/bip39";
+import { mnemonicToSeed, mnemonicToSeedSync, generateMnemonic, validateMnemonic } from "@scure/bip39";
 import { wordlist } from "@scure/bip39/wordlists/english.js";
 import { secp256k1 } from "@noble/curves/secp256k1";
 import { keccak_256 } from "@noble/hashes/sha3.js";
@@ -52,10 +52,28 @@ export function parsePayload(text: string): VaultPayload {
   if (text.length > MAX_VAULT_CHARS) throw new Error("Vault is too large. Use a smaller collection.");
   const j = JSON.parse(text) as Partial<VaultPayload>;
   if (j?.v !== 1 || j.kind !== "hm-seed-vault" || !Array.isArray(j.seeds) || (j.secrets !== undefined && !Array.isArray(j.secrets))) throw new Error("That isn't a supported Vault backup.");
+  const seeds: SeedEntry[] = [];
   for (const s of j.seeds) {
-    if (!s || typeof s.id !== "string" || typeof s.name !== "string" || typeof s.words !== "string" || !isValidSeed(s.words) || typeof s.fingerprint !== "string" || !Number.isFinite(s.createdAt) || (s.passphrase !== undefined && typeof s.passphrase !== "string")) throw new Error("Invalid seed in backup.");
+    if (!s || typeof s.id !== "string" || typeof s.name !== "string" || typeof s.words !== "string" || !isValidSeed(s.words) || !Number.isFinite(s.createdAt) || (s.passphrase !== undefined && typeof s.passphrase !== "string")) throw new Error("Invalid seed in backup.");
+    const words = normalizeSeed(s.words);
+    const passphrase = s.passphrase || undefined;
+    // Never trust a stored fingerprint: a crafted backup could disguise a look-alike seed.
+    const entry: SeedEntry = { id: s.id.slice(0, 64), name: cleanSeedName(s.name), words, ...(passphrase ? { passphrase } : {}), fingerprint: seedFingerprint(words, passphrase ?? ""), createdAt: s.createdAt };
+    if (seeds.some(e => sameSeed(e, entry))) continue;
+    seeds.push(entry);
   }
-  return { v: 1, kind: "hm-seed-vault", seeds: j.seeds, secrets: (j.secrets ?? []).map(validateSecret) };
+  return { v: 1, kind: "hm-seed-vault", seeds, secrets: (j.secrets ?? []).map(validateSecret) };
+}
+
+export const MAX_SEED_NAME = 80;
+/** Strip control/invisible characters and cap length so names can't impersonate others. */
+export function cleanSeedName(name: string): string {
+  const clean = name.normalize("NFC").replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]/g, "").replace(/\s+/g, " ").trim().slice(0, MAX_SEED_NAME);
+  return clean || "Imported seed";
+}
+
+export function seedFingerprint(words: string, passphrase = ""): string {
+  return HDKey.fromMasterSeed(mnemonicToSeedSync(normalizeSeed(words), passphrase)).fingerprint.toString(16).padStart(8, "0");
 }
 
 export function isValidSeed(words: string): boolean {
@@ -66,7 +84,7 @@ export function newSeedWords(count: 12 | 24): string {
   return generateMnemonic(wordlist, count === 24 ? 256 : 128);
 }
 
-const sameSeed = (a: SeedEntry, b: SeedEntry) => a.words === b.words && (a.passphrase ?? "") === (b.passphrase ?? "");
+const sameSeed = (a: SeedEntry, b: SeedEntry) => normalizeSeed(a.words) === normalizeSeed(b.words) && (a.passphrase ?? "") === (b.passphrase ?? "");
 
 /** Merge restored seeds in; a seed with the same words + passphrase is skipped. */
 export function mergeSeeds(existing: SeedEntry[], incoming: SeedEntry[]): { seeds: SeedEntry[]; added: number; skipped: number } {
