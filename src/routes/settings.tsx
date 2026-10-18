@@ -10,6 +10,8 @@ import { useVault } from "@/lib/vault/vault-context";
 import { disableBiometric, enableBiometric, getBiometricStatus, type BiometricStatus } from "@/lib/native/biometric";
 import { CoinEnrollment } from "@/components/vault/CoinEnrollment";
 import { CredentialInput } from "@/components/vault/CredentialInput";
+import { Label } from "@/components/ui/label";
+import { combineCoinPassword, isCoinExtraRequired } from "@/lib/vault/coin-unlock";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({ meta: [{ title: "Settings — HME Vault" }, { name: "description", content: "Manage fingerprint unlock, auto-lock and erase your offline Vault." }, { property: "og:title", content: "Settings — HME Vault" }, { property: "og:description", content: "Security settings for your offline Vault." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
@@ -21,11 +23,14 @@ function SettingsPage() {
   const navigate = useNavigate();
   const [bio, setBio] = useState<BiometricStatus>({ available: false, enabled: false });
   const [bioPw, setBioPw] = useState("");
+  const [bioExtra, setBioExtra] = useState("");
+  const [extraRequired, setExtraRequired] = useState(false);
+  const [bioBusy, setBioBusy] = useState(false);
   const [wipePw, setWipePw] = useState("");
   const [wipeText, setWipeText] = useState("");
   const [currentPw, setCurrentPw] = useState("");
   const [linking, setLinking] = useState(false);
-  useEffect(() => { getBiometricStatus().then(setBio); }, []);
+  useEffect(() => { getBiometricStatus().then(setBio); setExtraRequired(isCoinExtraRequired()); }, []);
 
   return (
     <Unlocked title="Settings" back>
@@ -40,6 +45,7 @@ function SettingsPage() {
                 await disableBiometric();
                 setBio(await getBiometricStatus());
                 await changePassword(currentPw, password);
+                setExtraRequired(isCoinExtraRequired());
                 setCurrentPw(""); setLinking(false);
                 toast.success("Coin linked. Scan the same QR to unlock. Make a fresh backup; fingerprint unlock must be enabled again.");
               }} />
@@ -50,19 +56,33 @@ function SettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Fingerprint unlock</CardTitle>
-            <CardDescription>{bio.available ? "Optional convenience unlock on this phone. Your password or hidden coin QR remains the recovery method." : "Not available on this device."}</CardDescription>
+            <CardDescription>{bio.available ? "Optional convenience unlock on this phone. Your password, or coin QR plus its extra secret word, remains the recovery method." : "Not available on this device."}</CardDescription>
           </CardHeader>
           {bio.available && (
             <CardContent className="space-y-2">
-              <p className="text-sm text-destructive">The current fingerprint option is checked by the app, not enforced when the phone releases the stored unlock secret. Do not rely on it against a compromised phone. It does not transfer with backups.</p>
-              {!bio.enabled && <CredentialInput type="password" placeholder="Vault password" value={bioPw} onChange={(e) => setBioPw(e.target.value)} />}
+              <p className="text-sm text-muted-foreground">Your phone seals the complete unlock credential behind a fingerprint check. Once enabled, fingerprint alone opens this phone’s Vault; it does not replace your recovery credential or transfer with backups.</p>
+              {!bio.enabled && <>
+                <CredentialInput type="password" aria-label="Fingerprint setup credential" placeholder={extraRequired ? "Scan coin QR" : "Vault password or scan coin QR"} value={bioPw} onChange={(e) => setBioPw(e.target.value)} disabled={bioBusy} />
+                {extraRequired && <div className="space-y-1">
+                  <Label htmlFor="fingerprint-extra-word">Extra secret word</Label>
+                  <Input id="fingerprint-extra-word" type="password" autoComplete="off" value={bioExtra} onChange={e => setBioExtra(e.target.value)} disabled={bioBusy} />
+                </div>}
+              </>}
               <div className="flex items-center gap-2">
-                <Switch checked={bio.enabled} onCheckedChange={async (on) => {
+                <Switch aria-label="Fingerprint unlock" checked={bio.enabled} disabled={bioBusy} onCheckedChange={async (on) => {
+                  setBioBusy(true);
                   try {
-                    if (on) { if (!checkPassword(bioPw)) return toast.error("Wrong password."); await enableBiometric(bioPw); setBioPw(""); }
+                    if (on) {
+                      if (extraRequired && !bioExtra.trim()) return toast.error("Enter your extra secret word.");
+                      const extra = extraRequired ? bioExtra : "";
+                      if (!checkPassword(combineCoinPassword(bioPw, extra))) return toast.error("Wrong password or extra secret word.");
+                      await enableBiometric(bioPw, extra);
+                      setBioPw(""); setBioExtra("");
+                    }
                     else await disableBiometric();
                     setBio(await getBiometricStatus());
                   } catch (e) { toast.error((e as Error).message); }
+                  finally { setBioBusy(false); }
                 }} />
                 <span className="text-sm">{bio.enabled ? "On" : "Off"}</span>
               </div>
