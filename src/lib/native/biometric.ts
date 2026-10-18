@@ -16,6 +16,7 @@
  */
 import { registerPlugin } from "@capacitor/core";
 import { isNative } from "./platform";
+import { combineCoinPassword } from "../vault/coin-unlock";
 
 const BioKey = registerPlugin<{
   status(): Promise<{ available: boolean; enrolled: boolean; strongBox: boolean }>;
@@ -68,10 +69,10 @@ export function isBiometricEnabled(): boolean {
 }
 
 /** Seal an already-verified unlock secret behind the phone's fingerprint hardware. */
-export async function enableBiometric(password: string): Promise<void> {
+export async function enableBiometric(password: string, extraWord = ""): Promise<void> {
   if (!isNative()) throw new Error("Fingerprint unlock is only available in the phone app.");
   await cleanLegacy();
-  await BioKey.enroll({ secret: password });
+  await BioKey.enroll({ secret: combineCoinPassword(password, extraWord) });
   cachedFlag = true;
 }
 
