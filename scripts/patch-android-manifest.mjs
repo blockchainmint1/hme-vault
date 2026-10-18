@@ -9,7 +9,7 @@
  *  - Disables Android cloud backup so the vault is never copied off the phone.
  *  - Sets the app name.
  */
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 
 const manifestPath = resolve(process.cwd(), "android/app/src/main/AndroidManifest.xml");
