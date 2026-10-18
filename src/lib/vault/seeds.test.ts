@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { deriveKeys, emptyVault, encryptVaultBackup, lockoutMs, mergeSeeds, mergeVaultBackup, parsePayload, shouldAutoLock, type SeedEntry } from "./seeds";
+import { deriveKeys, emptyVault, encryptVaultBackup, lockoutMs, mergeSeeds, mergeVaultBackup, parsePayload, shouldAutoLock, TXC_ADDRESS_PATH, type SeedEntry } from "./seeds";
 import { unlockText } from "./format";
 
 const SEED = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
@@ -56,5 +56,14 @@ describe("vault rules", () => {
     const k = await deriveKeys(SEED);
     expect(k.fingerprint).toBe("73c5da0a");
     expect(k.evmAddress.toLowerCase()).toBe("0x9858effd232b4033e47d90003d41ec34ecaeda94");
+  });
+  it("derives the first TXC legacy address at the exact displayed comparison path", async () => {
+    expect(TXC_ADDRESS_PATH).toBe("m/44'/696969'/0'/0/0");
+    const k = await deriveKeys(SEED);
+    expect(k.txcAddress).toBe("TZZCuca5ntPVCJL5ryTjh465Jvw5vHxsVd");
+    expect((await deriveKeys(SEED.toUpperCase())).txcAddress).toBe(k.txcAddress);
+  });
+  it("changes the TXC comparison address when the seed passphrase changes", async () => {
+    expect((await deriveKeys(SEED, "different passphrase")).txcAddress).not.toBe("TZZCuca5ntPVCJL5ryTjh465Jvw5vHxsVd");
   });
 });

@@ -4,6 +4,8 @@ import { mnemonicToSeed, generateMnemonic, validateMnemonic } from "@scure/bip39
 import { wordlist } from "@scure/bip39/wordlists/english.js";
 import { secp256k1 } from "@noble/curves/secp256k1";
 import { keccak_256 } from "@noble/hashes/sha3.js";
+import { payments } from "bitcoinjs-lib";
+import { NETWORKS } from "../signer/networks";
 import { lockText, normalizeSeed } from "./format";
 import { mergeSecrets, validateSecret, MAX_VAULT_CHARS, type SecretEntry } from "./secrets";
 
@@ -90,21 +92,27 @@ export function shouldAutoLock(lastActivity: number, now: number): boolean {
 export interface SeedKeys {
   fingerprint: string;
   txcXpub: string;
+  txcAddress: string;
   evmAddress: string;
 }
 
 export const TXC_ACCOUNT_PATH = "m/44'/696969'/0'";
+export const TXC_ADDRESS_PATH = `${TXC_ACCOUNT_PATH}/0/0`;
 export const EVM_PATH = "m/44'/60'/0'/0/0";
 
 export async function deriveKeys(words: string, passphrase = ""): Promise<SeedKeys> {
   const root = HDKey.fromMasterSeed(await mnemonicToSeed(normalizeSeed(words), passphrase));
   const fingerprint = root.fingerprint.toString(16).padStart(8, "0");
   const txc = root.derive(TXC_ACCOUNT_PATH);
+  const txcKey = root.derive(TXC_ADDRESS_PATH);
+  if (!txcKey.publicKey) throw new Error("Could not derive TXC public key.");
+  const txcAddress = payments.p2pkh({ pubkey: txcKey.publicKey, network: NETWORKS.TXC }).address;
+  if (!txcAddress) throw new Error("Could not derive TXC address.");
   const evm = root.derive(EVM_PATH);
   if (!evm.privateKey) throw new Error("Could not derive seed key.");
   const pub = secp256k1.getPublicKey(evm.privateKey, false).slice(1);
   const addr = Array.from(keccak_256(pub).slice(-20), (b) => b.toString(16).padStart(2, "0")).join("");
-  return { fingerprint, txcXpub: txc.publicExtendedKey, evmAddress: `0x${addr}` };
+  return { fingerprint, txcXpub: txc.publicExtendedKey, txcAddress, evmAddress: `0x${addr}` };
 }
 
 /**
