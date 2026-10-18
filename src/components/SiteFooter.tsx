@@ -22,7 +22,7 @@ export function SiteFooter() {
             download="hme-vault-release.apk"
             className="text-foreground hover:underline"
           >
-            Android app
+            APK
           </a>
           <a
             href="https://github.com/blockchainmint1/hme-vault"
@@ -30,7 +30,7 @@ export function SiteFooter() {
             rel="noreferrer"
             className="text-foreground hover:underline"
           >
-            Source code
+            GitHub
           </a>
           <Link to="/legal/terms" className="hover:text-foreground">Terms</Link>
           <Link to="/legal/privacy" className="hover:text-foreground">Privacy</Link>
