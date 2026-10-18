@@ -106,13 +106,13 @@ export async function unlockWithBiometric(): Promise<string | null> {
 
 /**
  * Fingerprint check before a sensitive action. Uses the same hardware key, so
- * it only succeeds with a real fingerprint match. Resolves true when fingerprint
- * is not enabled (caller has its own password confirmation in that case).
+ * it only succeeds when the released credential matches the currently open Vault.
  */
-export async function confirmWithBiometric(_reason: string): Promise<boolean> {
-  if (!isNative() || cachedFlag !== true) return true;
+export async function confirmWithBiometric(_reason: string, verify: (credential: string) => boolean): Promise<boolean> {
+  if (!isNative() || cachedFlag !== true) return false;
   try {
-    return (await unlockWithBiometric()) !== null;
+    const credential = await unlockWithBiometric();
+    return credential !== null && verify(credential);
   } catch {
     return false;
   }

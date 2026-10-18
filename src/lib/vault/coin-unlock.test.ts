@@ -57,6 +57,17 @@ describe("coin plus extra secret word", () => {
     expect(combineCoinPassword(seed, "")).toBe(seed);
     expect(combineCoinPassword(seed, "   ")).toBe(seed);
   });
+  it("rejects the wrong extra word even with the correct scanned coin", async () => {
+    const coin = coinPasswordFromScan("txc:KwdMAjGmerYanjeui5SHS7JkmpZvVipYvB2LJGU1ZxJwYvP98617");
+    const blob = await lockText("sensitive vault data", combineCoinPassword(coin, "my secret word"), 1000);
+    await expect(unlockText(blob, combineCoinPassword(coin, "wrong word"))).rejects.toThrow();
+    expect(await unlockText(blob, combineCoinPassword(coin, "my secret word"))).toBe("sensitive vault data");
+  });
+  it("requires the sender's extra word for backups, not the receiver's", async () => {
+    const blob = await lockText("source backup", combineCoinPassword(seed, "sender word"), 1000);
+    await expect(unlockText(blob, combineCoinPassword(seed, "receiver word"))).rejects.toThrow();
+    expect(await unlockText(blob, combineCoinPassword(seed, "sender word"))).toBe("source backup");
+  });
 });
 describe("TXC key labels", () => {
   it("accepts txc:/bitcoin:-prefixed WIF", () => {

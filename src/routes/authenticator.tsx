@@ -52,7 +52,7 @@ function AuthenticatorPage() {
           <Label htmlFor="totp-pw">Vault password</Label>
           <CredentialInput id="totp-pw" type="password" value={pw} onChange={e => setPw(e.target.value)} />
           <Button onClick={() => { if (!checkPassword(pw)) { setPw(""); setErr("Wrong password."); return; } setPw(""); setErr(""); setRevealed(true); }}><Eye className="mr-1.5 h-4 w-4" />Show code</Button>
-          {bio && <Button variant="outline" onClick={() => void run(async () => { if (await confirmWithBiometric("Show this code")) { setErr(""); setRevealed(true); } })}><Fingerprint className="mr-1.5 h-4 w-4" />Use fingerprint</Button>}
+          {bio && <Button variant="outline" onClick={() => void run(async () => { if (await confirmWithBiometric("Show this code", checkPassword)) { setErr(""); setPw(""); setRevealed(true); } })}><Fingerprint className="mr-1.5 h-4 w-4" />Use fingerprint</Button>}
         </div> : <div className="space-y-3">
           <TotpCode uri={selected.content} />
           <Button variant="ghost" onClick={() => { setRevealed(false); setPw(""); }}>Hide code</Button>

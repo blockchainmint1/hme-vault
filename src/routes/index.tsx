@@ -13,6 +13,7 @@ import { ScannerDialog } from "@/components/wallet/QrScanButton";
 import { coinPasswordFromScan, combineCoinPassword, isCoinExtraRequired } from "@/lib/vault/coin-unlock";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { HomeBlurbs } from "@/components/vault/HomeBlurbs";
+import { CredentialInput } from "@/components/vault/CredentialInput";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -115,7 +116,7 @@ function UnlockForm() {
     <Card>
       <CardContent className="space-y-3 pt-6">
         <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); void go(pw); }}>
-          <div><Label htmlFor="upw">Vault password</Label><Input id="upw" type="password" autoFocus autoComplete="current-password" value={pw} onChange={(e) => setPw(e.target.value)} /></div>
+          <div><Label htmlFor="upw">Vault password</Label><CredentialInput scanLabel="Scan coin to unlock" id="upw" type="password" autoFocus value={pw} onChange={(e) => setPw(e.target.value)} /></div>
           {err && <p className="text-sm text-destructive">{err}</p>}
           {wait > 0 && <p className="text-sm text-muted-foreground">Too many wrong tries. Try again in {wait}s.</p>}
           <Button type="submit" className="w-full" disabled={busy || wait > 0 || !pw}>{busy ? "Unlocking…" : "Unlock"}</Button>
