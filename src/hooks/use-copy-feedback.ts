@@ -14,7 +14,7 @@ export function useCopyFeedback(duration = DEFAULT_DURATION) {
 
   const copy = useCallback(
     async (text: string) => {
-      const ok = await copyToClipboard(text);
+      const ok = await copyToClipboard(text, { autoClearMs: 60_000 });
       if (ok) setCopied(true);
       return ok;
     },

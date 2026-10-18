@@ -25,17 +25,8 @@
  * server only, so it must NOT be added here.
  */
 
-const CONNECT_SRC = [
-  "'self'",
-  "https://mempool.texitcoin.org",
-  "https://mempool.iskandercoin.com",
-  // Native Capacitor build (origin https://mobile.honest.money) forwards
-  // server-fn / API calls to the deployed worker so they reach a real backend
-  // instead of being intercepted by the local webview server.
-  "https://hme-mobile.lovable.app",
-  // Fixed release feed used by the "check for updates" card.
-  "https://mobile.honest.money",
-].join(" ");
+// The vault has no network code at all (project rule): nothing may connect out.
+const CONNECT_SRC = "'self'";
 
 const CSP_DIRECTIVES: Record<string, string> = {
   "default-src": "'self'",
@@ -43,8 +34,9 @@ const CSP_DIRECTIVES: Record<string, string> = {
   "script-src": "'self' 'unsafe-inline'",
   // Tailwind + Radix/vaul inject inline styles.
   "style-src": "'self' 'unsafe-inline'",
-  // Token/tool logos and QR data URLs. https allowed, cleartext http is not.
-  "img-src": "'self' data: https:",
+  // Local brand images and QR data URLs only. No remote images: an injected
+  // script must not be able to carry secrets out through an image request.
+  "img-src": "'self' data:",
   "font-src": "'self' data:",
   "connect-src": CONNECT_SRC,
   "manifest-src": "'self'",
