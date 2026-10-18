@@ -62,7 +62,7 @@ function SettingsPage() {
             <CardContent className="space-y-2">
               <p className="text-sm text-muted-foreground">Your phone seals the complete unlock credential behind a fingerprint check. Once enabled, fingerprint alone opens this phone’s Vault; it does not replace your recovery credential or transfer with backups.</p>
               {!bio.enabled && <>
-                <CredentialInput type="password" aria-label="Fingerprint setup credential" placeholder={extraRequired ? "Scan coin QR" : "Vault password or scan coin QR"} value={bioPw} onChange={(e) => setBioPw(e.target.value)} disabled={bioBusy} />
+                <CredentialInput extraWordMode="none" type="password" aria-label="Fingerprint setup credential" placeholder={extraRequired ? "Scan coin QR" : "Vault password or scan coin QR"} value={bioPw} onChange={(e) => setBioPw(e.target.value)} disabled={bioBusy} />
                 {extraRequired && <div className="space-y-1">
                   <Label htmlFor="fingerprint-extra-word">Extra secret word</Label>
                   <Input id="fingerprint-extra-word" type="password" autoComplete="off" value={bioExtra} onChange={e => setBioExtra(e.target.value)} disabled={bioBusy} />
@@ -104,7 +104,7 @@ function SettingsPage() {
             <CardDescription>Removes every seed, password, note and file from this phone. Only do this if you have a backup. <Link to="/backup" className="underline">Make a backup</Link></CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            <CredentialInput type="password" placeholder="Vault password" value={wipePw} onChange={(e) => setWipePw(e.target.value)} />
+            <CredentialInput type="password" aria-label="Vault credential to erase" placeholder="Vault password or scan coin QR" value={wipePw} onChange={(e) => setWipePw(e.target.value)} />
             <Input placeholder='Type "ERASE" to confirm' value={wipeText} onChange={(e) => setWipeText(e.target.value)} />
             <Button variant="destructive" disabled={wipeText !== "ERASE" || !checkPassword(wipePw)} onClick={async () => { await disableBiometric(); wipe(); navigate({ to: "/" }); }}>Erase vault</Button>
           </CardContent>

@@ -40,7 +40,7 @@ function BackupContent() {
     </Tabs>
     <section className="space-y-2 border-t border-border pt-4">
       <h2 className="text-base font-semibold">Recover without this app</h2>
-      <p className="text-sm text-muted-foreground">Keep this offline recovery page next to your encrypted backup. Recovery needs the secret QR or password used when the backup was made—not a fingerprint.</p>
+      <p className="text-sm text-muted-foreground">Keep this offline recovery page next to your encrypted backup. Recovery needs the secret QR or password and any extra secret word used when the backup was made—not a fingerprint.</p>
       <Button variant="secondary" onClick={async () => { try { await saveTextFile("seed-vault-unlocker.html", STANDALONE_UNLOCKER, "text/html"); toast.success("Offline unlocker saved."); } catch(e) { toast.error((e as Error).message); } }}>
         <Download className="mr-1.5 h-4 w-4" />Save offline unlocker
       </Button>
@@ -72,7 +72,7 @@ function ExportPanel({ mode }: { mode: "file" | "send" }) {
   return <section className="space-y-4 py-4">
     <h2 className="text-lg font-semibold">{mode === "send" ? "Copy to another Vault" : "Save an encrypted backup"}</h2>
     <p className="text-sm">{seeds.length} seeds · {secrets.length - accounts} secrets · {accounts} authenticator accounts</p>
-    <p className="text-sm text-muted-foreground">Encrypted with your current Vault key. No extra backup password. Keep the secret QR or password safe and separate from the backup. Changing your Vault key does not change older backups.</p>
+    <p className="text-sm text-muted-foreground">Encrypted with your current Vault key, including your extra secret word if set. No separate backup password. Keep both safe and separate from the backup. Changing your Vault key does not change older backups.</p>
     {code ? <>
       <AnimatedQr value={code} />
       <Button variant="secondary" onClick={() => setCode("")}>Done</Button>
@@ -120,7 +120,7 @@ function ReceivePanel() {
     {code && <>
       {otherKey ? <div className="space-y-2">
         <Label htmlFor="source-key">Sending Vault’s secret QR or backup password</Label>
-        <CredentialInput id="source-key" type="password" autoComplete="off" value={pw} disabled={busy} onChange={e => setPw(e.target.value)} />
+        <CredentialInput extraWordMode="optional" id="source-key" type="password" autoComplete="off" value={pw} disabled={busy} onChange={e => setPw(e.target.value)} />
         <Button variant="ghost" disabled={busy} onClick={() => { setOtherKey(false); setPw(""); setErr(""); }}>Use this Vault’s key instead</Button>
       </div> : <Button variant="outline" disabled={busy} onClick={() => { setOtherKey(true); setErr(""); }}>Different key or older backup?</Button>}
       {bio && <Button className="w-full" disabled={busy || (otherKey && !pw)} onClick={() => go(true)}><Fingerprint className="mr-1.5 h-4 w-4" />Approve with fingerprint</Button>}
