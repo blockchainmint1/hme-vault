@@ -27,6 +27,13 @@ export interface VaultPayload {
 
 export const emptyVault = (): VaultPayload => ({ v: 1, kind: "hm-seed-vault", seeds: [], secrets: [] });
 
+/** Remind for additions, not reads, renames or deletions. */
+export function hasNewVaultEntries(previous: Pick<VaultPayload, "seeds" | "secrets">, next: Pick<VaultPayload, "seeds" | "secrets">): boolean {
+  const seedIds = new Set(previous.seeds.map(s => s.id));
+  const secretIds = new Set(previous.secrets.map(s => s.id));
+  return next.seeds.some(s => !seedIds.has(s.id)) || next.secrets.some(s => !secretIds.has(s.id));
+}
+
 /** Backups use the current Vault credential, never a separate backup password. */
 export async function encryptVaultBackup(payload: VaultPayload, vaultCredential: string): Promise<string> {
   const text = JSON.stringify(payload);

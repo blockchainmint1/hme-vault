@@ -1,11 +1,29 @@
 import { describe, expect, it } from "vitest";
-import { deriveKeys, emptyVault, encryptVaultBackup, lockoutMs, mergeSeeds, mergeVaultBackup, parsePayload, shouldAutoLock, TXC_ADDRESS_PATH, type SeedEntry } from "./seeds";
+import { deriveKeys, emptyVault, encryptVaultBackup, hasNewVaultEntries, lockoutMs, mergeSeeds, mergeVaultBackup, parsePayload, shouldAutoLock, TXC_ADDRESS_PATH, type SeedEntry } from "./seeds";
 import { unlockText } from "./format";
 
 const SEED = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
 const e = (id: string, words: string, passphrase?: string): SeedEntry => ({ id, name: id, words, passphrase, fingerprint: "x", createdAt: 0 });
 
 describe("vault rules", () => {
+  it("requests a fresh backup when a seed is added", () => {
+    expect(hasNewVaultEntries(emptyVault(), { ...emptyVault(), seeds: [e("new", SEED)] })).toBe(true);
+  });
+  for (const type of ["totp", "note", "password", "file"] as const) {
+    it(`requests a fresh backup when a ${type} entry is added`, () => {
+      expect(hasNewVaultEntries(emptyVault(), { ...emptyVault(), secrets: [{ id: "new", name: "Dummy", type, content: "dummy", createdAt: 0 }] })).toBe(true);
+    });
+  }
+  it("does not request a backup on unlock, rename, deletion or duplicate-only import", () => {
+    const current = { ...emptyVault(), seeds: [e("old", SEED)] };
+    expect(hasNewVaultEntries(current, current)).toBe(false);
+    expect(hasNewVaultEntries(current, { ...current, seeds: [{ ...current.seeds[0], name: "Renamed" }] })).toBe(false);
+    expect(hasNewVaultEntries(current, emptyVault())).toBe(false);
+    expect(hasNewVaultEntries(current, mergeVaultBackup(current, current).payload)).toBe(false);
+  });
+  it("detects a new entry when another is removed in the same save", () => {
+    expect(hasNewVaultEntries({ ...emptyVault(), seeds: [e("old", SEED)] }, { ...emptyVault(), seeds: [e("new", SEED)] })).toBe(true);
+  });
   it("encrypts full backups using the existing Vault private-key credential, without a separate password", async () => {
     const key = "1234567890abcdef".repeat(4);
     const payload = { ...emptyVault(), seeds: [e("seed", SEED)], secrets: [

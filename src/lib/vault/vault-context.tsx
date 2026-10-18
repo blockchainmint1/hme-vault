@@ -4,7 +4,7 @@
  */
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { lockText, unlockText } from "./format";
-import { emptyVault, encryptVaultBackup, mergeVaultBackup, lockoutMs, parsePayload, shouldAutoLock, type SeedEntry } from "./seeds";
+import { emptyVault, encryptVaultBackup, hasNewVaultEntries, mergeVaultBackup, lockoutMs, parsePayload, shouldAutoLock, type SeedEntry } from "./seeds";
 import { MAX_VAULT_CHARS, type SecretEntry } from "./secrets";
 import { setCoinExtraRequired } from "./coin-unlock";
 
@@ -15,6 +15,8 @@ type Status = "loading" | "none" | "locked" | "unlocked";
 
 interface Ctx {
   status: Status;
+  backupReminder: boolean;
+  dismissBackupReminder: () => void;
   seeds: SeedEntry[];
   secrets: SecretEntry[];
   pendingCode: string;
@@ -45,6 +47,8 @@ function readFails(): { n: number; until: number } {
 
 export function VaultProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<Status>("loading");
+  const [backupReminder, setBackupReminder] = useState(false);
+  const dismissBackupReminder = useCallback(() => setBackupReminder(false), []);
   const [seeds, setSeeds] = useState<SeedEntry[]>([]);
   const [secrets, setSecrets] = useState<SecretEntry[]>([]);
   // Ciphertext only: survives Android's file picker background lock, never stored on disk.
@@ -63,6 +67,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
 
   const lock = useCallback(() => {
     generation.current++;
+    setBackupReminder(false);
     pw.current = null;
     setSeeds([]);
     setSecrets([]);
@@ -80,6 +85,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
       const encrypted = await lockText(text, password);
       if (generation.current !== version) throw new Error("Vault locked before saving. Unlock and try again.");
       try { localStorage.setItem(VAULT_KEY, encrypted); } catch { throw new Error("Not enough device storage. Nothing was changed."); }
+      if (hasNewVaultEntries(data.current, { seeds: list, secrets: items })) setBackupReminder(true);
       data.current = { seeds: list, secrets: items };
       setSeeds(list); setSecrets(items);
     } finally { writing.current = false; }
@@ -158,6 +164,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
 
   const wipe = useCallback(() => {
     generation.current++;
+    setBackupReminder(false);
     localStorage.removeItem(VAULT_KEY);
     localStorage.removeItem(FAILS_KEY);
     setCoinExtraRequired(false);
@@ -188,7 +195,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
   }, [status, lock]);
 
   return (
-    <VaultCtx.Provider value={{ status, seeds, secrets, pendingCode, setPendingCode, waitUntil, create, unlock, lock, checkPassword, changePassword, save, saveSecrets, restore, exportBackup, importBackup, wipe }}>
+    <VaultCtx.Provider value={{ status, backupReminder, dismissBackupReminder, seeds, secrets, pendingCode, setPendingCode, waitUntil, create, unlock, lock, checkPassword, changePassword, save, saveSecrets, restore, exportBackup, importBackup, wipe }}>
       {children}
     </VaultCtx.Provider>
   );
