@@ -17,6 +17,7 @@ import { Route as SecretsRouteImport } from './routes/secrets'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SignRouteImport } from './routes/sign'
 import { Route as SupportedRouteImport } from './routes/supported'
+import { Route as TutorialRouteImport } from './routes/tutorial'
 import { Route as VaultRouteImport } from './routes/vault'
 import { Route as LegalPrivacyRouteImport } from './routes/legal.privacy'
 import { Route as LegalTermsRouteImport } from './routes/legal.terms'
@@ -64,6 +65,11 @@ const SupportedRoute = SupportedRouteImport.update({
   path: '/supported',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TutorialRoute = TutorialRouteImport.update({
+  id: '/tutorial',
+  path: '/tutorial',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const VaultRoute = VaultRouteImport.update({
   id: '/vault',
   path: '/vault',
@@ -104,6 +110,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/sign': typeof SignRoute
   '/supported': typeof SupportedRoute
+  '/tutorial': typeof TutorialRoute
   '/vault': typeof VaultRoute
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/terms': typeof LegalTermsRoute
@@ -120,6 +127,7 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/sign': typeof SignRoute
   '/supported': typeof SupportedRoute
+  '/tutorial': typeof TutorialRoute
   '/vault': typeof VaultRoute
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/terms': typeof LegalTermsRoute
@@ -137,6 +145,7 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/sign': typeof SignRoute
   '/supported': typeof SupportedRoute
+  '/tutorial': typeof TutorialRoute
   '/vault': typeof VaultRoute
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/terms': typeof LegalTermsRoute
@@ -155,6 +164,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/sign'
     | '/supported'
+    | '/tutorial'
     | '/vault'
     | '/legal/privacy'
     | '/legal/terms'
@@ -171,6 +181,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/sign'
     | '/supported'
+    | '/tutorial'
     | '/vault'
     | '/legal/privacy'
     | '/legal/terms'
@@ -187,6 +198,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/sign'
     | '/supported'
+    | '/tutorial'
     | '/vault'
     | '/legal/privacy'
     | '/legal/terms'
@@ -204,6 +216,7 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   SignRoute: typeof SignRoute
   SupportedRoute: typeof SupportedRoute
+  TutorialRoute: typeof TutorialRoute
   VaultRoute: typeof VaultRoute
   LegalPrivacyRoute: typeof LegalPrivacyRoute
   LegalTermsRoute: typeof LegalTermsRoute
@@ -270,6 +283,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SupportedRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/tutorial': {
+      id: '/tutorial'
+      path: '/tutorial'
+      fullPath: '/tutorial'
+      preLoaderRoute: typeof TutorialRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/vault': {
       id: '/vault'
       path: '/vault'
@@ -324,6 +344,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   SignRoute: SignRoute,
   SupportedRoute: SupportedRoute,
+  TutorialRoute: TutorialRoute,
   VaultRoute: VaultRoute,
   LegalPrivacyRoute: LegalPrivacyRoute,
   LegalTermsRoute: LegalTermsRoute,
