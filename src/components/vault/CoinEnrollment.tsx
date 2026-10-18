@@ -3,7 +3,9 @@ import { Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScannerDialog } from "@/components/wallet/QrScanButton";
-import { coinPasswordFromScan, confirmCoinPassword } from "@/lib/vault/coin-unlock";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { coinPasswordFromScan, combineCoinPassword, confirmCoinPassword, setCoinExtraRequired } from "@/lib/vault/coin-unlock";
 
 export function CoinEnrollment({ onEnroll, disabled = false }: { onEnroll: (password: string) => Promise<void>; disabled?: boolean }) {
   const [first, setFirst] = useState("");
