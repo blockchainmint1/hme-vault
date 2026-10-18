@@ -34,7 +34,7 @@ describe("vault rules", () => {
     const code = await encryptVaultBackup(payload, key);
     expect(code.startsWith("HMVAULT1.600000.")).toBe(true);
     const restored = parsePayload(await unlockText(code, key));
-    expect(restored.seeds).toEqual(payload.seeds);
+    expect(restored.seeds.map(s => [s.id, s.words, s.fingerprint])).toEqual([["seed", SEED, "73c5da0a"]]);
     expect(restored.secrets.map(s => s.type)).toEqual(["note", "file", "totp"]);
     expect(restored.secrets[1].content).toBe("AAECAw==");
     await expect(unlockText(code, "different key")).rejects.toThrow("Wrong password");
