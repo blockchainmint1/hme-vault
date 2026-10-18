@@ -10,7 +10,7 @@ import { useVault } from "@/lib/vault/vault-context";
 import { getBiometricStatus, unlockWithBiometric } from "@/lib/native/biometric";
 import { CoinEnrollment } from "@/components/vault/CoinEnrollment";
 import { ScannerDialog } from "@/components/wallet/QrScanButton";
-import { coinPasswordFromScan } from "@/lib/vault/coin-unlock";
+import { coinPasswordFromScan, combineCoinPassword, isCoinExtraRequired } from "@/lib/vault/coin-unlock";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { HomeBlurbs } from "@/components/vault/HomeBlurbs";
 
@@ -95,6 +95,8 @@ function UnlockForm() {
   const [bio, setBio] = useState(false);
   const [now, setNow] = useState(Date.now());
   const [scan, setScan] = useState(false);
+  const [pendingCoin, setPendingCoin] = useState("");
+  const [extra, setExtra] = useState("");
   useEffect(() => { getBiometricStatus().then((s) => setBio(s.enabled)); }, []);
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t); }, []);
   const wait = Math.max(0, Math.ceil((waitUntil - now) / 1000));
