@@ -54,3 +54,8 @@ describe("secondsRemaining", () => {
     expect(secondsRemaining({ label: "", issuer: "", secret: RFC_SECRET, digits: 6, period: 30 }, 60_000)).toBe(30);
   });
 });
+
+import { parseTotpUri as _pt } from "./totp";
+it("refuses non-SHA1 authenticator accounts", () => {
+  expect(() => _pt("otpauth://totp/x?secret=JBSWY3DPEHPK3PXP&algorithm=SHA256")).toThrow(/SHA256/);
+});

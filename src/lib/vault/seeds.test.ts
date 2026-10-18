@@ -85,3 +85,20 @@ describe("vault rules", () => {
     expect((await deriveKeys(SEED, "different passphrase")).txcAddress).not.toBe("TZZCuca5ntPVCJL5ryTjh465Jvw5vHxsVd");
   });
 });
+
+import { parsePayload as _parse, seedFingerprint as _fp, MAX_SEED_NAME as _max } from "./seeds";
+describe("backup import hardening", () => {
+  const words = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
+  it("recomputes the fingerprint, normalizes words, caps names and drops duplicates", () => {
+    const p = _parse(JSON.stringify({ v: 1, kind: "hm-seed-vault", secrets: [], seeds: [
+      { id: "a", name: "Main\u202e" + "x".repeat(300), words: "  ABANDON abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon ABOUT ", fingerprint: "deadbeef", createdAt: 1 },
+      { id: "b", name: "Copy", words, fingerprint: "00000000", createdAt: 2 },
+    ] }));
+    expect(p.seeds).toHaveLength(1);
+    expect(p.seeds[0].words).toBe(words);
+    expect(p.seeds[0].fingerprint).toBe(_fp(words));
+    expect(p.seeds[0].fingerprint).not.toBe("deadbeef");
+    expect(p.seeds[0].name.length).toBe(_max);
+    expect(p.seeds[0].name).not.toContain("\u202e");
+  });
+});
