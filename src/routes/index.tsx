@@ -1,3 +1,4 @@
+import { assessPassword } from "@/lib/security/password-strength";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Camera, Fingerprint } from "lucide-react";
@@ -64,7 +65,7 @@ function Setup() {
   const [busy, setBusy] = useState(false);
   const [mode, setMode] = useState("password");
   async function go() {
-    if (pw.length < 8) return setErr("Use at least 8 characters. A long phrase or long number is best.");
+    { const v = assessPassword(pw); if (!v.ok) return setErr(v.message); }
     if (pw !== pw2) return setErr("The two passwords don't match.");
     setBusy(true);
     try { await create(pw); } catch (e) { setErr((e as Error).message); } finally { setBusy(false); }
