@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { coinPasswordFromScan, confirmCoinPassword } from "./coin-unlock";
+import { coinPasswordFromScan, combineCoinPassword, confirmCoinPassword } from "./coin-unlock";
 import { lockText, unlockText } from "./format";
 
 const seed = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
@@ -42,6 +42,20 @@ describe("old-style private key coins", () => {
   });
   it("accepts address-looking QR content as scanned", () => {
     expect(coinPasswordFromScan("1GAehh7TsJAHuUAeKZcXf5CnwuGuGgyX2S")).toBe("1GAehh7TsJAHuUAeKZcXf5CnwuGuGgyX2S");
+  });
+});
+describe("coin plus extra secret word", () => {
+  it("combines coin and word so both are required", async () => {
+    const combined = combineCoinPassword(seed, "  correct horse  ");
+    expect(combined).toBe(`${seed}\ncorrect horse`);
+    const blob = await lockText("payload", combined, 1000);
+    await expect(unlockText(blob, seed)).rejects.toThrow();
+    await expect(unlockText(blob, "correct horse")).rejects.toThrow();
+    expect(await unlockText(blob, combined)).toBe("payload");
+  });
+  it("leaves the coin credential unchanged without a word", () => {
+    expect(combineCoinPassword(seed, "")).toBe(seed);
+    expect(combineCoinPassword(seed, "   ")).toBe(seed);
   });
 });
 describe("TXC key labels", () => {

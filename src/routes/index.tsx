@@ -10,7 +10,7 @@ import { useVault } from "@/lib/vault/vault-context";
 import { getBiometricStatus, unlockWithBiometric } from "@/lib/native/biometric";
 import { CoinEnrollment } from "@/components/vault/CoinEnrollment";
 import { ScannerDialog } from "@/components/wallet/QrScanButton";
-import { coinPasswordFromScan } from "@/lib/vault/coin-unlock";
+import { coinPasswordFromScan, combineCoinPassword, isCoinExtraRequired } from "@/lib/vault/coin-unlock";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { HomeBlurbs } from "@/components/vault/HomeBlurbs";
 
@@ -95,6 +95,8 @@ function UnlockForm() {
   const [bio, setBio] = useState(false);
   const [now, setNow] = useState(Date.now());
   const [scan, setScan] = useState(false);
+  const [pendingCoin, setPendingCoin] = useState("");
+  const [extra, setExtra] = useState("");
   useEffect(() => { getBiometricStatus().then((s) => setBio(s.enabled)); }, []);
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t); }, []);
   const wait = Math.max(0, Math.ceil((waitUntil - now) / 1000));
@@ -119,7 +121,23 @@ function UnlockForm() {
           <Button type="submit" className="w-full" disabled={busy || wait > 0 || !pw}>{busy ? "Unlocking…" : "Unlock"}</Button>
         </form>
         <Button variant="outline" className="w-full" disabled={busy || wait > 0} onClick={() => { setErr(""); setScan(true); }}><Camera className="mr-2 h-4 w-4" />Scan coin to unlock</Button>
-        {scan && <ScannerDialog hint="Scan your coin’s QR to unlock Vault." onClose={() => setScan(false)} onScan={text => { setScan(false); try { void go(coinPasswordFromScan(text)); } catch(e) { setErr((e as Error).message); } }} />}
+        {scan && <ScannerDialog hint="Scan your coin’s QR to unlock Vault." onClose={() => setScan(false)} onScan={text => {
+          setScan(false);
+          try {
+            const coin = coinPasswordFromScan(text);
+            if (isCoinExtraRequired()) { setPendingCoin(coin); setExtra(""); }
+            else void go(coin);
+          } catch(e) { setErr((e as Error).message); }
+        }} />}
+        {pendingCoin && (
+          <form className="space-y-3 rounded-md border p-3" onSubmit={(e) => { e.preventDefault(); const c = pendingCoin; setPendingCoin(""); void go(combineCoinPassword(c, extra)); }}>
+            <div><Label htmlFor="coin-extra-unlock">Extra secret word</Label><Input id="coin-extra-unlock" type="password" autoFocus autoComplete="current-password" value={extra} onChange={(e) => setExtra(e.target.value)} /></div>
+            <div className="flex gap-2">
+              <Button type="submit" className="flex-1" disabled={busy || wait > 0 || !extra.trim()}>Unlock</Button>
+              <Button type="button" variant="ghost" onClick={() => { setPendingCoin(""); setExtra(""); }}>Cancel</Button>
+            </div>
+          </form>
+        )}
         {bio && <Button variant="outline" className="w-full" onClick={useBio} disabled={wait > 0}><Fingerprint className="h-4 w-4 mr-1.5" />Use fingerprint</Button>}
       </CardContent>
     </Card>

@@ -3,7 +3,9 @@ import { Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScannerDialog } from "@/components/wallet/QrScanButton";
-import { coinPasswordFromScan, confirmCoinPassword } from "@/lib/vault/coin-unlock";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { coinPasswordFromScan, combineCoinPassword, confirmCoinPassword, setCoinExtraRequired } from "@/lib/vault/coin-unlock";
 
 export function CoinEnrollment({ onEnroll, disabled = false }: { onEnroll: (password: string) => Promise<void>; disabled?: boolean }) {
   const [first, setFirst] = useState("");
@@ -12,6 +14,7 @@ export function CoinEnrollment({ onEnroll, disabled = false }: { onEnroll: (pass
   const [scan, setScan] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [extra, setExtra] = useState("");
   useEffect(() => {
     const clear = () => { if (document.visibilityState === "hidden") { setFirst(""); setSecond(""); setScan(false); } };
     document.addEventListener("visibilitychange", clear);
@@ -25,9 +28,20 @@ export function CoinEnrollment({ onEnroll, disabled = false }: { onEnroll: (pass
     <Button variant="outline" className="w-full" disabled={!ack || busy || disabled} onClick={() => { setError(""); if (second) { setFirst(""); setSecond(""); } setScan(true); }}><Camera className="mr-2 h-4 w-4" />{second ? "Start scans again" : first ? "Scan same coin again" : "Scan coin QR"}</Button>
     {first && <p className="text-sm text-muted-foreground">{second ? "Both scans match." : "First scan accepted. Scan it again to confirm."}</p>}
     {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+    <div className="space-y-1">
+      <Label htmlFor="coin-extra">Extra secret word (optional)</Label>
+      <Input id="coin-extra" type="password" autoComplete="new-password" placeholder="A word only you know" value={extra} onChange={e => setExtra(e.target.value)} />
+      <p className="text-xs text-muted-foreground">If set, unlocking needs the coin <strong>and</strong> this word. There is no reset — forget the word and the coin alone won't open Vault.</p>
+    </div>
     <Button className="w-full" disabled={!first || !second || !ack || busy || disabled} onClick={async () => {
       setBusy(true); setError("");
-      try { const password = confirmCoinPassword(first, second, ack); setFirst(""); setSecond(""); await onEnroll(password); }
+      try {
+        const password = combineCoinPassword(confirmCoinPassword(first, second, ack), extra);
+        setFirst(""); setSecond("");
+        await onEnroll(password);
+        setCoinExtraRequired(extra.trim().length > 0);
+        setExtra("");
+      }
       catch(e) { setError((e as Error).message); }
       finally { setBusy(false); }
     }}>{busy ? "Saving…" : "Use coin as Vault password"}</Button>
