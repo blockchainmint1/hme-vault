@@ -121,7 +121,23 @@ function UnlockForm() {
           <Button type="submit" className="w-full" disabled={busy || wait > 0 || !pw}>{busy ? "Unlocking…" : "Unlock"}</Button>
         </form>
         <Button variant="outline" className="w-full" disabled={busy || wait > 0} onClick={() => { setErr(""); setScan(true); }}><Camera className="mr-2 h-4 w-4" />Scan coin to unlock</Button>
-        {scan && <ScannerDialog hint="Scan your coin’s QR to unlock Vault." onClose={() => setScan(false)} onScan={text => { setScan(false); try { void go(coinPasswordFromScan(text)); } catch(e) { setErr((e as Error).message); } }} />}
+        {scan && <ScannerDialog hint="Scan your coin’s QR to unlock Vault." onClose={() => setScan(false)} onScan={text => {
+          setScan(false);
+          try {
+            const coin = coinPasswordFromScan(text);
+            if (isCoinExtraRequired()) { setPendingCoin(coin); setExtra(""); }
+            else void go(coin);
+          } catch(e) { setErr((e as Error).message); }
+        }} />}
+        {pendingCoin && (
+          <form className="space-y-3 rounded-md border p-3" onSubmit={(e) => { e.preventDefault(); const c = pendingCoin; setPendingCoin(""); void go(combineCoinPassword(c, extra)); }}>
+            <div><Label htmlFor="coin-extra-unlock">Extra secret word</Label><Input id="coin-extra-unlock" type="password" autoFocus autoComplete="current-password" value={extra} onChange={(e) => setExtra(e.target.value)} /></div>
+            <div className="flex gap-2">
+              <Button type="submit" className="flex-1" disabled={busy || wait > 0 || !extra.trim()}>Unlock</Button>
+              <Button type="button" variant="ghost" onClick={() => { setPendingCoin(""); setExtra(""); }}>Cancel</Button>
+            </div>
+          </form>
+        )}
         {bio && <Button variant="outline" className="w-full" onClick={useBio} disabled={wait > 0}><Fingerprint className="h-4 w-4 mr-1.5" />Use fingerprint</Button>}
       </CardContent>
     </Card>
