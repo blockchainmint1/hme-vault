@@ -1,5 +1,7 @@
 # Roadmap — HME Seed Vault
 
+- [ ] Prompt for a new backup after successfully adding seeds, secrets or authenticator accounts.
+
 - [x] Resume selected encrypted backups directly in Receive after file-picker/background locking (dummy coin-plus-word unlock, second lock, successful import and Secrets readback verified; 26 tests passed; new APK needed for Android picker check).
 
 - [x] Apply coin-plus-secret-word confirmations to erase, reveal/delete, signing, relinking and backup recovery (dummy unlock, secret/code reveal, erase and standalone recovery verified; 51 tests passed; new APK needed for phone checks)
