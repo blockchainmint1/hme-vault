@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Camera, Fingerprint, ShieldCheck } from "lucide-react";
+import { Camera, Fingerprint } from "lucide-react";
+import vaultMark from "@/assets/brand/vault-mark-512.png";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -37,8 +38,14 @@ function Home() {
   return (
     <main className="mx-auto flex max-w-sm flex-col gap-6 px-4 pt-16">
       <div className="text-center">
-        <ShieldCheck className="mx-auto h-12 w-12 text-primary" />
-        <h1 className="mt-3 text-2xl font-semibold">HME Vault</h1>
+        <img
+          src={vaultMark}
+          alt="HME Vault"
+          width={96}
+          height={96}
+          className="mx-auto h-24 w-24 object-contain drop-shadow-lg"
+        />
+        <h1 className="mt-4 text-2xl font-semibold">HME Vault</h1>
         <p className="mt-1 text-sm text-muted-foreground">Your seeds, locked on this device.{"\u00a0\n"}Nothing ever leaves it.</p>
       </div>
       {status === "none" && <Setup />}
