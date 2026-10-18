@@ -85,7 +85,7 @@ function ExportPanel({ mode }: { mode: "file" | "send" }) {
 }
 
 function ReceivePanel() {
-  const { importBackup, checkPassword } = useVault();
+  const { importBackup, checkPassword, setPendingCode } = useVault();
   const [code, setCode] = useState("");
   const [pw, setPw] = useState("");
   const [otherKey, setOtherKey] = useState(false);
@@ -108,6 +108,7 @@ function ReceivePanel() {
         if (!checkPassword(credential)) throw new Error("Fingerprint does not match this Vault. Unlock with your secret QR or password.");
       }
       const r = await importBackup(code, otherKey ? pw : undefined);
+      setPendingCode("");
       if (!alive.current) return;
       setResult(`Added ${r.addedSeeds} seeds and ${r.addedSecrets} secrets / authenticator accounts; ${r.skipped} duplicates skipped.`);
       setCode(""); setPw(""); setOtherKey(false);
@@ -125,6 +126,7 @@ function ReceivePanel() {
       </div> : <Button variant="outline" disabled={busy} onClick={() => { setOtherKey(true); setErr(""); }}>Different key or older backup?</Button>}
       {bio && <Button className="w-full" disabled={busy || (otherKey && !pw)} onClick={() => go(true)}><Fingerprint className="mr-1.5 h-4 w-4" />Approve with fingerprint</Button>}
       <Button className="w-full" variant={bio ? "secondary" : "default"} disabled={busy || (otherKey && !pw)} onClick={() => go()}>{busy ? "Importing…" : "Import into this Vault"}</Button>
+      <Button variant="ghost" disabled={busy} onClick={() => { setPendingCode(""); setCode(""); setPw(""); setOtherKey(false); setErr(""); }}>Discard selected backup</Button>
     </>}
     {err && <p role="alert" className="text-sm text-destructive">{err} If the backup uses another key, select “Different key or older backup?”.</p>}
     {result && <p role="status" className="text-sm">{result}</p>}

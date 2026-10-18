@@ -10,7 +10,9 @@ import { useVault } from "@/lib/vault/vault-context";
 
 export function TransferInput({ value, onChange, qrOnly = false }: { value: string; onChange: (text: string) => void; qrOnly?: boolean }) {
   const { pendingCode, setPendingCode } = useVault();
-  useEffect(() => { if (pendingCode) { onChange(pendingCode); setPendingCode(""); } }, [pendingCode, onChange, setPendingCode]);
+  // Keep ciphertext in the provider until import succeeds or the owner discards it.
+  // A second background lock must not lose a file already handed to this panel.
+  useEffect(() => { if (pendingCode && pendingCode !== value) onChange(pendingCode); }, [pendingCode, value, onChange]);
   const [scan, setScan] = useState(false);
   const [progress, setProgress] = useState("");
   const [err, setErr] = useState("");
@@ -25,7 +27,7 @@ export function TransferInput({ value, onChange, qrOnly = false }: { value: stri
     </div>
     {err && <p role="alert" className="text-sm text-destructive">{err}</p>}
     {scan && <ScannerDialog keepScanning hint={progress || "Point at the encrypted QR. Keep scanning until all parts arrive."} onClose={() => setScan(false)} onScan={code => {
-      try { const full = collector.current.add(code); const p = collector.current.progress; setProgress(`${p.have} of ${p.total} parts received`); if (full) { setScan(false); onChange(full); } }
+      try { const full = collector.current.add(code); const p = collector.current.progress; setProgress(`${p.have} of ${p.total} parts received`); if (full) { setScan(false); setPendingCode(full); onChange(full); } }
       catch(e) { setScan(false); setErr((e as Error).message); }
     }} />}
   </div>;

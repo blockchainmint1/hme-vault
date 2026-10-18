@@ -30,11 +30,11 @@ export const Route = createFileRoute("/")({
 });
 
 function Home() {
-  const { status } = useVault();
+  const { status, pendingCode } = useVault();
   const navigate = useNavigate();
   useEffect(() => {
-    if (status === "unlocked") navigate({ to: "/seeds" });
-  }, [status, navigate]);
+    if (status === "unlocked") navigate({ to: pendingCode ? "/backup" : "/seeds" });
+  }, [status, pendingCode, navigate]);
 
   return (
     <main className="mx-auto flex max-w-sm flex-col gap-6 px-4 pt-16">
