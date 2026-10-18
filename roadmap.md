@@ -1,5 +1,7 @@
 # Roadmap — HME Seed Vault
 
+- [ ] Resume selected encrypted backups directly in Receive after file-picker/background locking; verify import and repeated locking without retaining credentials.
+
 - [x] Apply coin-plus-secret-word confirmations to erase, reveal/delete, signing, relinking and backup recovery (dummy unlock, secret/code reveal, erase and standalone recovery verified; 51 tests passed; new APK needed for phone checks)
 
 - [x] Add seven-step setup, backup, pairing and signing tutorial linked from the homepage (official GrapheneOS guidance checked; desktop/mobile navigation verified; online-wallet steps explicitly conditional on wallet support)
