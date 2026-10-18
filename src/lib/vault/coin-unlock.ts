@@ -35,6 +35,21 @@ export function coinPasswordFromScan(text: string): string {
   return trimmed;
 }
 
+/** Remember (non-secret) whether this vault's coin credential also needs a typed extra word. */
+const EXTRA_FLAG = "hmsv.coin-extra";
+export function setCoinExtraRequired(required: boolean): void {
+  try { if (required) localStorage.setItem(EXTRA_FLAG, "1"); else localStorage.removeItem(EXTRA_FLAG); } catch { /* ignore */ }
+}
+export function isCoinExtraRequired(): boolean {
+  try { return localStorage.getItem(EXTRA_FLAG) === "1"; } catch { return false; }
+}
+
+/** Combine the scanned coin credential with an optional typed extra word (something you have + something you know). */
+export function combineCoinPassword(coin: string, extra: string): string {
+  const word = extra.trim();
+  return word ? `${coin}\n${word}` : coin;
+}
+
 export function confirmCoinPassword(first: string, second: string, acknowledged: boolean): string {
   if (!acknowledged) throw new Error("Confirm the coin unlock risks first.");
   const a = coinPasswordFromScan(first);
