@@ -24,6 +24,14 @@ export function SiteFooter() {
           >
             Android app
           </a>
+          <a
+            href="https://github.com/blockchainmint1/hme-vault"
+            target="_blank"
+            rel="noreferrer"
+            className="text-foreground hover:underline"
+          >
+            Source code
+          </a>
           <Link to="/legal/terms" className="hover:text-foreground">Terms</Link>
           <Link to="/legal/privacy" className="hover:text-foreground">Privacy</Link>
           <Link to="/manifesto" className="hover:text-foreground">Manifesto</Link>
