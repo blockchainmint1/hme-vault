@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, ArrowUpRight, BookOpen, Download, ShieldCheck } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-import vaultMark from "@/assets/brand/vault-mark.png";
+import vaultMark from "@/assets/brand/vault-mark-512.png";
 import vaultApk from "@/assets/vault-apk.apk.asset.json";
 
 export const Route = createFileRoute("/tutorial")({
