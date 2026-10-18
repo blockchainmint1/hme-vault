@@ -133,7 +133,7 @@ function UnlockForm() {
         }} />}
         {pendingCoin && (
           <form className="space-y-3 rounded-md border p-3" onSubmit={(e) => { e.preventDefault(); const c = pendingCoin; setPendingCoin(""); void go(combineCoinPassword(c, extra)); }}>
-            <div><Label htmlFor="coin-extra-unlock">Extra secret word</Label><Input id="coin-extra-unlock" type="password" autoFocus autoComplete="current-password" value={extra} onChange={(e) => setExtra(e.target.value)} /></div>
+            <div><Label htmlFor="coin-extra-unlock">Extra secret word</Label><Input id="coin-extra-unlock" type="password" autoFocus autoComplete="off" autoCorrect="off" spellCheck={false} value={extra} onChange={(e) => setExtra(e.target.value)} /></div>
             <div className="flex gap-2">
               <Button type="submit" className="flex-1" disabled={busy || wait > 0 || !extra.trim()}>Unlock</Button>
               <Button type="button" variant="ghost" onClick={() => { setPendingCoin(""); setExtra(""); }}>Cancel</Button>
