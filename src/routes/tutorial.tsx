@@ -80,7 +80,7 @@ function TutorialPage() {
       <ol>
         <li>On your computer, open the official GrapheneOS web installer. Follow its current browser, cable and phone preparation instructions.</li>
         <li>Follow the installer through unlocking the bootloader, downloading and flashing GrapheneOS, and <strong>relocking the bootloader</strong>. Do not stop with it unlocked.</li>
-        <li>Complete first-time setup, install current system updates and set a strong screen-lock PIN or password. Enrol a fingerprint if you want convenient Vault unlocking later.</li>
+        <li>Follow the guide’s verification and post-install steps, including disabling OEM unlocking again. Complete first-time setup, install current system updates and set a strong screen-lock PIN or password. Enrol a fingerprint if you want convenient Vault unlocking later.</li>
       </ol>
       <p><Resource href="https://grapheneos.org/install/web">Official GrapheneOS installation guide</Resource></p>
       <p className="text-sm">Use the official guide as the source of truth; installation screens and supported browser versions can change.</p>
@@ -130,7 +130,7 @@ function TutorialPage() {
     </Step>
 
     <Step number={6}>
-      <p>This part happens on <strong>two devices</strong>: offline Vault and your online HME Wallet. You are adding a watch-only view, not importing your seed.</p>
+      <p>This part happens on <strong>two devices</strong>: offline Vault and your online <Resource href="https://mobile.honest.money/">HME Wallet</Resource>. You are adding a watch-only view, not importing your seed.</p>
       <ol>
         <li>On the offline Pixel, open the seed you created and tap <strong>Show watch-only QR</strong>.</li>
         <li>On your everyday phone, open HME Wallet and use its Vault / watch-only pairing option to scan that pairing QR. Use the pairing code—not the QR that shows your seed words and not your coin’s unlock QR.</li>
