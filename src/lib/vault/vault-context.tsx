@@ -6,6 +6,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { lockText, unlockText } from "./format";
 import { emptyVault, encryptVaultBackup, mergeVaultBackup, lockoutMs, parsePayload, shouldAutoLock, type SeedEntry } from "./seeds";
 import { MAX_VAULT_CHARS, type SecretEntry } from "./secrets";
+import { setCoinExtraRequired } from "./coin-unlock";
 
 const VAULT_KEY = "hmsv.vault.v1";
 const FAILS_KEY = "hmsv.fails.v1";
@@ -159,6 +160,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     generation.current++;
     localStorage.removeItem(VAULT_KEY);
     localStorage.removeItem(FAILS_KEY);
+    setCoinExtraRequired(false);
     pw.current = null;
     setSeeds([]);
     setSecrets([]);

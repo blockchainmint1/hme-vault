@@ -1,35 +1,37 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
-import { lockText, unlockText } from "../vault/format";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
+const native = vi.hoisted(() => ({ on: true }));
 const plugin = vi.hoisted(() => ({
-  enroll: vi.fn(async (_options: { secret: string }) => ({ strongBox: true })),
-  unlock: vi.fn(async () => ({ secret: "" })),
+  status: vi.fn(), unlock: vi.fn(), enroll: vi.fn(), remove: vi.fn(),
 }));
 vi.mock("@capacitor/core", () => ({ registerPlugin: () => plugin }));
-vi.mock("./platform", () => ({ isNative: () => true }));
-vi.mock("@aparajita/capacitor-secure-storage", () => ({ SecureStorage: { remove: vi.fn(async () => undefined) } }));
+vi.mock("./platform", () => ({ isNative: () => native.on }));
+vi.mock("@aparajita/capacitor-secure-storage", () => ({ SecureStorage: { remove: vi.fn().mockResolvedValue(undefined) } }));
+import { confirmWithBiometric, enableBiometric, getBiometricStatus } from "./biometric";
 
-import { enableBiometric, unlockWithBiometric } from "./biometric";
-
-beforeEach(() => vi.clearAllMocks());
-
-describe("fingerprint enrollment credential", () => {
-  it("seals coin plus extra password and recovers that complete credential", async () => {
-    const coin = "dummy-secret-coin-key";
-    const combined = `${coin}\nsecret word`;
-    await enableBiometric(coin, "  secret word  ");
-    expect(plugin.enroll).toHaveBeenCalledWith({ secret: combined });
-    plugin.unlock.mockResolvedValueOnce({ secret: combined });
-    const recovered = await unlockWithBiometric();
-    expect(recovered).toBe(combined);
-    const backup = await lockText("dummy vault", combined, 1000);
-    await expect(unlockText(backup, coin)).rejects.toThrow();
-    if (recovered === null) throw new Error("Missing fingerprint credential");
-    expect(await unlockText(backup, recovered)).toBe("dummy vault");
+describe("fingerprint confirmation for the current Vault", () => {
+  beforeEach(async () => {
+    native.on = true;
+    plugin.status.mockResolvedValue({ available: true, enrolled: true, strongBox: true });
+    await getBiometricStatus();
   });
-
-  it("keeps password-only and coin-only enrollment unchanged", async () => {
-    await enableBiometric("existing password");
-    expect(plugin.enroll).toHaveBeenCalledWith({ secret: "existing password" });
+  it("seals the full coin-plus-word credential", async () => {
+    await enableBiometric("dummy coin", "extra word");
+    expect(plugin.enroll).toHaveBeenCalledWith({ secret: "dummy coin\nextra word" });
+  });
+  it("requires the released combined credential to match this Vault", async () => {
+    const verify = (credential: string) => credential === "dummy coin\nextra word";
+    plugin.unlock.mockResolvedValue({ secret: "dummy coin" });
+    expect(await confirmWithBiometric("Reveal", verify)).toBe(false);
+    plugin.unlock.mockResolvedValue({ secret: "dummy coin\nwrong word" });
+    expect(await confirmWithBiometric("Reveal", verify)).toBe(false);
+    plugin.unlock.mockResolvedValue({ secret: "dummy coin\nextra word" });
+    expect(await confirmWithBiometric("Reveal", verify)).toBe(true);
+  });
+  it("never approves when fingerprint is unavailable or cancelled", async () => {
+    plugin.unlock.mockRejectedValue({ code: "CANCELLED" });
+    expect(await confirmWithBiometric("Reveal", () => true)).toBe(false);
+    native.on = false;
+    expect(await confirmWithBiometric("Reveal", () => true)).toBe(false);
   });
 });
