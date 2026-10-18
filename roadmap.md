@@ -1,6 +1,6 @@
 # Roadmap — HME Seed Vault
 
-- [ ] Add seven-step setup, backup, pairing and signing tutorial linked from the homepage (verify guidance and navigation)
+- [x] Add seven-step setup, backup, pairing and signing tutorial linked from the homepage (official GrapheneOS guidance checked; desktop/mobile navigation verified; online-wallet steps explicitly conditional on wallet support)
 
 - [x] Same-key encrypted backups, offline QR device copying and simple USB file saving (dummy two-device import, actual QR decoding, duplicate skipping and receiver-key retention verified; Android USB/fingerprint checks remain part of the phone test below)
 
