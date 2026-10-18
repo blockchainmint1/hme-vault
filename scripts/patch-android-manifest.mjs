@@ -45,6 +45,27 @@ xml = xml.replace(/android:allowBackup="true"/, 'android:allowBackup="false"');
 if (!xml.includes("android:allowBackup")) xml = xml.replace(/<application\b/, '<application android:allowBackup="false"');
 if (!xml.includes("android:fullBackupContent")) xml = xml.replace(/<application\b/, '<application android:fullBackupContent="false"');
 
+// Android 12+: exclude every file from cloud backup and phone-to-phone transfer.
+const xmlDir = resolve(process.cwd(), "android/app/src/main/res/xml");
+mkdirSync(xmlDir, { recursive: true });
+writeFileSync(resolve(xmlDir, "data_extraction_rules.xml"), `<?xml version="1.0" encoding="utf-8"?>
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" path="." /><exclude domain="file" path="." /><exclude domain="database" path="." /><exclude domain="sharedpref" path="." /><exclude domain="external" path="." />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" path="." /><exclude domain="file" path="." /><exclude domain="database" path="." /><exclude domain="sharedpref" path="." /><exclude domain="external" path="." />
+    </device-transfer>
+</data-extraction-rules>
+`);
+if (!xml.includes("android:dataExtractionRules")) xml = xml.replace(/<application\b/, '<application android:dataExtractionRules="@xml/data_extraction_rules"');
+// Narrow the file-sharing provider to one cache subfolder.
+writeFileSync(resolve(xmlDir, "file_paths.xml"), `<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <cache-path name="vault_share" path="vault-share/" />
+</paths>
+`);
+
 writeFileSync(manifestPath, xml);
 console.log("Patched AndroidManifest.xml (no network, camera, biometric, no backups).");
 

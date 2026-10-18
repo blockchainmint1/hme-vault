@@ -86,7 +86,7 @@ jobs:
             V="0.1.$(date +%Y%m%d%H%M)"
           fi
           echo "version=$V" >> $GITHUB_OUTPUT
-          echo "version_code=$((2610190000 + GITHUB_RUN_NUMBER))" >> $GITHUB_OUTPUT
+          echo "version_code=$((26101900 + GITHUB_RUN_NUMBER))" >> $GITHUB_OUTPUT
 
       - name: Decide build type
         id: mode
