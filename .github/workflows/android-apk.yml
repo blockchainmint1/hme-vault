@@ -113,19 +113,38 @@ jobs:
         if: steps.mode.outputs.mode == 'release'
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
         run: |
           # Strip CR/LF/spaces the secret may have picked up when pasted, then
-          # decode. `-i` tells GNU base64 to ignore any remaining non-alphabet
-          # characters instead of aborting with "invalid input".
+          # decode. Passwords are read from env (never pasted into the script)
+          # so symbols like $ " ` ! in the password can't break the check.
+          KS="$RUNNER_TEMP/keystore.jks"
           printf '%s' "$ANDROID_KEYSTORE_BASE64" \
             | tr -d '\r\n \t' \
-            | base64 -d -i > "$RUNNER_TEMP/keystore.jks"
-          if ! keytool -list -keystore "$RUNNER_TEMP/keystore.jks" \
-                 -storepass "${{ secrets.ANDROID_STORE_PASSWORD }}" >/dev/null 2>&1; then
-            echo "::error::Decoded keystore is invalid. Re-encode with: base64 -w0 keystore.jks | pbcopy"
+            | base64 -d -i > "$KS" || true
+          SIZE=$(stat -c %s "$KS")
+          MAGIC=$(head -c 4 "$KS" | od -An -tx1 | tr -d ' \n')
+          echo "Decoded keystore: $SIZE bytes, starts with $MAGIC (pkcs12 = 30..., jks = feedfeed)"
+          if [ "$SIZE" -lt 1000 ]; then
+            echo "::error::Keystore secret decoded to only $SIZE bytes. ANDROID_KEYSTORE_BASE64 is empty or not the base64 of the keystore file."
             exit 1
           fi
-          echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/keystore.jks" >> $GITHUB_ENV
+          if ! OUT=$(keytool -list -keystore "$KS" -storepass:env ANDROID_STORE_PASSWORD 2>&1); then
+            echo "keytool said: $(printf '%s' "$OUT" | grep -i 'keytool error' | head -n1)"
+            if printf '%s' "$OUT" | grep -qi 'password'; then
+              echo "::error::The keystore file is fine but ANDROID_STORE_PASSWORD is wrong."
+            else
+              echo "::error::ANDROID_KEYSTORE_BASE64 does not contain a valid keystore file."
+            fi
+            exit 1
+          fi
+          if ! printf '%s' "$OUT" | grep -qi "^$ANDROID_KEY_ALIAS,"; then
+            echo "::error::Keystore opened, but ANDROID_KEY_ALIAS doesn't match. Aliases in this keystore: $(printf '%s' "$OUT" | grep -E '^[^ ]+,' | cut -d, -f1 | tr '\n' ' ')"
+            exit 1
+          fi
+          echo "Keystore, password and alias all check out."
+          echo "ANDROID_KEYSTORE_PATH=$KS" >> $GITHUB_ENV
 
       - name: Inject release signing config
         if: steps.mode.outputs.mode == 'release' && env.ANDROID_KEYSTORE_PATH != ''
