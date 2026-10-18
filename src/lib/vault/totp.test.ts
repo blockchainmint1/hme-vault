@@ -55,7 +55,7 @@ describe("secondsRemaining", () => {
   });
 });
 
-import { parseTotpUri as _pt } from "./totp";
+
 it("refuses non-SHA1 authenticator accounts", () => {
-  expect(() => _pt("otpauth://totp/x?secret=JBSWY3DPEHPK3PXP&algorithm=SHA256")).toThrow(/SHA256/);
+  expect(() => parseOtpAuth("otpauth://totp/x?secret=JBSWY3DPEHPK3PXP&algorithm=SHA256")).toThrow(/SHA256/);
 });
