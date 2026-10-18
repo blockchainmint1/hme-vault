@@ -6,6 +6,7 @@ Vault accepts the existing Cold Storage Coins hidden BIP39 seed QR (plain Englis
 
 - New Vault: select **Coin QR**, acknowledge the shared-secret risk and recovery requirement, scan the same hidden QR twice, then confirm.
 - Existing Vault: **Settings → Coin QR unlock → Link a coin**, enter or scan the current password, acknowledge the risks and scan the new coin twice. This re-encrypts the existing collection atomically, preserving seeds and secrets. The old password stops unlocking that phone.
+- Optional **extra secret word**: during enrollment you can add a typed word that is combined with the scanned credential (`coin + "\n" + word`). Unlocking then needs both the physical coin scan and the word — something you have plus something you know. A non-secret flag (`hmsv.coin-extra` in localStorage) records that a word is required so the lock screen asks for it after a scan. There is no reset: losing either half loses access.
 - Scan the hidden QR on the lock screen to unlock. Sensitive actions still need separate confirmation; their password fields offer a camera button. Scanning only fills the credential—it does not automatically approve payments, reveal secrets or delete data.
 - Fingerprint enrollment accepts the hidden QR as its credential. Linking a different coin disables previous fingerprint access; re-enroll explicitly if desired. This convenience mechanism is not OS-enforced biometric release of the unlock secret and is not suitable as protection against compromised app code. Hardware-bound biometric storage remains outstanding.
 
