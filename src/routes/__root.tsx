@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { CONTENT_SECURITY_POLICY_META } from "../lib/security/headers";
 import { VaultProvider } from "../lib/vault/vault-context";
 import { SiteFooter } from "../components/SiteFooter";
+import { BackupReminder } from "../components/vault/BackupReminder";
 import { Toaster } from "../components/ui/sonner";
 import { ThemeProvider } from "../lib/theme";
 import icon192 from "../assets/icons/icon-192.webp";
@@ -101,6 +102,7 @@ function RootComponent() {
           <SiteFooter />
         </div>
         <Toaster />
+        <BackupReminder />
       </VaultProvider>
     </ThemeProvider>
   );
