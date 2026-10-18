@@ -10,7 +10,7 @@ import { QrCode } from "@/components/wallet/QrCode";
 import { AnimatedQr } from "@/components/vault/AnimatedQr";
 import { Unlocked } from "@/components/vault/Unlocked";
 import { useVault } from "@/lib/vault/vault-context";
-import { deriveKeys, pairingPayload, REVEAL_HIDE_MS, TXC_ACCOUNT_PATH, EVM_PATH, type SeedKeys } from "@/lib/vault/seeds";
+import { deriveKeys, pairingPayload, REVEAL_HIDE_MS, TXC_ACCOUNT_PATH, TXC_ADDRESS_PATH, EVM_PATH, type SeedKeys } from "@/lib/vault/seeds";
 
 export const Route = createFileRoute("/seeds/$id")({
   head: () => ({ meta: [{ title: "Seed — HME Vault" }, { name: "description", content: "View a stored seed." }, { property: "og:title", content: "Seed — HME Vault" }, { property: "og:description", content: "View a stored seed." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
@@ -77,14 +77,20 @@ function SeedPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Watch-only keys</CardTitle>
+            <CardTitle className="text-base">Addresses & watch-only keys</CardTitle>
             <CardDescription>Safe to share. Lets an online wallet see balances, but never spend.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {!showKeys ? (
-              <Button variant="outline" onClick={async () => { setShowKeys(true); setKeys(await deriveKeys(seed.words, seed.passphrase)); setPairing(await pairingPayload(seed.words, seed.passphrase)); }}>Show watch-only QR</Button>
+              <Button variant="outline" onClick={async () => { setShowKeys(true); setKeys(await deriveKeys(seed.words, seed.passphrase)); setPairing(await pairingPayload(seed.words, seed.passphrase)); }}>Show addresses & watch-only QR</Button>
             ) : !keys ? <p className="text-sm text-muted-foreground">Working…</p> : (
               <div className="space-y-4">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Main TXC address · first receiving address</p>
+                  <p className="break-all font-mono text-sm select-text">{keys.txcAddress}</p>
+                  <p className="break-all font-mono text-xs text-muted-foreground">{TXC_ADDRESS_PATH} · Legacy (P2PKH)</p>
+                  <p className="text-xs text-muted-foreground">Compare the entire address with your other app using this exact path{seed.passphrase ? " and the same seed passphrase" : " and no seed passphrase"}. Matching addresses confirm the same wallet at this path; never share the recovery words to compare.</p>
+                </div>
                 {pairing && (
                   <div className="flex flex-col items-center gap-1">
                     <p className="text-sm font-medium">Pair with online wallet (TXC, ISK, BTC, LTC, DOGE + EVM)</p>
