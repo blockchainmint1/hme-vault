@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.purge_exchange_compliance_log() FROM PUBLIC, anon, authenticated;
