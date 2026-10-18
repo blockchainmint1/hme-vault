@@ -25,7 +25,6 @@ const BioKey = registerPlugin<{
   remove(): Promise<void>;
 }>("VaultBiometricKey");
 
-const LEGACY_KEYS = ["hmsv.bio.password.v1", "hmsv.bio.enabled.v1"];
 
 export interface BiometricStatus {
   available: boolean;
