@@ -30,7 +30,8 @@ function SettingsPage() {
   const [wipeText, setWipeText] = useState("");
   const [currentPw, setCurrentPw] = useState("");
   const [linking, setLinking] = useState(false);
-  useEffect(() => { getBiometricStatus().then(setBio); setExtraRequired(isCoinExtraRequired()); }, []);
+  useEffect(() => { getBiometricStatus().then(setBio); }, []);
+  useEffect(() => { setExtraRequired(isCoinExtraRequired()); }, [linking]);
 
   return (
     <Unlocked title="Settings" back>
@@ -45,7 +46,6 @@ function SettingsPage() {
                 await disableBiometric();
                 setBio(await getBiometricStatus());
                 await changePassword(currentPw, password);
-                setExtraRequired(isCoinExtraRequired());
                 setCurrentPw(""); setLinking(false);
                 toast.success("Coin linked. Scan the same QR to unlock. Make a fresh backup; fingerprint unlock must be enabled again.");
               }} />
