@@ -6,7 +6,6 @@ const plugin = vi.hoisted(() => ({
 }));
 vi.mock("@capacitor/core", () => ({ registerPlugin: () => plugin }));
 vi.mock("./platform", () => ({ isNative: () => native.on }));
-vi.mock("@aparajita/capacitor-secure-storage", () => ({ SecureStorage: { remove: vi.fn().mockResolvedValue(undefined) } }));
 import { confirmWithBiometric, enableBiometric, getBiometricStatus } from "./biometric";
 
 describe("fingerprint confirmation for the current Vault", () => {
