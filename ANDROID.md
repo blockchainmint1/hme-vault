@@ -49,8 +49,6 @@ Recommended flow for the first APK on your device:
 <!-- Biometrics -->
 <uses-permission android:name="android.permission.USE_BIOMETRIC" />
 
-<!-- Network reachability -->
-<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
 <!-- Nectar tap-to-pay deep links: nectar://... and https://pay.honest.money/... -->
 <!-- Website tap-to-sign-in deep link: payhme://login?id=...&nonce=...&cb=...&msg=...&from=... -->
