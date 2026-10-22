@@ -234,7 +234,10 @@ describe("vault rules", () => {
       expect(account.versions.public).toBe(0x0488b21e);
       expect(account.depth).toBe(3);
       expect(account.privateKey).toBeNull();
-      if (!passphrase) expect(pairing.tron["44"]).toBe("xpub6D1AabNHCupeiLM65ZR9UStMhJ1vCpyV4XbZdyhMZBiJXALQtmn9p42VTQckoHVn8WNqS7dqnJokZHAHcHGoaQgmv8D45oNUKx6DZMNZBCd");
+      if (!passphrase)
+        expect(pairing.tron["44"]).toBe(
+          "xpub6D1AabNHCupeiLM65ZR9UStMhJ1vCpyV4XbZdyhMZBiJXALQtmn9p42VTQckoHVn8WNqS7dqnJokZHAHcHGoaQgmv8D45oNUKx6DZMNZBCd",
+        );
       for (const index of [0, 1, 2]) {
         const child = account.derive(`m/0/${index}`);
         expect(child.privateKey).toBeNull();
@@ -242,7 +245,10 @@ describe("vault rules", () => {
         if (!child.publicKey) throw new Error("Missing TRON public key");
         const hash = keccak_256(secp256k1.Point.fromHex(child.publicKey).toBytes(false).slice(1));
         const address = base58check(sha256).encode(Uint8Array.of(0x41, ...hash.slice(-20)));
-        if (!passphrase && index < 2) expect(address).toBe(["TUEZSdKsoDHQMeZwihtdoBiN46zxhGWYdH", "TSeJkUh4Qv67VNFwY8LaAxERygNdy6NQZK"][index]);
+        if (!passphrase && index < 2)
+          expect(address).toBe(
+            ["TUEZSdKsoDHQMeZwihtdoBiN46zxhGWYdH", "TSeJkUh4Qv67VNFwY8LaAxERygNdy6NQZK"][index],
+          );
       }
       const collector = new PartCollector();
       let restored: string | null = null;
@@ -253,7 +259,9 @@ describe("vault rules", () => {
       const pairing = JSON.parse(await pairingPayload(SEED, passphrase));
       expect(SOLANA_PATH).toBe("m/44'/501'/0'/0'");
       expect(pairing.sol).toEqual({
-        address: passphrase ? "nfPtm3Bu5wtxSWRN4wxP9C6knv8UR3dUQ8uy3ykUMfi" : "HAgk14JpMQLgt6rVgv7cBQFJWFto5Dqxi472uT3DKpqk",
+        address: passphrase
+          ? "nfPtm3Bu5wtxSWRN4wxP9C6knv8UR3dUQ8uy3ykUMfi"
+          : "HAgk14JpMQLgt6rVgv7cBQFJWFto5Dqxi472uT3DKpqk",
         path: "m/44'/501'/0'/0'",
       });
       expect(base58.decode(pairing.sol.address)).toHaveLength(32);

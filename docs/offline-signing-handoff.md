@@ -67,11 +67,13 @@ Raw base64/hex PSBT or EVM JSON. Long values use content-labelled `HMQR2:<8-hex 
   "doge": { "44": "xpub…" },
   "bch": { "44": "xpub…" },
   "dash": { "44": "xpub…" },
+  "tron": { "44": "xpub…" },
+  "sol": { "address": "<base58 raw ed25519 public key>", "path": "m/44'/501'/0'/0'" },
   "evm": { "address": "0x…", "path": "m/44'/60'/0'/0/0", "xpub": "xpub…" }
 }
 ```
 
-Account keys use standard **xpub version bytes on all coins** at `m/<purpose>'/<coin>'/0'`; apply the selected chain's address encoding when deriving `/0/i` and `/1/i`. No xprv is exported. These watch-only keys cannot spend, but reveal wallet history and should be shared privately.
+BIP-32 account keys use standard **xpub version bytes on all coins** at `m/<purpose>'/<coin>'/0'`; apply the selected chain's address encoding when deriving `/0/i` and `/1/i`. Solana instead exports a fixed public address/path, not an xpub. No xprv is exported. These watch-only keys cannot spend, but reveal wallet history and should be shared privately.
 
 `evm.xpub` is the public account key at **`m/44'/60'/0'`**, with standard BIP-32 public version `0x0488b21e`. It is an additive field: the existing `evm.address` and `evm.path` still describe address #0. Old readers may ignore `xpub`; no pairing version or QR framing change is required. The seed's optional passphrase applies to this key just as it does to every other pairing key.
 
@@ -95,7 +97,7 @@ The compact payload fits within the HMQR2 transport's 600-character single-frame
 
 ### Nectar.Pay requested network coverage — October 22, 2026
 
-The owner requires the Nectar.Pay integration handoff to cover **EVM, BTC, LTC, DOGE, BCH, TXC, ISK, ZCU and DASH**. This is the requested coverage, not a claim that all nine are already implemented or phone-tested.
+The owner requires the Nectar.Pay integration handoff to cover **EVM, BTC, LTC, DOGE, BCH, TXC, ISK, ZCU, DASH, TRON and Solana**. All eleven categories now have receiving data; merchant integration, phone verification and spending support are not implied.
 
 | Requested network | Current full pairing field | Public account path | Nectar.Pay receiving convention / status |
 | --- | --- | --- | --- |
@@ -109,11 +111,24 @@ The owner requires the Nectar.Pay integration handoff to cover **EVM, BTC, LTC, 
 | ZCU | `evm.xpub` (no separate `zcu` field) | `m/44'/60'/0'` | Same EVM account derivation; Nectar.Pay must identify ZCU's actual network/chain configuration independently. No chain ID is supplied by pairing. |
 | DASH | `dash["44"]` | `m/44'/5'/0'` | Public account export implemented. Mainnet P2PKH Base58Check version `0x4c` (76). Merchant address verification pending; DASH signing is not supported by Vault. |
 
+| TRON | `tron["44"]` | `m/44'/195'/0'` | Standard public xpub; derive `/0/n`, apply TRON Base58Check encoding. Merchant recognition/index policy pending; no TRON signing. |
+| Solana | `sol.address`, `sol.path` | `m/44'/501'/0'/0'` | One fixed receiving address: Base58 of raw 32-byte SLIP-0010 ed25519 public key. No public derivation of further accounts; no Solana signing. |
+
 For implemented Bitcoin-family account keys, derive relative `/0/n` receiving children and apply the chosen chain's address encoding. The original Nectar.Pay request explicitly confirms n starts at 1 for EVM; confirm the starting index and reserved address #0 policy on each other chain rather than assuming it. All exported account keys use standard `xpub` public version bytes `0x0488b21e`, not network-specific extended-key prefixes. The master fingerprint and optional seed passphrase must remain consistent across all keys.
 
-**Which QR to scan today:** the dedicated **Pair with Nectar.Pay** QR is still EVM-only, exactly as documented above. For all nine requested network categories, scan the existing **full wallet QR**, which now includes additive BCH and DASH public account fields. ZCU uses `evm.xpub`, not a duplicate ZCU key. Nectar.Pay must accept plain JSON and multi-part HMQR2. APK rebuilding, independent review and merchant-device testing remain pending.
+**Which QR to scan today:** the dedicated **Pair with Nectar.Pay** QR is still EVM-only, exactly as documented above. For all eleven requested network categories, scan the existing **full wallet QR**, which now includes additive BCH, DASH, TRON public account fields and a Solana public address/path. ZCU uses `evm.xpub`, not a duplicate ZCU key. Nectar.Pay must accept plain JSON and multi-part HMQR2. APK rebuilding, independent review and merchant-device testing remain pending.
 
 **Partner integration contract:** Nectar.Pay should read additive `bch["44"]` and `dash["44"]` account fields at the exact paths above, with standard xpub public versions. Existing full-pairing fields and version remain unchanged. Confirm receiving address encodings and sale indexes against independent references before use. If the dedicated Nectar.Pay QR is later expanded to carry all coin keys, filter them from the full payload rather than deriving separately and replace the one-static-frame requirement with animated transport; that dedicated-QR expansion is not part of this change.
+
+### TRON and Solana receiving contract
+
+Nectar.Pay must read `tron["44"]` and `sol` from the full QR; the dedicated Nectar.Pay QR remains EVM-only. TRON uses standard xpub version `0x0488b21e` and public children `/0/n`. Convert compressed secp256k1 children to uncompressed X/Y, Keccak-256 the 64 bytes without the `0x04` prefix, take the last 20 bytes, prefix `0x41`, and Base58Check encode with the double-SHA-256 checksum. Confirm sale starting indexes independently; EVM's n=1 policy does not automatically apply to TRON.
+
+Solana uses `m/44'/501'/0'/0'`, a common Phantom recovery-phrase path; other wallet paths differ. The seed passphrase applies to both curves. `fp` remains the existing secp256k1 master fingerprint and is a pairing identifier, not a Solana master fingerprint. Solana SLIP-0010 is hardened-only and cannot derive children from public keys. Nectar.Pay must accept one fixed receiving address, or agree a future finite address-list export; never request private keys, derive `/0/n` from this address, or pretend an ed25519 xpub exists. Only raw 32-byte public address and path are exported, no chain code or private material. Token-account discovery/creation (SPL, TRC-20) and merchant tracking belong to Nectar.Pay; token integration is not established by this export.
+
+Public dummy vectors (`abandon` × 11 + `about`; never receive real funds): TRON `/0/0` = `TUEZSdKsoDHQMeZwihtdoBiN46zxhGWYdH`, `/0/1` = `TSeJkUh4Qv67VNFwY8LaAxERygNdy6NQZK`. Solana at the path above = `HAgk14JpMQLgt6rVgv7cBQFJWFto5Dqxi472uT3DKpqk` (empty passphrase), or `nfPtm3Bu5wtxSWRN4wxP9C6knv8UR3dUQ8uy3ykUMfi` (literal dummy passphrase `Nectar dummy passphrase`). Independent Python HMAC/ed25519 derivation agrees with both Solana fixtures.
+
+References: [TRON wallet guide](https://developers.tron.network/docs/wallet-developer-guide), [TRON encoding](https://developers.tron.network/docs/account), [SLIP-0010](https://github.com/satoshilabs/slips/blob/master/slip-0010.md), [Phantom paths](https://help.phantom.com/hc/en-us/articles/12988493966227-Which-derivation-paths-does-Phantom-use).
 
 Dummy reference addresses (mnemonic `abandon` × 11 + `about`, empty passphrase; never receive real funds here):
 
@@ -126,7 +141,7 @@ Dummy reference addresses (mnemonic `abandon` × 11 + `about`, empty passphrase;
 
 BCH reference addresses above use legacy Base58Check version 0 solely for hash160 comparison. Nectar.Pay should display the equivalent mainnet CashAddr and verify it maps to the same P2PKH hash; Vault exports an account xpub, not a BCH address encoder. DASH references use mainnet version 76. Tests pin both account xpubs and these addresses and check passphrase-dependent public child derivation.
 
-**Acceptance before release:** verify each of the nine requested network entries with Nectar.Pay, including first/next sale addresses, passphrase handling, real-phone QR collection and existing HME Wallet compatibility. Receiving-key export alone does not mean Vault can sign BCH or DASH transactions; neither is currently supported. ZCU spending uses the existing chain-bound EVM intent, with the actual chain ID and readable offline review. No internet, balances, broadcasting or online merchant features are added to Vault. Independent audit and the gated APK workflow remain required.
+**Acceptance before release:** verify each of the eleven requested network entries with Nectar.Pay, including first/next sale addresses (Solana is fixed), passphrase handling, real-phone QR collection and existing HME Wallet compatibility. Receiving-key export alone does not mean Vault can sign BCH, DASH, TRON or Solana transactions; none is currently supported. ZCU spending uses the existing chain-bound EVM intent, with the actual chain ID and readable offline review. No internet, balances, broadcasting or online merchant features are added to Vault. Independent audit and the gated APK workflow remain required.
 
 THORChain swaps remain unsupported in Vault until a strict, readable swap-intent review can validate the memo, exact destination asset/network, recipient, minimum output and refund ownership against the transaction. HME Wallet also needs a dedicated THORChain builder (deposit output first, documented VIN0 change/refund handling), required expiry/fresh inbound checks before broadcast, and end-to-end small-payment/refund testing. An offline phone cannot independently verify a live quote, vault address, halted chain or eventual delivery. Do not fix the current failure by bypassing fee checks or treating the memo as an ordinary transfer.
 
