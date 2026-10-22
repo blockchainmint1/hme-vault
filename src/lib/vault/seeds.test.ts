@@ -17,7 +17,8 @@ import { HDKey } from "@scure/bip32";
 import { mnemonicToSeed } from "@scure/bip39";
 import { publicKeyToAddress } from "viem/accounts";
 import { secp256k1 } from "@noble/curves/secp256k1";
-import { pairingPayload } from "./seeds";
+import { pairingPayload, nectarPairingPayload } from "./seeds";
+import { PART_SIZE, toParts } from "../signer/qr-parts";
 
 const SEED =
   "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
@@ -169,6 +170,27 @@ describe("vault rules", () => {
     expect(account.versions.public).toBe(0x0488b21e);
     expect(account.depth).toBe(3);
     expect(account.privateKey).toBeNull();
+  });
+  for (const passphrase of ["", "Nectar dummy passphrase"]) {
+    it(`filters Nectar pairing to exactly hmvault, fp and evm.xpub (${passphrase ? "with" : "without"} passphrase)`, async () => {
+      const full = await pairingPayload(SEED, passphrase);
+      const pairing = JSON.parse(full);
+      const nectar = JSON.parse(nectarPairingPayload(full));
+      expect(nectar).toEqual({
+        hmvault: 1,
+        fp: pairing.fp,
+        evm: { xpub: pairing.evm.xpub },
+      });
+      expect(Object.keys(nectar).sort()).toEqual(["evm", "fp", "hmvault"]);
+      expect(Object.keys(nectar.evm)).toEqual(["xpub"]);
+      expect(JSON.parse(full)).toEqual(pairing);
+    });
+  }
+  it("fits Nectar pairing into one frame of the HMQR2 transport", async () => {
+    const nectar = nectarPairingPayload(await pairingPayload(SEED));
+    expect(PART_SIZE).toBe(600);
+    expect(nectar.length).toBeLessThanOrEqual(600);
+    expect(toParts(nectar)).toEqual([nectar]);
   });
   it("preserves all existing pairing fields when adding the EVM xpub", async () => {
     const pairing = JSON.parse(await pairingPayload(SEED));

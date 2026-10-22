@@ -1,5 +1,7 @@
 # Roadmap — HME Seed Vault
 
+- [ ] Add a dedicated single-QR Nectar.Pay pairing filtered from the full pairing payload, verify exact fields and QR size, and document for audit.
+
 - [x] Add Nectar.Pay EVM account public key to the existing pairing QR (159 tests passed; all four actual QR frames decoded; auditor handoff supplied).
 - [ ] Verify Nectar.Pay merchant linking and old HME Wallet pairing with the new APK (requires a gated APK build, independent review and the merchant/phone apps; existing download is unchanged).
 
