@@ -1,5 +1,7 @@
 # Roadmap — HME Seed Vault
 
+- [ ] Add TRON public account pairing and Solana public receiving address, tests and auditor handoff; preserve existing QR contracts and spending restrictions.
+
 - [x] Add BCH/DASH public account keys to full pairing (166 tests passed; independent xpub/address vectors match; all four actual QR frames decoded; updated auditor handoff supplied; not spending support).
 
 - [x] Expand Nectar.Pay handoff to all nine requested networks, distinguish existing exports from BCH/DASH gaps and preserve the current EVM-only QR contract.
