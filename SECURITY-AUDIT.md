@@ -6,7 +6,7 @@ This file describes **HME Vault**, the offline seed and secret vault (Android AP
 
 - One encrypted HMVAULT1 blob on disk: PBKDF2-HMAC-SHA512 (1,000,000 iterations for new files; the stored count is honoured, so 600,000-iteration files still open), AES-256-GCM, AAD `HMVAULT1`. Format: `docs/seed-vault-format.md`.
 - Decrypted seeds, secrets and the credential live in memory only and are dropped on lock (2 min idle, app hidden, page hide). Unlocks that finish after a lock are discarded.
-- Android APK: no INTERNET or network-changing permissions (`tools:node="remove"`); only read-only ACCESS_NETWORK_STATE and ACCESS_WIFI_STATE for the pre-unlock offline checklist (warns, owner may override), `allowBackup="false"`, data extraction excluded, minSdk 28, screenshots blocked.
+- Android APK: zero network permissions — INTERNET, CHANGE_* and ACCESS_NETWORK_STATE/ACCESS_WIFI_STATE are all removed with `tools:node="remove"`, so the manifest itself proves the app cannot open a socket. The pre-unlock offline checklist reads only permission-free Settings.Global values and the battery plug state (warns, owner may override or permanently ignore a single row); on any native read error every row reports "couldn't check" and the override is required (never fails open). `allowBackup="false"`, data extraction excluded, minSdk 28, screenshots blocked.
 - Fingerprint: the credential is sealed by an AES key in Android Keystore (StrongBox when present), usable only after a strong biometric match and invalidated on enrolment change. Changing the credential disables it. Old secure-storage copies from builds before 0.1.202610181456 are deleted natively on every start.
 - Offline signing (`src/lib/signer`): explicit network selection; every input verified against vault seeds; SIGHASH_ALL only; unknown data outputs (including THORChain memos) blocked; frozen per-coin fee caps checked at review and after finalization; signing bound to reviewed bytes and keys.
 - CI gate: formatting, lint, typecheck and unit tests run on every push and before every APK build.
@@ -32,9 +32,19 @@ This file describes **HME Vault**, the offline seed and secret vault (Android AP
 | Patch item: legacy biometric | Fixed natively; comment corrected |
 | Patch item: unlock race | Fixed in the app and in the standalone recovery page |
 
+## Follow-up on the offline checklist (2026-10-22)
+
+The auditor approved the checklist idea but rejected the permission trade and found a fail-open bug. All points fixed:
+
+- ACCESS_NETWORK_STATE/ACCESS_WIFI_STATE removed again — the APK is back to provably zero network permissions; the checklist reads permission-free Settings.Global values and the battery plug state instead of WifiManager/ConnectivityManager/UsbManager.
+- Fail-open fixed: a native plugin error now yields an all-unknown status, so every row says "couldn't check" and the owner override is required.
+- New checks that matter more than the old ones: USB debugging (ADB) and "connected to a computer over USB" (the real exfil path), plus every SIM slot including eSIM.
+- Airplane mode is now shown; the unlock form passes a stable callback so the checklist effect doesn't re-fire every render.
+- eSIM handling: any failing row can be permanently ignored ("Always ignore"), stored in localStorage (non-secret), so a phone with an unremovable eSIM profile doesn't train the owner to tap through.
+
 ## Still open
 
-- Device testing of the new APK (fingerprint, USB, blocked network, legacy cleanup on an old phone).
+- Device testing of the new APK (fingerprint, USB, blocked network, legacy cleanup on an old phone, checklist rows on the Pixel).
 - Wrapping the stored blob with an Android Keystore key; tamper-proof native lockout clock.
 - Removing `'unsafe-inline'` from the web demo's CSP.
 - THORChain swaps remain blocked until a readable swap-intent review exists.

@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
-import { Check, X, HelpCircle } from "lucide-react";
+import { Check, X, HelpCircle, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
+  applyIgnoredChecks,
   needsOverride,
   offlineChecklist,
+  readIgnoredChecks,
   readRadioStatus,
+  setCheckIgnored,
   type CheckItem,
 } from "@/lib/native/offline-check";
 
@@ -12,11 +15,14 @@ import {
  * Phone-only checklist shown above the unlock form. Calls onReady(true) when all
  * checks pass or the owner chooses "Open anyway". Rechecks when the app returns
  * to the foreground (after the owner flips switches in Android settings).
+ * A failing row can be permanently ignored (e.g. a built-in eSIM that can't be
+ * removed); the choice is stored in localStorage and holds no secrets.
  */
 export function OfflineCheck({ onReady }: { onReady: (ready: boolean) => void }) {
   const [items, setItems] = useState<CheckItem[] | null>(null);
   const [native, setNative] = useState<boolean | null>(null);
   const [override, setOverride] = useState(false);
+  const [ignored, setIgnored] = useState<string[]>(() => readIgnoredChecks());
 
   useEffect(() => {
     let alive = true;
@@ -35,32 +41,63 @@ export function OfflineCheck({ onReady }: { onReady: (ready: boolean) => void })
     };
   }, []);
 
-  const problem = items ? needsOverride(items) : false;
+  const shown = items ? applyIgnoredChecks(items, ignored) : null;
+  const problem = shown ? needsOverride(shown) : false;
   useEffect(() => {
     if (native === false) onReady(true);
-    else if (items) onReady(!problem || override);
-  }, [native, items, problem, override, onReady]);
+    else if (shown) onReady(!problem || override);
+  }, [native, shown, problem, override, onReady]);
 
-  if (!native || !items) return null;
+  if (!native || !shown) return null;
   return (
     <div
       className={`space-y-2 rounded-md border p-3 text-sm ${problem ? "border-destructive/60" : "border-border"}`}
     >
       <ul className="space-y-1">
-        {items.map((i) => (
-          <li key={i.key} className="flex items-center gap-2">
-            {i.ok === true ? (
-              <Check className="h-4 w-4 text-primary" />
-            ) : i.ok === false ? (
-              <X className="h-4 w-4 text-destructive" />
-            ) : (
-              <HelpCircle className="h-4 w-4 text-muted-foreground" />
-            )}
-            <span>
-              {i.ok === false ? i.fix : i.ok === null ? `${i.label} (couldn't check)` : i.label}
-            </span>
-          </li>
-        ))}
+        {shown.map((i) => {
+          const isIgnored =
+            ignored.includes(i.key) && items?.find((r) => r.key === i.key)?.ok !== true;
+          return (
+            <li key={i.key} className="flex items-center gap-2">
+              {isIgnored ? (
+                <EyeOff className="h-4 w-4 text-muted-foreground" />
+              ) : i.ok === true ? (
+                <Check className="h-4 w-4 text-primary" />
+              ) : i.ok === false ? (
+                <X className="h-4 w-4 text-destructive" />
+              ) : (
+                <HelpCircle className="h-4 w-4 text-muted-foreground" />
+              )}
+              <span className="flex-1">
+                {isIgnored
+                  ? `${i.label} (always ignored)`
+                  : i.ok === false
+                    ? i.fix
+                    : i.ok === null
+                      ? `${i.label} (couldn't check)`
+                      : i.label}
+              </span>
+              {!isIgnored && i.ok === false && (
+                <button
+                  type="button"
+                  className="text-xs text-muted-foreground underline"
+                  onClick={() => setIgnored(setCheckIgnored(i.key, true))}
+                >
+                  Always ignore
+                </button>
+              )}
+              {isIgnored && (
+                <button
+                  type="button"
+                  className="text-xs text-muted-foreground underline"
+                  onClick={() => setIgnored(setCheckIgnored(i.key, false))}
+                >
+                  Check again
+                </button>
+              )}
+            </li>
+          );
+        })}
       </ul>
       {problem && !override && (
         <>

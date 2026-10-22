@@ -35,12 +35,14 @@ it("keeps network and cloud backups disabled and registers the USB picker idempo
       execFileSync("node", [resolve("scripts/patch-android-manifest.mjs")], { cwd: root });
     const xml = readFileSync(join(main, "AndroidManifest.xml"), "utf8");
     const act = readFileSync(join(java, "MainActivity.java"), "utf8");
-    for (const p of ["INTERNET", "CHANGE_WIFI_STATE", "CHANGE_NETWORK_STATE"])
+    for (const p of [
+      "INTERNET",
+      "CHANGE_WIFI_STATE",
+      "CHANGE_NETWORK_STATE",
+      "ACCESS_NETWORK_STATE",
+      "ACCESS_WIFI_STATE",
+    ])
       expect(xml).toContain(`android.permission.${p}" tools:node="remove"`);
-    for (const p of ["ACCESS_NETWORK_STATE", "ACCESS_WIFI_STATE"]) {
-      expect(xml).toContain(`<uses-permission android:name="android.permission.${p}" />`);
-      expect(xml).not.toContain(`${p}" tools:node="remove"`);
-    }
     expect(act.match(/registerPlugin\(VaultRadioCheckPlugin.class\)/g)).toHaveLength(1);
     expect(xml).toContain('android:allowBackup="false"');
     expect(xml).not.toContain('android:allowBackup="true"');

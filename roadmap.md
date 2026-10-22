@@ -59,5 +59,5 @@
 - [x] Docs now describe Vault; unused libraries removed
 - [x] Web "Demo only" banner (H2)
 - [x] M1 declined by owner design; documented
-- [x] Pre-unlock offline checklist (network, Wi-Fi, Bluetooth, NFC, SIM, USB; warn + override; 141 tests)
+- [x] Pre-unlock offline checklist (airplane, Wi-Fi, mobile data, Bluetooth, NFC, SIM/eSIM, USB debugging, USB-to-computer; warn + override + per-row ignore; zero network permissions, never fails open)
 - [ ] Build new APK and phone-test (needs Bobby / GitHub run); update `src/lib/release.ts` with the new APK SHA-256
