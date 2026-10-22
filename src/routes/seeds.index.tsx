@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { KeyRound, Plus, HardDriveDownload, Settings, PenLine } from "lucide-react";
+import { KeyRound, Plus, HardDriveDownload, Settings, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Unlocked } from "@/components/vault/Unlocked";
