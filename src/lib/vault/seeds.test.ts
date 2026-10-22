@@ -257,8 +257,12 @@ describe("vault rules", () => {
             }).address;
             expect(address).toBe(
               coin === "bch"
-                ? ["18Cp2ivkLHyJwHMm9NzDRBh6Gi7m4MC2we", "15Ax9BJRJ4TABF85UsPpz9QvuBpiJhCfsw"][index - 1]
-                : ["XbctnEsgWTn5j1co3emZynemxSFPqkLRKZ", "XdD2biTJ3saZtcR6ravwJ9bvmkvmDq49Xg"][index - 1],
+                ? ["18Cp2ivkLHyJwHMm9NzDRBh6Gi7m4MC2we", "15Ax9BJRJ4TABF85UsPpz9QvuBpiJhCfsw"][
+                    index - 1
+                  ]
+                : ["XbctnEsgWTn5j1co3emZynemxSFPqkLRKZ", "XdD2biTJ3saZtcR6ravwJ9bvmkvmDq49Xg"][
+                    index - 1
+                  ],
             );
           }
         }
