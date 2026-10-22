@@ -176,7 +176,8 @@ function SeedPage() {
                   <div className="flex flex-wrap justify-center gap-6">
                     <div className="flex w-60 flex-col items-center gap-1">
                       <p className="text-center text-sm font-medium">
-                        Pair with online wallet (TXC, ISK, BTC, LTC, DOGE, BCH, DASH, TRON, Solana + EVM)
+                        Pair with online wallet (TXC, ISK, BTC, LTC, DOGE, BCH, DASH, TRON, Solana +
+                        EVM)
                       </p>
                       <AnimatedQr value={pairing} size={240} />
                       <p className="text-xs text-muted-foreground">

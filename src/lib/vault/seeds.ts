@@ -215,7 +215,10 @@ export async function pairingPayload(words: string, passphrase = ""): Promise<st
   const root = HDKey.fromMasterSeed(seed);
   // SLIP-0010 ed25519 cannot derive hardened children from a public key.
   // Export only one raw public address, never its private key or chain code.
-  const sol = { address: base58.encode(Ed25519HDKey.fromMasterSeed(seed).derive(SOLANA_PATH).publicKeyRaw), path: SOLANA_PATH };
+  const sol = {
+    address: base58.encode(Ed25519HDKey.fromMasterSeed(seed).derive(SOLANA_PATH).publicKeyRaw),
+    path: SOLANA_PATH,
+  };
   seed.fill(0);
   const fp = root.fingerprint.toString(16).padStart(8, "0");
   const acct = (ct: number) => ({
