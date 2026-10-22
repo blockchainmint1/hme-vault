@@ -10,6 +10,7 @@ import {
   parsePayload,
   shouldAutoLock,
   TXC_ADDRESS_PATH,
+  SOLANA_PATH,
   type SeedEntry,
 } from "./seeds";
 import { unlockText } from "./format";
@@ -20,6 +21,9 @@ import { secp256k1 } from "@noble/curves/secp256k1";
 import { pairingPayload, nectarPairingPayload } from "./seeds";
 import { PART_SIZE, PartCollector, toParts } from "../signer/qr-parts";
 import { payments, networks } from "bitcoinjs-lib";
+import { base58, base58check } from "@scure/base";
+import { sha256 } from "@noble/hashes/sha2.js";
+import { keccak_256 } from "@noble/hashes/sha3.js";
 
 const SEED =
   "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
@@ -204,7 +208,7 @@ describe("vault rules", () => {
         ]),
       );
     const { xpub: _xpub, ...legacyEvm } = pairing.evm;
-    const { bch: _bch, dash: _dash, ...legacyPairing } = pairing;
+    const { bch: _bch, dash: _dash, tron: _tron, sol: _sol, ...legacyPairing } = pairing;
     expect({ ...legacyPairing, evm: legacyEvm }).toEqual({
       hmvault: 1,
       fp: "73c5da0a",
