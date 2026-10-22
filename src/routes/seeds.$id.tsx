@@ -13,6 +13,7 @@ import { useVault } from "@/lib/vault/vault-context";
 import {
   deriveKeys,
   pairingPayload,
+  nectarPairingPayload,
   REVEAL_HIDE_MS,
   TXC_ACCOUNT_PATH,
   TXC_ADDRESS_PATH,
@@ -172,12 +173,23 @@ function SeedPage() {
                   </p>
                 </div>
                 {pairing && (
-                  <div className="flex flex-col items-center gap-1">
-                    <p className="text-sm font-medium">
-                      Pair with online wallet (TXC, ISK, BTC, LTC, DOGE + EVM)
-                    </p>
-                    <AnimatedQr value={pairing} size={240} />
-                    <p className="text-xs text-muted-foreground">Fingerprint {keys.fingerprint}</p>
+                  <div className="flex flex-wrap justify-center gap-6">
+                    <div className="flex w-60 flex-col items-center gap-1">
+                      <p className="text-center text-sm font-medium">
+                        Pair with online wallet (TXC, ISK, BTC, LTC, DOGE + EVM)
+                      </p>
+                      <AnimatedQr value={pairing} size={240} />
+                      <p className="text-xs text-muted-foreground">
+                        Fingerprint {keys.fingerprint}
+                      </p>
+                    </div>
+                    <div className="flex w-60 flex-col items-center gap-1">
+                      <p className="text-center text-sm font-medium">Pair with Nectar.Pay</p>
+                      <QrCode value={nectarPairingPayload(pairing)} size={240} />
+                      <p className="text-xs text-muted-foreground">
+                        Fingerprint {keys.fingerprint}
+                      </p>
+                    </div>
                   </div>
                 )}
                 <div className="flex flex-col items-center gap-1">

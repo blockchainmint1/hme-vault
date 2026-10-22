@@ -231,3 +231,17 @@ export async function pairingPayload(words: string, passphrase = ""): Promise<st
     },
   });
 }
+
+/** Nectar receives only the EVM public account key from the full pairing payload. */
+export function nectarPairingPayload(fullPairing: string): string {
+  const pairing = JSON.parse(fullPairing) as {
+    hmvault: 1;
+    fp: string;
+    evm: { xpub: string };
+  };
+  return JSON.stringify({
+    hmvault: pairing.hmvault,
+    fp: pairing.fp,
+    evm: { xpub: pairing.evm.xpub },
+  });
+}

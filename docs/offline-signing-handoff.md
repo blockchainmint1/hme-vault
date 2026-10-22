@@ -77,6 +77,18 @@ Nectar.Pay derives relative `m/0/n` from this EVM account xpub, starting at **n 
 
 Privacy warning: an account xpub reveals all non-hardened receiving addresses. Never share a child private key with an xpub recipient: BIP-32 non-hardened derivation can expose the account private key when both are known. Vault's pairing QR contains public keys only; seed words, passphrases and private keys are not included.
 
+### Dedicated Nectar.Pay pairing QR
+
+The seed screen also shows **Pair with Nectar.Pay** beside the full wallet pairing QR (stacked on narrow screens). Its payload contains exactly:
+
+```json
+{"hmvault":1,"fp":"73c5da0a","evm":{"xpub":"xpub…"}}
+```
+
+`nectarPairingPayload` filters the already-generated `pairingPayload` JSON; it performs no separate key derivation. The fingerprint and EVM account xpub therefore match the full QR, including any seed passphrase. No other coin keys, address or path are included. The full HME Wallet QR is unchanged.
+
+The compact payload fits within the HMQR2 transport's 600-character single-frame limit. As with all short payloads in Vault, it is displayed as **plain JSON in one static QR**, without an HMQR2 multipart envelope. Nectar.Pay must read this as EVM-only pairing; use the full wallet QR when linking the other coins. The same account-xpub privacy and child-private-key precautions apply. Actual Nectar.Pay merchant scanning remains a release integration check.
+
 ## Before real funds
 
 THORChain swaps remain unsupported in Vault until a strict, readable swap-intent review can validate the memo, exact destination asset/network, recipient, minimum output and refund ownership against the transaction. HME Wallet also needs a dedicated THORChain builder (deposit output first, documented VIN0 change/refund handling), required expiry/fresh inbound checks before broadcast, and end-to-end small-payment/refund testing. An offline phone cannot independently verify a live quote, vault address, halted chain or eventual delivery. Do not fix the current failure by bypassing fee checks or treating the memo as an ordinary transfer.
