@@ -9,8 +9,11 @@
  * the owner then unlocks with the password/coin and re-enables fingerprint.
  * See scripts/native/VaultBiometricKeyPlugin.java.
  *
- * Older builds stored the plaintext password in secure storage; that copy is
- * deleted on first run and fingerprint must be turned on again.
+ * Older builds (before 0.1.202610181456) stored the plaintext password with
+ * @aparajita/capacitor-secure-storage. The native plugin's load() deletes those
+ * preferences and every Keystore alias except its own on each app start (see
+ * removeLegacySecureStorage in VaultBiometricKeyPlugin.java). Here we only drop
+ * the old localStorage flag.
  *
  * On the web all of this is a no-op.
  */
