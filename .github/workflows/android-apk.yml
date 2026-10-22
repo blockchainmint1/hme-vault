@@ -52,6 +52,16 @@ jobs:
       - name: Install web deps
         run: bun install --frozen-lockfile
 
+      # Release gate: an APK is never built from code that fails these checks.
+      - name: Check formatting
+        run: bunx prettier --check .
+      - name: Lint
+        run: bunx eslint .
+      - name: Typecheck
+        run: bunx tsc --noEmit
+      - name: Unit tests
+        run: bunx vitest run
+
       - name: Build web app
         run: bun run build
 
