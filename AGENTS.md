@@ -32,3 +32,4 @@ Subdirectories (`src/lib/vault`, `src/lib/signer`) have their own `AGENTS.md`; r
 - The app never imports the backend client (src/start.ts has no auth middleware); backend tables stay RLS-locked with no policies. Why: the offline vault must not ship or use the backend key path.
 - New typed passwords (vault, seed lock, transfer) must pass `assessPassword`; coin credentials are exempt and any scanned QR is still accepted by owner choice. Why: a copied blob is only as strong as its password.
 - Android builds require minSdk 28, exclude all data via dataExtractionRules, pin workflow actions to commit SHAs and number versionCode by run. Why: per the 2026-10-18 security review.
+- Offline signing policy and its tests live under `src/lib/signer`; unsupported swap data must fail closed, fee checks cannot be bypassed, and signatures must be bound to the reviewed request. Why: online preparation does not establish safe swap semantics on an offline device.
