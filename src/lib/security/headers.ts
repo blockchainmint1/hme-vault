@@ -2,8 +2,8 @@
  * Central definition of the app's security headers, so the SSR server
  * (src/start.ts) and the HTML shell (src/routes/__root.tsx) can't drift.
  *
- * The Content-Security-Policy is the single most important control for a
- * wallet: even if a script is somehow injected (XSS, a compromised
+ * The Content-Security-Policy is the single most important control for the
+ * web demo of the vault: even if a script is somehow injected (XSS, a compromised
  * dependency, an MITM without cert pinning), a strict `connect-src` prevents
  * it from exfiltrating the seed phrase or password to an attacker-controlled
  * server, and `object-src` / `base-uri` / `form-action` close common
@@ -13,16 +13,12 @@
  * inline hydration scripts plus two small inline bootstrap scripts in
  * __root.tsx. Locking `script-src` to hashes/nonces requires threading a
  * per-request nonce through TanStack Start and is tracked as a follow-up
- * (see SECURITY-AUDIT.md, H2). Until then we keep `'unsafe-inline'` on
+ * (see SECURITY-AUDIT.md). Until then we keep `'unsafe-inline'` on
  * `script-src` ONLY. That does not weaken the exfiltration protection, which
  * comes from `connect-src`.
  *
- * Client-side network destinations that must stay in `connect-src`:
- *   - 'self'                          same-origin API proxy + server functions
- *   - https://mempool.texitcoin.org  TXC balance/UTXO/broadcast (client fetch)
- *   - https://mempool.iskandercoin.com  ISK balance/UTXO/broadcast (client fetch)
- * Everything else (Alchemy, CoinMarketCap, LI.FI, Nectar) is called from the
- * server only, so it must NOT be added here.
+ * HME Vault has no network code: connect-src is 'self' only, so even an injected
+ * script cannot send secrets anywhere. Do not add remote origins here.
  */
 
 // The vault has no network code at all (project rule): nothing may connect out.
