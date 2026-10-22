@@ -2,11 +2,11 @@
 /**
  * HME Seed Vault Android manifest tweaks, run after `bunx cap add android`. Idempotent.
  *
- *  - REMOVES every permission that can connect or change networks (INTERNET, CHANGE_*),
- *    even ones a plugin's own manifest merges in, via tools:node="remove".
- *    With no INTERNET permission Android itself blocks every socket.
- *  - Adds read-only ACCESS_NETWORK_STATE / ACCESS_WIFI_STATE for the pre-unlock
- *    offline checklist (VaultRadioCheckPlugin); they cannot open a connection.
+ *  - REMOVES every network permission (INTERNET, CHANGE_*, ACCESS_NETWORK_STATE,
+ *    ACCESS_WIFI_STATE), even ones a plugin's own manifest merges in, via
+ *    tools:node="remove". The APK provably ships with zero network permissions;
+ *    the pre-unlock offline checklist reads Settings.Global instead, which needs
+ *    no permission at all.
  *  - Adds CAMERA (QR scanning) and USE_BIOMETRIC (fingerprint unlock).
  *  - Disables Android cloud backup so the vault is never copied off the phone.
  *  - Sets the app name.
@@ -26,10 +26,15 @@ if (!xml.includes("xmlns:tools=")) {
   xml = xml.replace(/<manifest\b/, '<manifest xmlns:tools="http://schemas.android.com/tools"');
 }
 
-// Drop any existing plain network permission lines.
-const NET = ["INTERNET", "CHANGE_WIFI_STATE", "CHANGE_NETWORK_STATE"];
-const READ_ONLY = ["ACCESS_NETWORK_STATE", "ACCESS_WIFI_STATE"];
-for (const p of [...NET, ...READ_ONLY]) {
+// Drop any existing network permission lines, then block them from being merged back.
+const NET = [
+  "INTERNET",
+  "CHANGE_WIFI_STATE",
+  "CHANGE_NETWORK_STATE",
+  "ACCESS_NETWORK_STATE",
+  "ACCESS_WIFI_STATE",
+];
+for (const p of NET) {
   xml = xml.replace(
     new RegExp(`\\s*<uses-permission[^>]*android\\.permission\\.${p}"[^>]*/>`, "g"),
     "",
@@ -40,7 +45,6 @@ const lines = [
   ...NET.map(
     (p) => `<uses-permission android:name="android.permission.${p}" tools:node="remove" />`,
   ),
-  ...READ_ONLY.map((p) => `<uses-permission android:name="android.permission.${p}" />`),
   '<uses-permission android:name="android.permission.CAMERA" />',
   '<uses-feature android:name="android.hardware.camera" android:required="false" />',
   '<uses-permission android:name="android.permission.USE_BIOMETRIC" />',
