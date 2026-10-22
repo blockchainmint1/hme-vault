@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { CONTENT_SECURITY_POLICY_META } from "../lib/security/headers";
 import { VaultProvider } from "../lib/vault/vault-context";
 import { SiteFooter } from "../components/SiteFooter";
+import { WebDemoBanner } from "../components/vault/WebDemoBanner";
 import { BackupReminder } from "../components/vault/BackupReminder";
 import { Toaster } from "../components/ui/sonner";
 import { ThemeProvider } from "../lib/theme";
@@ -25,7 +26,9 @@ function NotFoundComponent() {
     <div className="flex min-h-[100dvh] items-center justify-center px-4 text-center">
       <div>
         <h1 className="text-2xl font-semibold">Page not found</h1>
-        <Link to="/" className="mt-4 inline-block underline">Go to the vault</Link>
+        <Link to="/" className="mt-4 inline-block underline">
+          Go to the vault
+        </Link>
       </div>
     </div>
   );
@@ -37,8 +40,15 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
       <div className="max-w-md">
         <h1 className="text-xl font-semibold">Something went wrong</h1>
         <p className="mt-2 text-sm text-muted-foreground">Your stored seeds are not affected.</p>
-        <p className="mt-2 break-words font-mono text-xs text-destructive">{(error as Error)?.message}</p>
-        <button onClick={reset} className="mt-4 rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground">Try again</button>
+        <p className="mt-2 break-words font-mono text-xs text-destructive">
+          {(error as Error)?.message}
+        </p>
+        <button
+          onClick={reset}
+          className="mt-4 rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground"
+        >
+          Try again
+        </button>
       </div>
     </div>
   );
@@ -48,7 +58,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      ...(import.meta.env.PROD ? [{ "http-equiv": "Content-Security-Policy", content: CONTENT_SECURITY_POLICY_META }] : []),
+      ...(import.meta.env.PROD
+        ? [{ "http-equiv": "Content-Security-Policy", content: CONTENT_SECURITY_POLICY_META }]
+        : []),
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { name: "theme-color", content: "#ffffff" },
       { name: "robots", content: "noindex" },
@@ -98,7 +110,10 @@ function RootComponent() {
     <ThemeProvider>
       <VaultProvider>
         <div className="flex min-h-[100dvh] flex-col">
-          <div className="flex-1"><Outlet /></div>
+          <WebDemoBanner />
+          <div className="flex-1">
+            <Outlet />
+          </div>
           <SiteFooter />
         </div>
         <Toaster />

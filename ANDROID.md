@@ -72,10 +72,9 @@ Recommended flow for the first APK on your device:
 
 ## Signing / release
 
-- App ID: `money.honest.txcwallet` (matches iOS bundle so the same Nectar
-  universal-link config on the backend covers both platforms).
-- Generate a keystore via the `Generate Android Keystore` workflow (or locally:
-  `keytool -genkey -v -keystore hme.jks -alias hme -keyalg RSA -keysize 4096 -validity 10950`).
+- App ID: `money.honest.seedvault` (separate from the HME Wallet app; never change after release).
+- Generate the keystore offline on your own computer (that workflow was deleted 2026-10-18):
+  `keytool -genkey -v -keystore hme.jks -alias hme -keyalg RSA -keysize 4096 -validity 10950`
 - Add these repo secrets so `android-apk.yml` produces a signed APK/AAB:
   - `ANDROID_KEYSTORE_BASE64`
   - `ANDROID_STORE_PASSWORD`

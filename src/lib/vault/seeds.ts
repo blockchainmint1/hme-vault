@@ -1,6 +1,11 @@
 /** Pure seed-vault helpers: payload shape, merge, lockout, key info. No storage, no network. */
 import { HDKey } from "@scure/bip32";
-import { mnemonicToSeed, mnemonicToSeedSync, generateMnemonic, validateMnemonic } from "@scure/bip39";
+import {
+  mnemonicToSeed,
+  mnemonicToSeedSync,
+  generateMnemonic,
+  validateMnemonic,
+} from "@scure/bip39";
 import { wordlist } from "@scure/bip39/wordlists/english.js";
 import { secp256k1 } from "@noble/curves/secp256k1";
 import { keccak_256 } from "@noble/hashes/sha3.js";
@@ -25,19 +30,33 @@ export interface VaultPayload {
   secrets: SecretEntry[];
 }
 
-export const emptyVault = (): VaultPayload => ({ v: 1, kind: "hm-seed-vault", seeds: [], secrets: [] });
+export const emptyVault = (): VaultPayload => ({
+  v: 1,
+  kind: "hm-seed-vault",
+  seeds: [],
+  secrets: [],
+});
 
 /** Remind for additions, not reads, renames or deletions. */
-export function hasNewVaultEntries(previous: Pick<VaultPayload, "seeds" | "secrets">, next: Pick<VaultPayload, "seeds" | "secrets">): boolean {
-  const seedIds = new Set(previous.seeds.map(s => s.id));
-  const secretIds = new Set(previous.secrets.map(s => s.id));
-  return next.seeds.some(s => !seedIds.has(s.id)) || next.secrets.some(s => !secretIds.has(s.id));
+export function hasNewVaultEntries(
+  previous: Pick<VaultPayload, "seeds" | "secrets">,
+  next: Pick<VaultPayload, "seeds" | "secrets">,
+): boolean {
+  const seedIds = new Set(previous.seeds.map((s) => s.id));
+  const secretIds = new Set(previous.secrets.map((s) => s.id));
+  return (
+    next.seeds.some((s) => !seedIds.has(s.id)) || next.secrets.some((s) => !secretIds.has(s.id))
+  );
 }
 
 /** Backups use the current Vault credential, never a separate backup password. */
-export async function encryptVaultBackup(payload: VaultPayload, vaultCredential: string): Promise<string> {
+export async function encryptVaultBackup(
+  payload: VaultPayload,
+  vaultCredential: string,
+): Promise<string> {
   const text = JSON.stringify(payload);
-  if (text.length > MAX_VAULT_CHARS) throw new Error("Vault is too large. Use a smaller collection.");
+  if (text.length > MAX_VAULT_CHARS)
+    throw new Error("Vault is too large. Use a smaller collection.");
   return lockText(text, vaultCredential);
 }
 
@@ -45,21 +64,49 @@ export async function encryptVaultBackup(payload: VaultPayload, vaultCredential:
 export function mergeVaultBackup(existing: VaultPayload, incoming: VaultPayload) {
   const seeds = mergeSeeds(existing.seeds, incoming.seeds);
   const secrets = mergeSecrets(existing.secrets, incoming.secrets);
-  return { payload: { ...emptyVault(), seeds: seeds.seeds, secrets: secrets.secrets }, addedSeeds: seeds.added, addedSecrets: secrets.added, skipped: seeds.skipped + secrets.skipped };
+  return {
+    payload: { ...emptyVault(), seeds: seeds.seeds, secrets: secrets.secrets },
+    addedSeeds: seeds.added,
+    addedSecrets: secrets.added,
+    skipped: seeds.skipped + secrets.skipped,
+  };
 }
 
 export function parsePayload(text: string): VaultPayload {
-  if (text.length > MAX_VAULT_CHARS) throw new Error("Vault is too large. Use a smaller collection.");
+  if (text.length > MAX_VAULT_CHARS)
+    throw new Error("Vault is too large. Use a smaller collection.");
   const j = JSON.parse(text) as Partial<VaultPayload>;
-  if (j?.v !== 1 || j.kind !== "hm-seed-vault" || !Array.isArray(j.seeds) || (j.secrets !== undefined && !Array.isArray(j.secrets))) throw new Error("That isn't a supported Vault backup.");
+  if (
+    j?.v !== 1 ||
+    j.kind !== "hm-seed-vault" ||
+    !Array.isArray(j.seeds) ||
+    (j.secrets !== undefined && !Array.isArray(j.secrets))
+  )
+    throw new Error("That isn't a supported Vault backup.");
   const seeds: SeedEntry[] = [];
   for (const s of j.seeds) {
-    if (!s || typeof s.id !== "string" || typeof s.name !== "string" || typeof s.words !== "string" || !isValidSeed(s.words) || !Number.isFinite(s.createdAt) || (s.passphrase !== undefined && typeof s.passphrase !== "string")) throw new Error("Invalid seed in backup.");
+    if (
+      !s ||
+      typeof s.id !== "string" ||
+      typeof s.name !== "string" ||
+      typeof s.words !== "string" ||
+      !isValidSeed(s.words) ||
+      !Number.isFinite(s.createdAt) ||
+      (s.passphrase !== undefined && typeof s.passphrase !== "string")
+    )
+      throw new Error("Invalid seed in backup.");
     const words = normalizeSeed(s.words);
     const passphrase = s.passphrase || undefined;
     // Never trust a stored fingerprint: a crafted backup could disguise a look-alike seed.
-    const entry: SeedEntry = { id: s.id.slice(0, 64), name: cleanSeedName(s.name), words, ...(passphrase ? { passphrase } : {}), fingerprint: seedFingerprint(words, passphrase ?? ""), createdAt: s.createdAt };
-    if (seeds.some(e => sameSeed(e, entry))) continue;
+    const entry: SeedEntry = {
+      id: s.id.slice(0, 64),
+      name: cleanSeedName(s.name),
+      words,
+      ...(passphrase ? { passphrase } : {}),
+      fingerprint: seedFingerprint(words, passphrase ?? ""),
+      createdAt: s.createdAt,
+    };
+    if (seeds.some((e) => sameSeed(e, entry))) continue;
     seeds.push(entry);
   }
   return { v: 1, kind: "hm-seed-vault", seeds, secrets: (j.secrets ?? []).map(validateSecret) };
@@ -68,12 +115,20 @@ export function parsePayload(text: string): VaultPayload {
 export const MAX_SEED_NAME = 80;
 /** Strip control/invisible characters and cap length so names can't impersonate others. */
 export function cleanSeedName(name: string): string {
-  const clean = name.normalize("NFC").replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]/g, "").replace(/\s+/g, " ").trim().slice(0, MAX_SEED_NAME);
+  const clean = name
+    .normalize("NFC")
+    // eslint-disable-next-line no-control-regex -- deliberately strips control characters from names
+    .replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, MAX_SEED_NAME);
   return clean || "Imported seed";
 }
 
 export function seedFingerprint(words: string, passphrase = ""): string {
-  return HDKey.fromMasterSeed(mnemonicToSeedSync(normalizeSeed(words), passphrase)).fingerprint.toString(16).padStart(8, "0");
+  return HDKey.fromMasterSeed(mnemonicToSeedSync(normalizeSeed(words), passphrase))
+    .fingerprint.toString(16)
+    .padStart(8, "0");
 }
 
 export function isValidSeed(words: string): boolean {
@@ -84,10 +139,15 @@ export function newSeedWords(count: 12 | 24): string {
   return generateMnemonic(wordlist, count === 24 ? 256 : 128);
 }
 
-const sameSeed = (a: SeedEntry, b: SeedEntry) => normalizeSeed(a.words) === normalizeSeed(b.words) && (a.passphrase ?? "") === (b.passphrase ?? "");
+const sameSeed = (a: SeedEntry, b: SeedEntry) =>
+  normalizeSeed(a.words) === normalizeSeed(b.words) &&
+  (a.passphrase ?? "") === (b.passphrase ?? "");
 
 /** Merge restored seeds in; a seed with the same words + passphrase is skipped. */
-export function mergeSeeds(existing: SeedEntry[], incoming: SeedEntry[]): { seeds: SeedEntry[]; added: number; skipped: number } {
+export function mergeSeeds(
+  existing: SeedEntry[],
+  incoming: SeedEntry[],
+): { seeds: SeedEntry[]; added: number; skipped: number } {
   const out = [...existing];
   let added = 0;
   let skipped = 0;
@@ -136,7 +196,9 @@ export async function deriveKeys(words: string, passphrase = ""): Promise<SeedKe
   const evm = root.derive(EVM_PATH);
   if (!evm.privateKey) throw new Error("Could not derive seed key.");
   const pub = secp256k1.getPublicKey(evm.privateKey, false).slice(1);
-  const addr = Array.from(keccak_256(pub).slice(-20), (b) => b.toString(16).padStart(2, "0")).join("");
+  const addr = Array.from(keccak_256(pub).slice(-20), (b) => b.toString(16).padStart(2, "0")).join(
+    "",
+  );
   return { fingerprint, txcXpub: txc.publicExtendedKey, txcAddress, evmAddress: `0x${addr}` };
 }
 
@@ -154,5 +216,14 @@ export async function pairingPayload(words: string, passphrase = ""): Promise<st
     "44": root.derive(`m/44'/${ct}'/0'`).publicExtendedKey,
   });
   const evm = await deriveKeys(words, passphrase);
-  return JSON.stringify({ hmvault: 1, fp, txc: acct(696969), isk: acct(969696), btc: acct(0), ltc: acct(2), doge: { "44": root.derive("m/44'/3'/0'").publicExtendedKey }, evm: { address: evm.evmAddress, path: EVM_PATH } });
+  return JSON.stringify({
+    hmvault: 1,
+    fp,
+    txc: acct(696969),
+    isk: acct(969696),
+    btc: acct(0),
+    ltc: acct(2),
+    doge: { "44": root.derive("m/44'/3'/0'").publicExtendedKey },
+    evm: { address: evm.evmAddress, path: EVM_PATH },
+  });
 }

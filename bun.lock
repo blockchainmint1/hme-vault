@@ -5,22 +5,15 @@
     "": {
       "name": "tanstack_start_ts",
       "dependencies": {
-        "@bitcoinerlab/secp256k1": "^1.2.0",
         "@capacitor-community/privacy-screen": "^8.0.0",
         "@capacitor/android": "^8.5.3",
         "@capacitor/app": "^8.1.0",
         "@capacitor/cli": "^8.5.3",
         "@capacitor/clipboard": "^8.0.1",
         "@capacitor/core": "^8.5.3",
-        "@capacitor/haptics": "^8.0.2",
         "@capacitor/keyboard": "^8.0.5",
         "@capacitor/splash-screen": "^8.0.1",
         "@capacitor/status-bar": "^8.0.2",
-        "@dnd-kit/core": "^6.3.1",
-        "@dnd-kit/sortable": "^10.0.0",
-        "@dnd-kit/utilities": "^3.2.2",
-        "@hookform/resolvers": "^5.2.2",
-        "@noble/ciphers": "1.3.0",
         "@noble/curves": "1.9.7",
         "@noble/hashes": "2.2.0",
         "@radix-ui/react-accordion": "^1.2.12",
@@ -54,18 +47,14 @@
         "@scure/bip39": "^2.2.0",
         "@supabase/supabase-js": "^2.112.0",
         "@tailwindcss/vite": "^4.2.1",
-        "@tanstack/query-sync-storage-persister": "^5.101.2",
         "@tanstack/react-query": "5.101.2",
-        "@tanstack/react-query-persist-client": "^5.101.2",
         "@tanstack/react-router": "1.170.41",
         "@tanstack/react-start": "1.168.60",
         "@tanstack/router-plugin": "1.168.42",
-        "bip32": "^5.0.1",
         "bitcoinjs-lib": "^7.0.1",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
         "cmdk": "^1.1.1",
-        "date-fns": "^4.1.0",
         "embla-carousel-react": "^8.6.0",
         "input-otp": "^1.4.2",
         "jsqr": "^1.4.0",
@@ -157,8 +146,6 @@
 
     "@babel/types": ["@babel/types@7.29.8", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@babel/types/-/types-7.29.8.tgz", { "dependencies": { "@babel/helper-string-parser": "^7.29.7", "@babel/helper-validator-identifier": "^7.29.7" } }, "sha512-Vj1jF3cPfxg7OAfoI7QnVKLoILlm2JF9pnVHrX8qx7AHMiYWT+NDAA7jChlNgRS4WTLc/fD1lXLmPixluj+3Gg=="],
 
-    "@bitcoinerlab/secp256k1": ["@bitcoinerlab/secp256k1@1.2.0", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@bitcoinerlab/secp256k1/-/secp256k1-1.2.0.tgz", { "dependencies": { "@noble/curves": "^1.7.0" } }, "sha512-jeujZSzb3JOZfmJYI0ph1PVpCRV5oaexCgy+RvCXV8XlY+XFB/2n3WOcvBsKLsOw78KYgnQrQWb2HrKE4be88Q=="],
-
     "@capacitor-community/privacy-screen": ["@capacitor-community/privacy-screen@8.0.0", "https://europe-west1-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@capacitor-community/privacy-screen/-/privacy-screen-8.0.0.tgz", { "peerDependencies": { "@capacitor/core": ">=8.0.0" } }, "sha512-XcBTgQ13BdH8xB7arJ2io5rP3aEXcndgDVl/GdFRNwc8TatnV+1U6rGROLtepYLA4Rl0GP7k4zAeykcG+a//3w=="],
 
     "@capacitor/android": ["@capacitor/android@8.5.3", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@capacitor/android/-/android-8.5.3.tgz", { "peerDependencies": { "@capacitor/core": "^8.5.0" } }, "sha512-ilH4gSSz3DrketMkzDVAvY9JsWJ//rCQnECLTdcFRO7xXDogwAbUvQAnIAbiqefwV/D1xfjEL4Gw1MJXEcaA9g=="],
@@ -173,8 +160,6 @@
 
     "@capacitor/core": ["@capacitor/core@8.5.3", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@capacitor/core/-/core-8.5.3.tgz", { "dependencies": { "tslib": "^2.1.0" } }, "sha512-oBE1oGuYE4ZzYYrulC75OuHdSsD6zLUy7d5o1tFwDLG4govGoubY15cxpiI5l0+q87Lm5p0bhbehMdzJg4aFag=="],
 
-    "@capacitor/haptics": ["@capacitor/haptics@8.0.2", "https://europe-west1-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@capacitor/haptics/-/haptics-8.0.2.tgz", { "peerDependencies": { "@capacitor/core": ">=8.0.0" } }, "sha512-c2hZzRR5Fk1tbTvhG1jhh2XBAf3EhnIerMIb2sl7Mt41Gxx1fhBJFDa0/BI1IbY4loVepyyuqNC9820/GZuoWQ=="],
-
     "@capacitor/keyboard": ["@capacitor/keyboard@8.0.5", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@capacitor/keyboard/-/keyboard-8.0.5.tgz", { "peerDependencies": { "@capacitor/core": ">=8.0.0" } }, "sha512-oFXygC4eKYA5l2MdpTR06L2M/4x6e2SLD5yS1T9+UBDKTkzyvhWKEhbYLUaTIBPpLKqlfGudJw1X73S1H9eUzQ=="],
 
     "@capacitor/splash-screen": ["@capacitor/splash-screen@8.0.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@capacitor/splash-screen/-/splash-screen-8.0.1.tgz", { "peerDependencies": { "@capacitor/core": ">=8.0.0" } }, "sha512-c/ew/Z3eA7z8l06WoRAtzVF16VwYYrExmHmfGq1Cg675pVzaC/yuucB8/1xG1vhEfnW4fZ1KhSf/kzR1RiVYgg=="],
@@ -184,14 +169,6 @@
     "@cspotcode/source-map-support": ["@cspotcode/source-map-support@0.8.1", "https://europe-west1-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@cspotcode/source-map-support/-/source-map-support-0.8.1.tgz", { "dependencies": { "@jridgewell/trace-mapping": "0.3.9" } }, "sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw=="],
 
     "@date-fns/tz": ["@date-fns/tz@1.4.1", "", {}, "sha512-P5LUNhtbj6YfI3iJjw5EL9eUAG6OitD0W3fWQcpQjDRc/QIsL0tRNuO1PcDvPccWL1fSTXXdE1ds+l95DV/OFA=="],
-
-    "@dnd-kit/accessibility": ["@dnd-kit/accessibility@3.1.1", "https://europe-west1-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@dnd-kit/accessibility/-/accessibility-3.1.1.tgz", { "dependencies": { "tslib": "^2.0.0" }, "peerDependencies": { "react": ">=16.8.0" } }, "sha512-2P+YgaXF+gRsIihwwY1gCsQSYnu9Zyj2py8kY5fFvUM1qm2WA2u639R6YNVfU4GWr+ZM5mqEsfHZZLoRONbemw=="],
-
-    "@dnd-kit/core": ["@dnd-kit/core@6.3.1", "https://europe-west1-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@dnd-kit/core/-/core-6.3.1.tgz", { "dependencies": { "@dnd-kit/accessibility": "^3.1.1", "@dnd-kit/utilities": "^3.2.2", "tslib": "^2.0.0" }, "peerDependencies": { "react": ">=16.8.0", "react-dom": ">=16.8.0" } }, "sha512-xkGBRQQab4RLwgXxoqETICr6S5JlogafbhNsidmrkVv2YRs5MLwpjoF2qpiGjQt8S9AoxtIV603s0GIUpY5eYQ=="],
-
-    "@dnd-kit/sortable": ["@dnd-kit/sortable@10.0.0", "https://europe-west1-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@dnd-kit/sortable/-/sortable-10.0.0.tgz", { "dependencies": { "@dnd-kit/utilities": "^3.2.2", "tslib": "^2.0.0" }, "peerDependencies": { "@dnd-kit/core": "^6.3.0", "react": ">=16.8.0" } }, "sha512-+xqhmIIzvAYMGfBYYnbKuNicfSsk4RksY2XdmJhT+HAC01nix6fHCztU68jooFiMUB01Ky3F0FyOvhG/BZrWkg=="],
-
-    "@dnd-kit/utilities": ["@dnd-kit/utilities@3.2.2", "https://europe-west1-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@dnd-kit/utilities/-/utilities-3.2.2.tgz", { "dependencies": { "tslib": "^2.0.0" }, "peerDependencies": { "react": ">=16.8.0" } }, "sha512-+MKAJEOfaBe5SmV6t34p80MMKhjvUz0vRrvVJbPT0WElzaOJ/1xs+D+KDv+tD/NE5ujfrChEcshd4fLn0wpiqg=="],
 
     "@drizzle-team/brocli": ["@drizzle-team/brocli@0.10.2", "", {}, "sha512-z33Il7l5dKjUgGULTqBsQBQwckHh5AbIuxhdsIxDDiZAzBOrZO6q9ogcWC65kU382AfynTfgNumVcNIjuIua6w=="],
 
@@ -282,8 +259,6 @@
     "@floating-ui/react-dom": ["@floating-ui/react-dom@2.1.8", "", { "dependencies": { "@floating-ui/dom": "^1.7.6" }, "peerDependencies": { "react": ">=16.8.0", "react-dom": ">=16.8.0" } }, "sha512-cC52bHwM/n/CxS87FH0yWdngEZrjdtLW/qVruo68qg+prK7ZQ4YGdut2GyDVpoGeAYe/h899rVeOVm6Oi40k2A=="],
 
     "@floating-ui/utils": ["@floating-ui/utils@0.2.11", "", {}, "sha512-RiB/yIh78pcIxl6lLMG0CgBXAZ2Y0eVHqMPYugu+9U0AeT6YBeiJpf7lbdJNIugFP5SIjwNRgo4DhR1Qxi26Gg=="],
-
-    "@hookform/resolvers": ["@hookform/resolvers@5.2.2", "", { "dependencies": { "@standard-schema/utils": "^0.3.0" }, "peerDependencies": { "react-hook-form": "^7.55.0" } }, "sha512-A/IxlMLShx3KjV/HeTcTfaMxdwy690+L/ZADoeaTltLx+CVuzkeVIPuybK3jrRfw7YZnmdKsVVHAlEPIAEUNlA=="],
 
     "@humanfs/core": ["@humanfs/core@0.19.2", "", { "dependencies": { "@humanfs/types": "^0.15.0" } }, "sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA=="],
 
@@ -639,8 +614,6 @@
 
     "@scure/bip39": ["@scure/bip39@2.2.0", "https://europe-west1-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@scure/bip39/-/bip39-2.2.0.tgz", { "dependencies": { "@noble/hashes": "2.2.0", "@scure/base": "2.2.0" } }, "sha512-T/Bj/YvYMNkIPq6EENO6/rcs2e7qTNuyoUXf0KBFDmp0ZDu0H2X4Lq6yC3i0c8PcWkov5EbW+yQZZbdMmk154A=="],
 
-    "@standard-schema/utils": ["@standard-schema/utils@0.3.0", "", {}, "sha512-e7Mew686owMaPJVNNLs55PUvgz371nKgwsc4vxE49zsODpJEnxgxRo2y/OKrqueavXgZNMDVj3DdHFlaSAeU8g=="],
-
     "@supabase/auth-js": ["@supabase/auth-js@2.112.0", "https://europe-west1-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@supabase/auth-js/-/auth-js-2.112.0.tgz", { "dependencies": { "tslib": "2.8.1" } }, "sha512-8qAdObNQHKbSeVBLmf2WLNT7+bCE8zBofpCFiNUqGBAl5qw9VagSvcmPXlh78McAU7iHrGik1oeJxiB2A6B29w=="],
 
     "@supabase/functions-js": ["@supabase/functions-js@2.112.0", "https://europe-west1-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@supabase/functions-js/-/functions-js-2.112.0.tgz", { "dependencies": { "tslib": "2.8.1" } }, "sha512-2DdaEZs0vq86orMIZBO+eM5w5/UxZb1EZyg2JraBKS4W9BzfFO+fOFD6YStmZ7iAOWvxNTGPjPNItsofpGgTCA=="],
@@ -699,13 +672,7 @@
 
     "@tanstack/query-core": ["@tanstack/query-core@5.101.2", "https://europe-west1-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@tanstack/query-core/-/query-core-5.101.2.tgz", {}, "sha512-hH5MLoJhF7KaIGd7q3xTXGXvslI+GYlM1Z/35aSHHWaCJWB7XvTSHYuV3eM7tw+aE0mT/xMro4M4Q9rCGHT0lw=="],
 
-    "@tanstack/query-persist-client-core": ["@tanstack/query-persist-client-core@5.101.2", "https://europe-west1-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@tanstack/query-persist-client-core/-/query-persist-client-core-5.101.2.tgz", { "dependencies": { "@tanstack/query-core": "5.101.2" } }, "sha512-rgMsbvBVpSPDUsprC9FYxojdG0Q1LH6yq1i3DXz2aps4VEqv2l4Msj3YDqIifU3xkl/DrYe9YWntZAJLrM6xTg=="],
-
-    "@tanstack/query-sync-storage-persister": ["@tanstack/query-sync-storage-persister@5.101.2", "https://europe-west1-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@tanstack/query-sync-storage-persister/-/query-sync-storage-persister-5.101.2.tgz", { "dependencies": { "@tanstack/query-core": "5.101.2", "@tanstack/query-persist-client-core": "5.101.2" } }, "sha512-hRyLEJvkUWtfCUA3Lf5vD1CrXbHHK4pZNM/iNd7JM5GgC4CWzGIHkVkeg8zC2LV11KceKObKgjNuMSg3b6NOjA=="],
-
     "@tanstack/react-query": ["@tanstack/react-query@5.101.2", "https://europe-west1-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@tanstack/react-query/-/react-query-5.101.2.tgz", { "dependencies": { "@tanstack/query-core": "5.101.2" }, "peerDependencies": { "react": "^18 || ^19" } }, "sha512-seDkr6kzGzX1okaaTtZPtgA688CDPlXUz1C6xSg0ESqn04Vuc8tlrYms1s3de+znBqhPVxFRfpAfUf+6XvfPWg=="],
-
-    "@tanstack/react-query-persist-client": ["@tanstack/react-query-persist-client@5.101.2", "https://europe-west1-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@tanstack/react-query-persist-client/-/react-query-persist-client-5.101.2.tgz", { "dependencies": { "@tanstack/query-persist-client-core": "5.101.2" }, "peerDependencies": { "@tanstack/react-query": "^5.101.2", "react": "^18 || ^19" } }, "sha512-19UpaRtf0lvB2QAJ2MoixxtGf3osMOd508g99EsttUj4+3eLs+ulnNgYjB7AkQMHrRlcbVXqpVNqWkB4a7g8Zw=="],
 
     "@tanstack/react-router": ["@tanstack/react-router@1.170.41", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@tanstack/react-router/-/react-router-1.170.41.tgz", { "dependencies": { "@tanstack/history": "1.162.4", "@tanstack/react-store": "^0.11.2", "@tanstack/router-core": "1.171.34", "isbot": "^5.1.22" }, "peerDependencies": { "react": ">=18.0.0 || >=19.0.0", "react-dom": ">=18.0.0 || >=19.0.0" } }, "sha512-Mpvw8Wm5MGDbTqI8Yc9flLKxbOHwoWocv0H2aGKcgw2a017oK5nZWqa954P+DrUx/8fI98YNywnHP5XcD3tQ9w=="],
 
@@ -900,8 +867,6 @@
     "big-integer": ["big-integer@1.6.52", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/big-integer/-/big-integer-1.6.52.tgz", {}, "sha512-QxD8cf2eVqJOOz63z6JIN9BzvVs/dlySa5HGSBH5xtR8dPteIRQnBxxKqkNTiT6jbDTF6jAfrd4oMcND9RGbQg=="],
 
     "bip174": ["bip174@3.0.0", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/bip174/-/bip174-3.0.0.tgz", { "dependencies": { "uint8array-tools": "^0.0.9", "varuint-bitcoin": "^2.0.0" } }, "sha512-N3vz3rqikLEu0d6yQL8GTrSkpYb35NQKWMR7Hlza0lOj6ZOlvQ3Xr7N9Y+JPebaCVoEUHdBeBSuLxcHr71r+Lw=="],
-
-    "bip32": ["bip32@5.0.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/bip32/-/bip32-5.0.1.tgz", { "dependencies": { "@noble/hashes": "^1.2.0", "@scure/base": "^1.1.1", "uint8array-tools": "^0.0.8", "valibot": "^1.2.0", "wif": "^5.0.0" } }, "sha512-PWlHIAgYCfVhwqNpZyeakHXuLAGyN6rEQZnhxHxKI3BoFJRVWLl26455fhRlHsmbYcV986HqtPnt33Edu5sTCw=="],
 
     "bitcoinjs-lib": ["bitcoinjs-lib@7.0.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/bitcoinjs-lib/-/bitcoinjs-lib-7.0.1.tgz", { "dependencies": { "@noble/hashes": "^1.2.0", "bech32": "^2.0.0", "bip174": "^3.0.0", "bs58check": "^4.0.0", "uint8array-tools": "^0.0.9", "valibot": "^1.2.0", "varuint-bitcoin": "^2.0.0" } }, "sha512-vwEmpL5Tpj0I0RBdNkcDMXePoaYSTeKY6mL6/l5esbnTs+jGdPDuLp4NY1hSh6Zk5wSgePygZ4Wx5JJao30Pww=="],
 
@@ -1739,7 +1704,7 @@
 
     "uglify-js": ["uglify-js@3.19.3", "https://europe-west1-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/uglify-js/-/uglify-js-3.19.3.tgz", { "bin": { "uglifyjs": "bin/uglifyjs" } }, "sha512-v3Xu+yuwBXisp6QYTcH4UbH+xYJXqnq2m/LtQVWKWzYc1iehYnLixoQDN9FH6/j9/oybfd6W9Ghwkl8+UMKTKQ=="],
 
-    "uint8array-tools": ["uint8array-tools@0.0.8", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/uint8array-tools/-/uint8array-tools-0.0.8.tgz", {}, "sha512-xS6+s8e0Xbx++5/0L+yyexukU7pz//Yg6IHg3BKhXotg1JcYtgxVcUctQ0HxLByiJzpAkNFawz1Nz5Xadzo82g=="],
+    "uint8array-tools": ["uint8array-tools@0.0.9", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/uint8array-tools/-/uint8array-tools-0.0.9.tgz", {}, "sha512-9vqDWmoSXOoi+K14zNaf6LBV51Q8MayF0/IiQs3GlygIKUYtog603e6virExkjjFosfJUBI4LhbQK1iq8IG11A=="],
 
     "undici-types": ["undici-types@6.21.0", "", {}, "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="],
 
@@ -1804,8 +1769,6 @@
     "which-module": ["which-module@2.0.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/which-module/-/which-module-2.0.1.tgz", {}, "sha512-iBdZ57RDvnOR9AGBhML2vFZf7h8vmBjhoaZqODJBFWHVtKkDmKuHai3cx5PgVMrX5YDNp27AofYbAwctSS+vhQ=="],
 
     "why-is-node-running": ["why-is-node-running@3.2.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/why-is-node-running/-/why-is-node-running-3.2.1.tgz", { "bin": { "why-is-node-running": "cli.js" } }, "sha512-Tb2FUhB4vUsGQlfSquQLYkApkuPAFQXGFzxWKHHumVz2dK+X1RUm/HnID4+TfIGYJ1kTcwOaCk/buYCEJr6YjQ=="],
-
-    "wif": ["wif@5.0.0", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/wif/-/wif-5.0.0.tgz", { "dependencies": { "bs58check": "^4.0.0" } }, "sha512-iFzrC/9ne740qFbNjTZ2FciSRJlHIXoxqk/Y5EnE08QOXu1WjJyCCswwDTYbohAOEnlCtLaAAQBhyaLRFh2hMA=="],
 
     "word-wrap": ["word-wrap@1.2.5", "", {}, "sha512-BN22B5eaMMI9UMtjrGd5g5eCYPpCPDUy0FJXbYsaT5zYxjFOckS53SQDE3pWkVoWpHXVb3BrYcEN4Twa55B5cA=="],
 
@@ -1896,14 +1859,6 @@
     "@capacitor/core/tslib": ["tslib@2.8.1", "", {}, "sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w=="],
 
     "@cspotcode/source-map-support/@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.9", "https://europe-west1-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@jridgewell/trace-mapping/-/trace-mapping-0.3.9.tgz", { "dependencies": { "@jridgewell/resolve-uri": "^3.0.3", "@jridgewell/sourcemap-codec": "^1.4.10" } }, "sha512-3Belt6tdc8bPgAtbcmdtNJlirVoTmEb5e2gC94PnkwEW9jI6CAHUeoG85tjWP5WquqfavoMtMwiG4P926ZKKuQ=="],
-
-    "@dnd-kit/accessibility/tslib": ["tslib@2.8.1", "", {}, "sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w=="],
-
-    "@dnd-kit/core/tslib": ["tslib@2.8.1", "", {}, "sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w=="],
-
-    "@dnd-kit/sortable/tslib": ["tslib@2.8.1", "", {}, "sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w=="],
-
-    "@dnd-kit/utilities/tslib": ["tslib@2.8.1", "", {}, "sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w=="],
 
     "@emnapi/core/tslib": ["tslib@2.8.1", "", {}, "sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w=="],
 
@@ -2097,15 +2052,7 @@
 
     "babel-dead-code-elimination/@babel/types": ["@babel/types@7.29.0", "", { "dependencies": { "@babel/helper-string-parser": "^7.27.1", "@babel/helper-validator-identifier": "^7.28.5" } }, "sha512-LwdZHpScM4Qz8Xw2iKSzS+cfglZzJGvofQICy7W7v4caru4EaAmyUuO6BGrbyQ2mYV11W0U8j5mBhd14dd3B0A=="],
 
-    "bip174/uint8array-tools": ["uint8array-tools@0.0.9", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/uint8array-tools/-/uint8array-tools-0.0.9.tgz", {}, "sha512-9vqDWmoSXOoi+K14zNaf6LBV51Q8MayF0/IiQs3GlygIKUYtog603e6virExkjjFosfJUBI4LhbQK1iq8IG11A=="],
-
-    "bip32/@noble/hashes": ["@noble/hashes@1.8.0", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@noble/hashes/-/hashes-1.8.0.tgz", {}, "sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A=="],
-
-    "bip32/@scure/base": ["@scure/base@1.2.6", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@scure/base/-/base-1.2.6.tgz", {}, "sha512-g/nm5FgUa//MCj1gV09zTJTaM6KBAHqLN907YVQqf7zC49+DcO4B1so4ZX07Ef10Twr6nuqYEH9GEggFXA4Fmg=="],
-
     "bitcoinjs-lib/@noble/hashes": ["@noble/hashes@1.8.0", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@noble/hashes/-/hashes-1.8.0.tgz", {}, "sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A=="],
-
-    "bitcoinjs-lib/uint8array-tools": ["uint8array-tools@0.0.9", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/uint8array-tools/-/uint8array-tools-0.0.9.tgz", {}, "sha512-9vqDWmoSXOoi+K14zNaf6LBV51Q8MayF0/IiQs3GlygIKUYtog603e6virExkjjFosfJUBI4LhbQK1iq8IG11A=="],
 
     "bs58check/@noble/hashes": ["@noble/hashes@1.8.0", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@noble/hashes/-/hashes-1.8.0.tgz", {}, "sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A=="],
 
@@ -2228,6 +2175,8 @@
     "use-callback-ref/tslib": ["tslib@2.8.1", "", {}, "sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w=="],
 
     "use-sidecar/tslib": ["tslib@2.8.1", "", {}, "sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w=="],
+
+    "varuint-bitcoin/uint8array-tools": ["uint8array-tools@0.0.8", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/uint8array-tools/-/uint8array-tools-0.0.8.tgz", {}, "sha512-xS6+s8e0Xbx++5/0L+yyexukU7pz//Yg6IHg3BKhXotg1JcYtgxVcUctQ0HxLByiJzpAkNFawz1Nz5Xadzo82g=="],
 
     "viem/@noble/curves": ["@noble/curves@1.9.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@noble/curves/-/curves-1.9.1.tgz", { "dependencies": { "@noble/hashes": "1.8.0" } }, "sha512-k11yZxZg+t+gWvBbIswW0yoJlu8cHOC7dhunwOzoWH/mXGBiYyR4YY6hAEK/3EUs4UpB8la1RfdRpeGsFHkWsA=="],
 

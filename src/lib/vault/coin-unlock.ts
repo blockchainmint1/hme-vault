@@ -16,8 +16,13 @@ function privateKeyFromScan(text: string): string | null {
   }
   if (/^[1-9A-HJ-NP-Za-km-z]{50,53}$/.test(t)) {
     let bytes: Uint8Array;
-    try { bytes = wif.decode(t); } catch { throw new Error("That private key QR is damaged (checksum failed)."); }
-    if (bytes.length !== 33 && !(bytes.length === 34 && bytes[33] === 1)) throw new Error("That isn't a valid private key.");
+    try {
+      bytes = wif.decode(t);
+    } catch {
+      throw new Error("That private key QR is damaged (checksum failed).");
+    }
+    if (bytes.length !== 33 && !(bytes.length === 34 && bytes[33] === 1))
+      throw new Error("That isn't a valid private key.");
     return t; // WIF is case-sensitive: keep exactly as printed
   }
   return null;
@@ -28,9 +33,19 @@ export function coinPasswordFromScan(text: string): string {
   const trimmed = text.trim();
   if (!trimmed) throw new Error("That QR code is empty.");
   if (trimmed.length > 4096) throw new Error("That QR code is too large to use as a password.");
-  try { const key = privateKeyFromScan(trimmed); if (key) return key; } catch { /* not a key: use as scanned */ }
+  try {
+    const key = privateKeyFromScan(trimmed);
+    if (key) return key;
+  } catch {
+    /* not a key: use as scanned */
+  }
   if (/^[a-zA-Z\s]+$/.test(trimmed) || /^\d+$/.test(trimmed)) {
-    try { const words = wordsFromScan(trimmed); if (validateMnemonic(words, wordlist)) return words; } catch { /* not a seed */ }
+    try {
+      const words = wordsFromScan(trimmed);
+      if (validateMnemonic(words, wordlist)) return words;
+    } catch {
+      /* not a seed */
+    }
   }
   return trimmed;
 }
@@ -38,10 +53,19 @@ export function coinPasswordFromScan(text: string): string {
 /** Remember (non-secret) whether this vault's coin credential also needs a typed extra word. */
 const EXTRA_FLAG = "hmsv.coin-extra";
 export function setCoinExtraRequired(required: boolean): void {
-  try { if (required) localStorage.setItem(EXTRA_FLAG, "1"); else localStorage.removeItem(EXTRA_FLAG); } catch { /* ignore */ }
+  try {
+    if (required) localStorage.setItem(EXTRA_FLAG, "1");
+    else localStorage.removeItem(EXTRA_FLAG);
+  } catch {
+    /* ignore */
+  }
 }
 export function isCoinExtraRequired(): boolean {
-  try { return localStorage.getItem(EXTRA_FLAG) === "1"; } catch { return false; }
+  try {
+    return localStorage.getItem(EXTRA_FLAG) === "1";
+  } catch {
+    return false;
+  }
 }
 
 /** Combine the scanned coin credential with an optional typed extra word (something you have + something you know). */

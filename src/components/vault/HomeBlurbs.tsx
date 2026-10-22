@@ -15,7 +15,11 @@ export function HomeBlurbs() {
   return (
     <section className="space-y-4 border-t border-border/60 pt-6 text-sm leading-relaxed text-muted-foreground">
       <Button asChild variant="outline" className="w-full">
-        <Link to="/tutorial"><BookOpen />Setup & first payment tutorial<ArrowRight /></Link>
+        <Link to="/tutorial">
+          <BookOpen />
+          Setup & first payment tutorial
+          <ArrowRight />
+        </Link>
       </Button>
       <p>
         HME Vault is designed to work with a{" "}
@@ -33,8 +37,8 @@ export function HomeBlurbs() {
         .
       </p>
       <p>
-        Combined, these tools create an airgapped, ultra-secure way to store seeds and sign
-        crypto transactions. For a full list of transaction types supported{" "}
+        Combined, these tools create an airgapped, ultra-secure way to store seeds and sign crypto
+        transactions. For a full list of transaction types supported{" "}
         <Link to="/supported" className={linkCls}>
           click here
         </Link>

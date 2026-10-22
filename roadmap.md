@@ -47,3 +47,16 @@
 - [ ] Wrap stored vault with Android Keystore key (N10/N14) — larger native change, next round
 - [ ] Remove 'unsafe-inline' from CSP and platform scripts on web vault (M1/O1) — needs hosting changes
 - [ ] Native tamper-proof lockout clock (optional)
+
+## Follow-up audit 2026-10-22 (Fable)
+- [x] Per-coin fee caps (DOGE 1,000,000 koinu/vB), near-cap warning, Omni recipient = last output
+- [x] Native deletion of the old secure-storage password copy; fixed comment
+- [x] Locking wins over a slow unlock (app + recovery page)
+- [x] Typed-password strength enforced at the format layer
+- [x] 1,000,000 encryption rounds (older files still open)
+- [x] Change password in Settings (turns fingerprint off)
+- [x] CI gate + formatting pass; APK fingerprints in footer
+- [x] Docs now describe Vault; unused libraries removed
+- [x] Web "Demo only" banner (H2)
+- [x] M1 declined by owner design; documented
+- [ ] Build new APK and phone-test (needs Bobby / GitHub run); update `src/lib/release.ts` with the new APK SHA-256

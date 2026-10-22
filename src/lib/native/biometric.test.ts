@@ -2,7 +2,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const native = vi.hoisted(() => ({ on: true }));
 const plugin = vi.hoisted(() => ({
-  status: vi.fn(), unlock: vi.fn(), enroll: vi.fn(), remove: vi.fn(),
+  status: vi.fn(),
+  unlock: vi.fn(),
+  enroll: vi.fn(),
+  remove: vi.fn(),
 }));
 vi.mock("@capacitor/core", () => ({ registerPlugin: () => plugin }));
 vi.mock("./platform", () => ({ isNative: () => native.on }));

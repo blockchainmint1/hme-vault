@@ -7,13 +7,28 @@ export function VaultTabs() {
   const active = (path: string) => pathname === path || pathname.startsWith(`${path}/`);
   return (
     <nav aria-label="Vault sections" className="mb-4 grid grid-cols-3 gap-2">
-      <Button asChild size="sm" className="px-2" variant={active("/seeds") ? "outline" : "secondary"}>
+      <Button
+        asChild
+        size="sm"
+        className="px-2"
+        variant={active("/seeds") ? "outline" : "secondary"}
+      >
         <Link to="/seeds">Seeds</Link>
       </Button>
-      <Button asChild size="sm" className="px-2" variant={active("/secrets") ? "outline" : "secondary"}>
+      <Button
+        asChild
+        size="sm"
+        className="px-2"
+        variant={active("/secrets") ? "outline" : "secondary"}
+      >
         <Link to="/secrets">Secrets</Link>
       </Button>
-      <Button asChild size="sm" className="px-2" variant={active("/authenticator") ? "outline" : "secondary"}>
+      <Button
+        asChild
+        size="sm"
+        className="px-2"
+        variant={active("/authenticator") ? "outline" : "secondary"}
+      >
         <Link to="/authenticator">Authenticator</Link>
       </Button>
     </nav>

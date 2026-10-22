@@ -29,9 +29,9 @@ function TermsPage() {
 
       <h2>1. What this app is</h2>
       <p>
-        HME Wallet is open-source, self-custodial software that lets you generate, store,
-        and use TEXITcoin (TXC) addresses on your own device. We do not hold your keys, your
-        funds, or your personal data. We cannot freeze, refund, or reverse any transaction.
+        HME Wallet is open-source, self-custodial software that lets you generate, store, and use
+        TEXITcoin (TXC) addresses on your own device. We do not hold your keys, your funds, or your
+        personal data. We cannot freeze, refund, or reverse any transaction.
       </p>
 
       <h2>2. Your keys, your responsibility</h2>
@@ -43,9 +43,9 @@ function TermsPage() {
 
       <h2>3. No warranty</h2>
       <p>
-        The software is provided <em>as is</em>, without warranty of any kind. We make no
-        guarantees about availability, uptime, fee accuracy, or compatibility with future
-        TEXITcoin network upgrades. You use it at your own risk.
+        The software is provided <em>as is</em>, without warranty of any kind. We make no guarantees
+        about availability, uptime, fee accuracy, or compatibility with future TEXITcoin network
+        upgrades. You use it at your own risk.
       </p>
 
       <h2>4. No financial advice</h2>
@@ -63,8 +63,8 @@ function TermsPage() {
 
       <h2>6. Changes</h2>
       <p>
-        We may update these terms as the app evolves. Continued use after a change means you
-        accept the new terms.
+        We may update these terms as the app evolves. Continued use after a change means you accept
+        the new terms.
       </p>
 
       <p className="text-sm text-muted-foreground">

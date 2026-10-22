@@ -9,8 +9,11 @@
  * the owner then unlocks with the password/coin and re-enables fingerprint.
  * See scripts/native/VaultBiometricKeyPlugin.java.
  *
- * Older builds stored the plaintext password in secure storage; that copy is
- * deleted on first run and fingerprint must be turned on again.
+ * Older builds (before 0.1.202610181456) stored the plaintext password with
+ * @aparajita/capacitor-secure-storage. The native plugin's load() deletes those
+ * preferences and every Keystore alias except its own on each app start (see
+ * removeLegacySecureStorage in VaultBiometricKeyPlugin.java). Here we only drop
+ * the old localStorage flag.
  *
  * On the web all of this is a no-op.
  */
@@ -25,7 +28,6 @@ const BioKey = registerPlugin<{
   remove(): Promise<void>;
 }>("VaultBiometricKey");
 
-
 export interface BiometricStatus {
   available: boolean;
   enabled: boolean;
@@ -39,7 +41,11 @@ let legacyCleaned = false;
 async function cleanLegacy() {
   if (legacyCleaned || !isNative()) return;
   legacyCleaned = true;
-  try { localStorage.removeItem("hmsv.bio.enabled"); } catch { /* ignore */ }
+  try {
+    localStorage.removeItem("hmsv.bio.enabled");
+  } catch {
+    /* ignore */
+  }
 }
 
 export async function getBiometricStatus(): Promise<BiometricStatus> {
@@ -103,7 +109,10 @@ export async function unlockWithBiometric(): Promise<string | null> {
  * Fingerprint check before a sensitive action. Uses the same hardware key, so
  * it only succeeds when the released credential matches the currently open Vault.
  */
-export async function confirmWithBiometric(_reason: string, verify: (credential: string) => boolean): Promise<boolean> {
+export async function confirmWithBiometric(
+  _reason: string,
+  verify: (credential: string) => boolean,
+): Promise<boolean> {
   if (!isNative() || cachedFlag !== true) return false;
   try {
     const credential = await unlockWithBiometric();

@@ -15,7 +15,13 @@
 import { useEffect, useRef, useState } from "react";
 import { Camera, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type BarcodeDetectorLike = {
   detect: (source: CanvasImageSource) => Promise<Array<{ rawValue: string }>>;
@@ -55,7 +61,17 @@ export function QrScanButton({ onScan }: { onScan: (text: string) => void }) {
 }
 
 /** `keepScanning`: stay open and report every code (for multi-part QRs); the caller closes it. */
-export function ScannerDialog({ onClose, onScan, keepScanning = false, hint }: { onClose: () => void; onScan: (t: string) => void; keepScanning?: boolean; hint?: string }) {
+export function ScannerDialog({
+  onClose,
+  onScan,
+  keepScanning = false,
+  hint,
+}: {
+  onClose: () => void;
+  onScan: (t: string) => void;
+  keepScanning?: boolean;
+  hint?: string;
+}) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -195,11 +211,7 @@ export function ScannerDialog({ onClose, onScan, keepScanning = false, hint }: {
           <div className="pointer-events-none absolute inset-8 border-2 border-white/70 rounded-lg" />
         </div>
         <div className="p-4 text-xs text-muted-foreground min-h-[3rem]">
-          {error
-            ? error
-            : ready
-              ? (hint ?? "Point the camera at a QR code.")
-              : "Starting camera…"}
+          {error ? error : ready ? (hint ?? "Point the camera at a QR code.") : "Starting camera…"}
         </div>
       </DialogContent>
     </Dialog>
@@ -211,9 +223,15 @@ export function ScannerDialog({ onClose, onScan, keepScanning = false, hint }: {
  * Returns { address, amount?, tokenId? } where amount is a decimal string and
  * tokenId is an Omni property id (`?omni=39`) when the URI requests a token.
  */
-export function parseWalletUri(input: string): { address: string; amount?: string; tokenId?: number } {
+export function parseWalletUri(input: string): {
+  address: string;
+  amount?: string;
+  tokenId?: number;
+} {
   const trimmed = input.trim();
-  const schemeMatch = trimmed.match(/^(texitcoin|txc|bitcoin|btc|iskandercoin|isk|litecoin|ltc|dogecoin|doge):([^?]+)(\?(.*))?$/i);
+  const schemeMatch = trimmed.match(
+    /^(texitcoin|txc|bitcoin|btc|iskandercoin|isk|litecoin|ltc|dogecoin|doge):([^?]+)(\?(.*))?$/i,
+  );
   if (schemeMatch) {
     const address = schemeMatch[2];
     const params = new URLSearchParams(schemeMatch[4] ?? "");

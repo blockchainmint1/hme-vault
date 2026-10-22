@@ -74,8 +74,7 @@ async function writeClipboard(text: string): Promise<boolean> {
     ta.style.pointerEvents = "none";
     document.body.appendChild(ta);
     const selection = document.getSelection();
-    const previousRange =
-      selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+    const previousRange = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
     ta.focus();
     ta.select();
     ta.setSelectionRange(0, text.length);

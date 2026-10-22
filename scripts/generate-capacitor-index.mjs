@@ -6,7 +6,10 @@ import { pathToFileURL } from "node:url";
 const root = process.cwd();
 const capacitorWebDir = resolve(root, "dist/client");
 const publicCandidates = [resolve(root, "dist/client"), resolve(root, ".output/public")];
-const serverCandidates = [resolve(root, "dist/server/index.mjs"), resolve(root, ".output/server/index.mjs")];
+const serverCandidates = [
+  resolve(root, "dist/server/index.mjs"),
+  resolve(root, ".output/server/index.mjs"),
+];
 const staticSpaRoutes = [
   "seeds",
   "seeds/new",
@@ -21,7 +24,6 @@ const staticSpaRoutes = [
   "legal/terms",
 ];
 const stableRootAssets = ["icon-512.webp"];
-
 
 async function isDirectory(path) {
   try {
@@ -61,12 +63,16 @@ async function renderSpaShell(serverEntryPath, route = "/") {
   );
 
   if (!response.ok) {
-    throw new Error(`SPA shell render failed with HTTP ${response.status}: ${await response.text()}`);
+    throw new Error(
+      `SPA shell render failed with HTTP ${response.status}: ${await response.text()}`,
+    );
   }
 
   const html = await response.text();
   if (!html.includes("$_TSR") || !html.includes("/assets/")) {
-    throw new Error(`Generated SPA shell for ${route} is missing TanStack hydration data or asset links.`);
+    throw new Error(
+      `Generated SPA shell for ${route} is missing TanStack hydration data or asset links.`,
+    );
   }
   return html;
 }
@@ -109,7 +115,6 @@ for (const outputDir of outputDirs) {
   }
 }
 
-
 for (const outputDir of outputDirs) {
   await mkdir(outputDir, { recursive: true });
   await writeFile(resolve(outputDir, "index.html"), routeHtml.get(""));
@@ -132,9 +137,7 @@ for (const outputDir of outputDirs) {
 const missing = [];
 for (const outputDir of outputDirs) {
   for (const [route, html] of routeHtml) {
-    const refs = new Set(
-      [...html.matchAll(/(?:href|src)="(\/assets\/[^"]+)"/g)].map((m) => m[1]),
-    );
+    const refs = new Set([...html.matchAll(/(?:href|src)="(\/assets\/[^"]+)"/g)].map((m) => m[1]));
     if (!refs.size) missing.push(`${outputDir}/${route || ""} references no /assets/* files`);
     for (const ref of refs) {
       if (!existsSync(resolve(outputDir, ref.slice(1)))) {
@@ -150,7 +153,6 @@ if (missing.length) {
   );
 }
 
-
-
-
-console.log(`Generated Capacitor SPA entry: ${outputDirs.map((dir) => `${dir}/index.html`).join(", ")}`);
+console.log(
+  `Generated Capacitor SPA entry: ${outputDirs.map((dir) => `${dir}/index.html`).join(", ")}`,
+);

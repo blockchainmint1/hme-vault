@@ -46,6 +46,37 @@ public class VaultBiometricKeyPlugin extends Plugin {
     private static final String KS = "AndroidKeyStore";
     private static final int STRONG = BiometricManager.Authenticators.BIOMETRIC_STRONG;
 
+    // Builds before 0.1.202610181456 used @aparajita/capacitor-secure-storage, which kept the
+    // unlock password in these preferences under its own Keystore key. Delete both on every start.
+    private static final String[] LEGACY_PREFS = { "WSSecureStorageSharedPreferences", "CapacitorStorage.secure", "NativeStorage" };
+    private static final String[] LEGACY_ALIASES = { "WSSecureStorageKey", "WSSecureStorageKeyAlias" };
+
+    @Override
+    public void load() {
+        super.load();
+        removeLegacySecureStorage();
+    }
+
+    private void removeLegacySecureStorage() {
+        Context ctx = getContext();
+        for (String name : LEGACY_PREFS) {
+            try {
+                ctx.getSharedPreferences(name, Context.MODE_PRIVATE).edit().clear().commit();
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) ctx.deleteSharedPreferences(name);
+            } catch (Exception e) { /* ignore */ }
+        }
+        try {
+            KeyStore ks = KeyStore.getInstance(KS);
+            ks.load(null);
+            for (String alias : LEGACY_ALIASES) if (ks.containsAlias(alias)) ks.deleteEntry(alias);
+            // Any other Keystore entry in this app is a leftover from older builds; only ALIAS is ours.
+            java.util.Enumeration<String> all = ks.aliases();
+            java.util.List<String> stale = new java.util.ArrayList<>();
+            while (all.hasMoreElements()) { String a = all.nextElement(); if (!ALIAS.equals(a)) stale.add(a); }
+            for (String a : stale) ks.deleteEntry(a);
+        } catch (Exception e) { /* ignore */ }
+    }
+
     private SharedPreferences prefs() {
         return getContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
     }

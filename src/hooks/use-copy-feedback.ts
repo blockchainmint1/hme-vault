@@ -12,14 +12,11 @@ export function useCopyFeedback(duration = DEFAULT_DURATION) {
     return () => clearTimeout(t);
   }, [copied, duration]);
 
-  const copy = useCallback(
-    async (text: string) => {
-      const ok = await copyToClipboard(text, { autoClearMs: 60_000 });
-      if (ok) setCopied(true);
-      return ok;
-    },
-    [],
-  );
+  const copy = useCallback(async (text: string) => {
+    const ok = await copyToClipboard(text, { autoClearMs: 60_000 });
+    if (ok) setCopied(true);
+    return ok;
+  }, []);
 
   return { copied, copy };
 }
