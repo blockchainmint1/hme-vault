@@ -57,12 +57,6 @@ function SeedsPage() {
             Add a seed
           </Link>
         </Button>
-        <Button asChild variant="outline">
-          <Link to="/sign">
-            <PenLine className="h-4 w-4 mr-1.5" />
-            Sign a payment
-          </Link>
-        </Button>
         <div className="grid grid-cols-2 gap-2">
           <Button asChild variant="secondary">
             <Link to="/backup">
@@ -77,6 +71,15 @@ function SeedsPage() {
             </Link>
           </Button>
         </div>
+        <Button asChild variant="outline" className="h-14 text-base">
+          <Link to="/sign">
+            <Camera className="h-5 w-5 mr-2" />
+            Sign a payment
+          </Link>
+        </Button>
+        <p className="text-xs text-center text-muted-foreground">
+          The next screen scans the payment QR with your camera.
+        </p>
       </div>
     </Unlocked>
   );
