@@ -1,5 +1,8 @@
 # Roadmap — HME Seed Vault
 
+- [x] Harden Vault signing: unreadable swap data blocked, explicit fee cap checked before approval and after signing, reviewed bytes/keys bound to approval, failed attempts leave unsigned requests unchanged (80 tests passed; actual dummy QR rejection and normal DOGE approval/signed QR verified; new APK required).
+- [ ] Enable safe THORChain swaps only after readable offline intent validation and HME Wallet output/refund/expiry fixes (requires coordinated work in HME Wallet; current swaps remain blocked).
+
 - [x] Prompt for a new backup after successfully adding seeds, secrets or authenticator accounts (23 tests passed; dummy seed/note/2FA saves, Later, backup navigation and encrypted file download verified; new APK needed for phone use).
 
 - [x] Resume selected encrypted backups directly in Receive after file-picker/background locking (dummy coin-plus-word unlock, second lock, successful import and Secrets readback verified; 26 tests passed; new APK needed for Android picker check).
