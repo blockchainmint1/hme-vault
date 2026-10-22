@@ -11,7 +11,8 @@ import { disableBiometric, enableBiometric, getBiometricStatus, type BiometricSt
 import { CoinEnrollment } from "@/components/vault/CoinEnrollment";
 import { CredentialInput } from "@/components/vault/CredentialInput";
 import { Label } from "@/components/ui/label";
-import { combineCoinPassword, isCoinExtraRequired } from "@/lib/vault/coin-unlock";
+import { combineCoinPassword, isCoinExtraRequired, setCoinExtraRequired } from "@/lib/vault/coin-unlock";
+import { assessPassword } from "@/lib/security/password-strength";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({ meta: [{ title: "Settings — HME Vault" }, { name: "description", content: "Manage fingerprint unlock, auto-lock and erase your offline Vault." }, { property: "og:title", content: "Settings — HME Vault" }, { property: "og:description", content: "Security settings for your offline Vault." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
@@ -29,6 +30,10 @@ function SettingsPage() {
   const [wipePw, setWipePw] = useState("");
   const [wipeText, setWipeText] = useState("");
   const [currentPw, setCurrentPw] = useState("");
+  const [cpOld, setCpOld] = useState("");
+  const [cpNew, setCpNew] = useState("");
+  const [cpNew2, setCpNew2] = useState("");
+  const [cpBusy, setCpBusy] = useState(false);
   const [linking, setLinking] = useState(false);
   useEffect(() => { getBiometricStatus().then(setBio); }, []);
   useEffect(() => { setExtraRequired(isCoinExtraRequired()); }, [linking]);
@@ -51,6 +56,27 @@ function SettingsPage() {
               }} />
               <Button variant="ghost" onClick={() => { setLinking(false); setCurrentPw(""); }}>Cancel</Button>
             </>}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle className="text-base">Change Vault password</CardTitle><CardDescription>Pick a new typed password for this phone. Fingerprint unlock turns off and must be enabled again. Backups you already saved keep opening with the old password.</CardDescription></CardHeader>
+          <CardContent className="space-y-2">
+            <CredentialInput aria-label="Current Vault credential" placeholder="Current password or scan coin QR" type="password" value={cpOld} onChange={e => setCpOld(e.target.value)} />
+            <Input aria-label="New Vault password" placeholder="New password" type="password" autoComplete="new-password" value={cpNew} onChange={e => setCpNew(e.target.value)} />
+            <Input aria-label="New Vault password again" placeholder="New password again" type="password" autoComplete="new-password" value={cpNew2} onChange={e => setCpNew2(e.target.value)} />
+            <Button disabled={cpBusy || !cpOld || !cpNew} onClick={async () => {
+              setCpBusy(true);
+              try {
+                if (!checkPassword(cpOld)) throw new Error("Wrong current password.");
+                if (cpNew !== cpNew2) throw new Error("The new passwords don't match.");
+                const v = assessPassword(cpNew); if (!v.ok) throw new Error(v.message);
+                await changePassword(cpOld, cpNew);
+                setCoinExtraRequired(false);
+                setBio(await getBiometricStatus());
+                setCpOld(""); setCpNew(""); setCpNew2("");
+                toast.success("Password changed. Make a fresh backup; fingerprint unlock must be enabled again.");
+              } catch (e) { toast.error((e as Error).message); } finally { setCpBusy(false); }
+            }}>{cpBusy ? "Changing…" : "Change password"}</Button>
           </CardContent>
         </Card>
         <Card>
