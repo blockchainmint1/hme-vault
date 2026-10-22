@@ -58,8 +58,8 @@ export function SiteFooter() {
             <p>Signing certificate SHA-256: {SIGNING_CERT_SHA256}</p>
           </div>
           <p className="mt-1">
-            Check with <code>sha256sum</code> and <code>apksigner verify --print-certs</code>. Don&apos;t
-            install if either value differs.
+            Check with <code>sha256sum</code> and <code>apksigner verify --print-certs</code>.
+            Don&apos;t install if either value differs.
           </p>
         </details>
       </div>

@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { CONTENT_SECURITY_POLICY_META } from "../lib/security/headers";
 import { VaultProvider } from "../lib/vault/vault-context";
 import { SiteFooter } from "../components/SiteFooter";
+import { WebDemoBanner } from "../components/vault/WebDemoBanner";
 import { BackupReminder } from "../components/vault/BackupReminder";
 import { Toaster } from "../components/ui/sonner";
 import { ThemeProvider } from "../lib/theme";
@@ -109,6 +110,7 @@ function RootComponent() {
     <ThemeProvider>
       <VaultProvider>
         <div className="flex min-h-[100dvh] flex-col">
+          <WebDemoBanner />
           <div className="flex-1">
             <Outlet />
           </div>
