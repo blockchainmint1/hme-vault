@@ -56,7 +56,9 @@ export function OfflineCheck({ onReady }: { onReady: (ready: boolean) => void })
             ) : (
               <HelpCircle className="h-4 w-4 text-muted-foreground" />
             )}
-            <span>{i.ok === false ? i.fix : i.ok === null ? `${i.label} (couldn't check)` : i.label}</span>
+            <span>
+              {i.ok === false ? i.fix : i.ok === null ? `${i.label} (couldn't check)` : i.label}
+            </span>
           </li>
         ))}
       </ul>
@@ -70,8 +72,12 @@ export function OfflineCheck({ onReady }: { onReady: (ready: boolean) => void })
           </Button>
         </>
       )}
-      {problem && override && <p className="text-muted-foreground">Opening anyway, at your own risk.</p>}
-      {!problem && <p className="text-muted-foreground">Phone is offline. Proceed to open Vault.</p>}
+      {problem && override && (
+        <p className="text-muted-foreground">Opening anyway, at your own risk.</p>
+      )}
+      {!problem && (
+        <p className="text-muted-foreground">Phone is offline. Proceed to open Vault.</p>
+      )}
     </div>
   );
 }

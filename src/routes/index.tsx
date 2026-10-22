@@ -19,6 +19,7 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { HomeBlurbs } from "@/components/vault/HomeBlurbs";
 import { CredentialInput } from "@/components/vault/CredentialInput";
+import { OfflineCheck } from "@/components/vault/OfflineCheck";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -156,6 +157,7 @@ function UnlockForm() {
   const [scan, setScan] = useState(false);
   const [pendingCoin, setPendingCoin] = useState("");
   const [extra, setExtra] = useState("");
+  const [ready, setReady] = useState(false);
   useEffect(() => {
     getBiometricStatus().then((s) => setBio(s.enabled));
   }, []);
@@ -166,6 +168,7 @@ function UnlockForm() {
   const wait = Math.max(0, Math.ceil((waitUntil - now) / 1000));
 
   async function go(password: string) {
+    if (!ready) return;
     setErr("");
     setBusy(true);
     try {
@@ -189,6 +192,7 @@ function UnlockForm() {
   return (
     <Card>
       <CardContent className="space-y-3 pt-6">
+        <OfflineCheck onReady={setReady} />
         <form
           className="space-y-3"
           onSubmit={(e) => {
@@ -213,14 +217,14 @@ function UnlockForm() {
               Too many wrong tries. Try again in {wait}s.
             </p>
           )}
-          <Button type="submit" className="w-full" disabled={busy || wait > 0 || !pw}>
+          <Button type="submit" className="w-full" disabled={!ready || busy || wait > 0 || !pw}>
             {busy ? "Unlocking…" : "Unlock"}
           </Button>
         </form>
         <Button
           variant="outline"
           className="w-full"
-          disabled={busy || wait > 0}
+          disabled={!ready || busy || wait > 0}
           onClick={() => {
             setErr("");
             setScan(true);
@@ -288,7 +292,12 @@ function UnlockForm() {
           </form>
         )}
         {bio && (
-          <Button variant="outline" className="w-full" onClick={useBio} disabled={wait > 0}>
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={useBio}
+            disabled={!ready || wait > 0}
+          >
             <Fingerprint className="h-4 w-4 mr-1.5" />
             Use fingerprint
           </Button>

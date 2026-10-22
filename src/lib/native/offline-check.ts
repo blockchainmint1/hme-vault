@@ -35,12 +35,22 @@ const off = (v: boolean | null) => (v === null ? null : !v);
 /** Pure: turns raw status into the checklist. `ok: null` means Android would not say. */
 export function offlineChecklist(s: RadioStatus): CheckItem[] {
   return [
-    { key: "network", label: "No network connection", ok: off(s.network), fix: "Disconnect every network" },
+    {
+      key: "network",
+      label: "No network connection",
+      ok: off(s.network),
+      fix: "Disconnect every network",
+    },
     { key: "wifi", label: "Wi-Fi off", ok: off(s.wifi), fix: "Turn Wi-Fi off" },
     { key: "bluetooth", label: "Bluetooth off", ok: off(s.bluetooth), fix: "Turn Bluetooth off" },
     { key: "nfc", label: "NFC off", ok: off(s.nfc), fix: "Turn NFC off" },
     { key: "sim", label: "No SIM card", ok: off(s.sim), fix: "Remove the SIM card" },
-    { key: "usb", label: "No USB devices", ok: s.usb === null ? null : s.usb === 0, fix: "Unplug USB devices" },
+    {
+      key: "usb",
+      label: "No USB devices",
+      ok: s.usb === null ? null : s.usb === 0,
+      fix: "Unplug USB devices",
+    },
   ];
 }
 

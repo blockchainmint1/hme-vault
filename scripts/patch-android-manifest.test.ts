@@ -11,7 +11,11 @@ it("keeps network and cloud backups disabled and registers the USB picker idempo
     mkdirSync(java, { recursive: true });
     mkdirSync(join(main, "res/values"), { recursive: true });
     mkdirSync(join(root, "scripts/native"), { recursive: true });
-    for (const f of ["VaultDocumentsPlugin.java", "VaultBiometricKeyPlugin.java"])
+    for (const f of [
+      "VaultDocumentsPlugin.java",
+      "VaultBiometricKeyPlugin.java",
+      "VaultRadioCheckPlugin.java",
+    ])
       copyFileSync(resolve("scripts/native", f), join(root, "scripts/native", f));
     mkdirSync(join(root, "android/app"), { recursive: true });
     writeFileSync(join(root, "android/app/build.gradle"), "dependencies {\n}\n");
@@ -30,14 +34,14 @@ it("keeps network and cloud backups disabled and registers the USB picker idempo
     for (let i = 0; i < 2; i++)
       execFileSync("node", [resolve("scripts/patch-android-manifest.mjs")], { cwd: root });
     const xml = readFileSync(join(main, "AndroidManifest.xml"), "utf8");
-    for (const p of [
-      "INTERNET",
-      "ACCESS_NETWORK_STATE",
-      "ACCESS_WIFI_STATE",
-      "CHANGE_WIFI_STATE",
-      "CHANGE_NETWORK_STATE",
-    ])
+    const act = readFileSync(join(java, "MainActivity.java"), "utf8");
+    for (const p of ["INTERNET", "CHANGE_WIFI_STATE", "CHANGE_NETWORK_STATE"])
       expect(xml).toContain(`android.permission.${p}" tools:node="remove"`);
+    for (const p of ["ACCESS_NETWORK_STATE", "ACCESS_WIFI_STATE"]) {
+      expect(xml).toContain(`<uses-permission android:name="android.permission.${p}" />`);
+      expect(xml).not.toContain(`${p}" tools:node="remove"`);
+    }
+    expect(act.match(/registerPlugin\(VaultRadioCheckPlugin.class\)/g)).toHaveLength(1);
     expect(xml).toContain('android:allowBackup="false"');
     expect(xml).not.toContain('android:allowBackup="true"');
     expect(
@@ -45,7 +49,6 @@ it("keeps network and cloud backups disabled and registers the USB picker idempo
         /registerPlugin\(VaultDocumentsPlugin.class\)/g,
       ),
     ).toHaveLength(1);
-    const act = readFileSync(join(java, "MainActivity.java"), "utf8");
     expect(act.match(/registerPlugin\(VaultBiometricKeyPlugin.class\)/g)).toHaveLength(1);
     const bio = readFileSync(join(java, "VaultBiometricKeyPlugin.java"), "utf8");
     expect(bio).toContain("setUserAuthenticationRequired(true)");

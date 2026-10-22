@@ -2,9 +2,11 @@
 /**
  * HME Seed Vault Android manifest tweaks, run after `bunx cap add android`. Idempotent.
  *
- *  - REMOVES all network permissions (INTERNET, ACCESS_NETWORK_STATE, Wi-Fi state),
+ *  - REMOVES every permission that can connect or change networks (INTERNET, CHANGE_*),
  *    even ones a plugin's own manifest merges in, via tools:node="remove".
  *    With no INTERNET permission Android itself blocks every socket.
+ *  - Adds read-only ACCESS_NETWORK_STATE / ACCESS_WIFI_STATE for the pre-unlock
+ *    offline checklist (VaultRadioCheckPlugin); they cannot open a connection.
  *  - Adds CAMERA (QR scanning) and USE_BIOMETRIC (fingerprint unlock).
  *  - Disables Android cloud backup so the vault is never copied off the phone.
  *  - Sets the app name.
@@ -25,14 +27,9 @@ if (!xml.includes("xmlns:tools=")) {
 }
 
 // Drop any existing plain network permission lines.
-const NET = [
-  "INTERNET",
-  "ACCESS_NETWORK_STATE",
-  "ACCESS_WIFI_STATE",
-  "CHANGE_WIFI_STATE",
-  "CHANGE_NETWORK_STATE",
-];
-for (const p of NET) {
+const NET = ["INTERNET", "CHANGE_WIFI_STATE", "CHANGE_NETWORK_STATE"];
+const READ_ONLY = ["ACCESS_NETWORK_STATE", "ACCESS_WIFI_STATE"];
+for (const p of [...NET, ...READ_ONLY]) {
   xml = xml.replace(
     new RegExp(`\\s*<uses-permission[^>]*android\\.permission\\.${p}"[^>]*/>`, "g"),
     "",
@@ -43,6 +40,7 @@ const lines = [
   ...NET.map(
     (p) => `<uses-permission android:name="android.permission.${p}" tools:node="remove" />`,
   ),
+  ...READ_ONLY.map((p) => `<uses-permission android:name="android.permission.${p}" />`),
   '<uses-permission android:name="android.permission.CAMERA" />',
   '<uses-feature android:name="android.hardware.camera" android:required="false" />',
   '<uses-permission android:name="android.permission.USE_BIOMETRIC" />',
@@ -105,7 +103,11 @@ if (existsSync(stringsPath)) {
 const javaDir = resolve(process.cwd(), "android/app/src/main/java/money/honest/seedvault");
 const mainPath = resolve(javaDir, "MainActivity.java");
 if (!existsSync(mainPath)) throw new Error("Expected Vault MainActivity.java was not found.");
-for (const name of ["VaultDocumentsPlugin.java", "VaultBiometricKeyPlugin.java"]) {
+for (const name of [
+  "VaultDocumentsPlugin.java",
+  "VaultBiometricKeyPlugin.java",
+  "VaultRadioCheckPlugin.java",
+]) {
   writeFileSync(
     resolve(javaDir, name),
     readFileSync(resolve(process.cwd(), "scripts/native", name), "utf8"),
@@ -133,6 +135,14 @@ if (!main.includes("registerPlugin(VaultBiometricKeyPlugin.class)")) {
   );
   if (!main.includes("registerPlugin(VaultBiometricKeyPlugin.class)"))
     throw new Error("Biometric key plugin registration failed.");
+}
+if (!main.includes("registerPlugin(VaultRadioCheckPlugin.class)")) {
+  main = main.replace(
+    "registerPlugin(VaultDocumentsPlugin.class);",
+    "registerPlugin(VaultDocumentsPlugin.class);\n        registerPlugin(VaultRadioCheckPlugin.class);",
+  );
+  if (!main.includes("registerPlugin(VaultRadioCheckPlugin.class)"))
+    throw new Error("Radio check plugin registration failed.");
 }
 writeFileSync(mainPath, main);
 
