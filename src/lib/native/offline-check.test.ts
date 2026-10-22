@@ -86,7 +86,9 @@ describe("offline checklist", () => {
     let stored = JSON.stringify(["sim", "nfc", "adb", "usbHost", "wifi", "airplane"]);
     vi.stubGlobal("localStorage", {
       getItem: () => stored,
-      setItem: (_key: string, value: string) => { stored = value; },
+      setItem: (_key: string, value: string) => {
+        stored = value;
+      },
     });
     expect(readIgnoredChecks()).toEqual(["sim", "nfc"]);
     expect(setCheckIgnored("adb", true)).toEqual(["sim", "nfc"]);

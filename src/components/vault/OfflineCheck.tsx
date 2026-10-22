@@ -42,7 +42,10 @@ export function OfflineCheck({ onReady }: { onReady: (ready: boolean) => void })
     };
   }, []);
 
-  const shown = useMemo(() => (items ? applyIgnoredChecks(items, ignored) : null), [items, ignored]);
+  const shown = useMemo(
+    () => (items ? applyIgnoredChecks(items, ignored) : null),
+    [items, ignored],
+  );
   const problem = shown ? needsOverride(shown) : false;
   useEffect(() => {
     if (native === false) onReady(true);
