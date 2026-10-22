@@ -49,6 +49,7 @@ export function validateSecret(value: unknown): SecretEntry {
       typeof s.filename !== "string" ||
       !s.filename ||
       s.filename.length > 200 ||
+      // eslint-disable-next-line no-control-regex -- deliberately strips control characters from names
       /[\\/\x00-\x1f]/.test(s.filename) ||
       !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(s.content)
     )
