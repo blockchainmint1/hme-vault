@@ -218,7 +218,10 @@ describe("vault rules", () => {
       },
     });
   });
-  for (const [coin, coinType] of [["bch", 145], ["dash", 5]] as const) {
+  for (const [coin, coinType] of [
+    ["bch", 145],
+    ["dash", 5],
+  ] as const) {
     for (const passphrase of ["", "Nectar dummy passphrase"]) {
       it(`exports public-only ${coin} account m/44'/${coinType}'/0' (${passphrase ? "with" : "without"} passphrase)`, async () => {
         const full = await pairingPayload(SEED, passphrase);
@@ -235,7 +238,9 @@ describe("vault rules", () => {
         for (const index of [1, 2]) {
           const child = account.derive(`m/0/${index}`);
           expect(child.privateKey).toBeNull();
-          expect(child.publicKey).toEqual(root.derive(`m/44'/${coinType}'/0'/0/${index}`).publicKey);
+          expect(child.publicKey).toEqual(
+            root.derive(`m/44'/${coinType}'/0'/0/${index}`).publicKey,
+          );
         }
         const collector = new PartCollector();
         let restored: string | null = null;
