@@ -55,7 +55,8 @@ export function OfflineCheck({ onReady }: { onReady: (ready: boolean) => void })
     >
       <ul className="space-y-1">
         {shown.map((i) => {
-          const isIgnored = ignored.includes(i.key) && items?.find((r) => r.key === i.key)?.ok !== true;
+          const isIgnored =
+            ignored.includes(i.key) && items?.find((r) => r.key === i.key)?.ok !== true;
           return (
             <li key={i.key} className="flex items-center gap-2">
               {isIgnored ? (
