@@ -20,18 +20,29 @@ if (!existsSync(manifestPath)) {
 
 let xml = readFileSync(manifestPath, "utf8");
 
-if (!xml.includes('xmlns:tools=')) {
+if (!xml.includes("xmlns:tools=")) {
   xml = xml.replace(/<manifest\b/, '<manifest xmlns:tools="http://schemas.android.com/tools"');
 }
 
 // Drop any existing plain network permission lines.
-const NET = ["INTERNET", "ACCESS_NETWORK_STATE", "ACCESS_WIFI_STATE", "CHANGE_WIFI_STATE", "CHANGE_NETWORK_STATE"];
+const NET = [
+  "INTERNET",
+  "ACCESS_NETWORK_STATE",
+  "ACCESS_WIFI_STATE",
+  "CHANGE_WIFI_STATE",
+  "CHANGE_NETWORK_STATE",
+];
 for (const p of NET) {
-  xml = xml.replace(new RegExp(`\\s*<uses-permission[^>]*android\\.permission\\.${p}"[^>]*/>`, "g"), "");
+  xml = xml.replace(
+    new RegExp(`\\s*<uses-permission[^>]*android\\.permission\\.${p}"[^>]*/>`, "g"),
+    "",
+  );
 }
 
 const lines = [
-  ...NET.map((p) => `<uses-permission android:name="android.permission.${p}" tools:node="remove" />`),
+  ...NET.map(
+    (p) => `<uses-permission android:name="android.permission.${p}" tools:node="remove" />`,
+  ),
   '<uses-permission android:name="android.permission.CAMERA" />',
   '<uses-feature android:name="android.hardware.camera" android:required="false" />',
   '<uses-permission android:name="android.permission.USE_BIOMETRIC" />',
@@ -42,13 +53,17 @@ for (const line of lines) {
 
 // No cloud / device-transfer backups of app data.
 xml = xml.replace(/android:allowBackup="true"/, 'android:allowBackup="false"');
-if (!xml.includes("android:allowBackup")) xml = xml.replace(/<application\b/, '<application android:allowBackup="false"');
-if (!xml.includes("android:fullBackupContent")) xml = xml.replace(/<application\b/, '<application android:fullBackupContent="false"');
+if (!xml.includes("android:allowBackup"))
+  xml = xml.replace(/<application\b/, '<application android:allowBackup="false"');
+if (!xml.includes("android:fullBackupContent"))
+  xml = xml.replace(/<application\b/, '<application android:fullBackupContent="false"');
 
 // Android 12+: exclude every file from cloud backup and phone-to-phone transfer.
 const xmlDir = resolve(process.cwd(), "android/app/src/main/res/xml");
 mkdirSync(xmlDir, { recursive: true });
-writeFileSync(resolve(xmlDir, "data_extraction_rules.xml"), `<?xml version="1.0" encoding="utf-8"?>
+writeFileSync(
+  resolve(xmlDir, "data_extraction_rules.xml"),
+  `<?xml version="1.0" encoding="utf-8"?>
 <data-extraction-rules>
     <cloud-backup>
         <exclude domain="root" path="." /><exclude domain="file" path="." /><exclude domain="database" path="." /><exclude domain="sharedpref" path="." /><exclude domain="external" path="." />
@@ -57,14 +72,22 @@ writeFileSync(resolve(xmlDir, "data_extraction_rules.xml"), `<?xml version="1.0"
         <exclude domain="root" path="." /><exclude domain="file" path="." /><exclude domain="database" path="." /><exclude domain="sharedpref" path="." /><exclude domain="external" path="." />
     </device-transfer>
 </data-extraction-rules>
-`);
-if (!xml.includes("android:dataExtractionRules")) xml = xml.replace(/<application\b/, '<application android:dataExtractionRules="@xml/data_extraction_rules"');
+`,
+);
+if (!xml.includes("android:dataExtractionRules"))
+  xml = xml.replace(
+    /<application\b/,
+    '<application android:dataExtractionRules="@xml/data_extraction_rules"',
+  );
 // Narrow the file-sharing provider to one cache subfolder.
-writeFileSync(resolve(xmlDir, "file_paths.xml"), `<?xml version="1.0" encoding="utf-8"?>
+writeFileSync(
+  resolve(xmlDir, "file_paths.xml"),
+  `<?xml version="1.0" encoding="utf-8"?>
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
     <cache-path name="vault_share" path="vault-share/" />
 </paths>
-`);
+`,
+);
 
 writeFileSync(manifestPath, xml);
 console.log("Patched AndroidManifest.xml (no network, camera, biometric, no backups).");
@@ -83,21 +106,33 @@ const javaDir = resolve(process.cwd(), "android/app/src/main/java/money/honest/s
 const mainPath = resolve(javaDir, "MainActivity.java");
 if (!existsSync(mainPath)) throw new Error("Expected Vault MainActivity.java was not found.");
 for (const name of ["VaultDocumentsPlugin.java", "VaultBiometricKeyPlugin.java"]) {
-  writeFileSync(resolve(javaDir, name), readFileSync(resolve(process.cwd(), "scripts/native", name), "utf8"));
+  writeFileSync(
+    resolve(javaDir, name),
+    readFileSync(resolve(process.cwd(), "scripts/native", name), "utf8"),
+  );
 }
 let main = readFileSync(mainPath, "utf8");
 if (!main.includes("registerPlugin(VaultDocumentsPlugin.class)")) {
-  if (main.includes("void onCreate(")) throw new Error("Review existing MainActivity.onCreate before registering document plugin.");
-  main = main.replace(/extends BridgeActivity\s*\{/, `extends BridgeActivity {
+  if (main.includes("void onCreate("))
+    throw new Error("Review existing MainActivity.onCreate before registering document plugin.");
+  main = main.replace(
+    /extends BridgeActivity\s*\{/,
+    `extends BridgeActivity {
     @Override public void onCreate(android.os.Bundle savedInstanceState) {
         registerPlugin(VaultDocumentsPlugin.class);
         super.onCreate(savedInstanceState);
-    }`);
-  if (!main.includes("registerPlugin(VaultDocumentsPlugin.class)")) throw new Error("Document plugin registration failed.");
+    }`,
+  );
+  if (!main.includes("registerPlugin(VaultDocumentsPlugin.class)"))
+    throw new Error("Document plugin registration failed.");
 }
 if (!main.includes("registerPlugin(VaultBiometricKeyPlugin.class)")) {
-  main = main.replace("registerPlugin(VaultDocumentsPlugin.class);", "registerPlugin(VaultDocumentsPlugin.class);\n        registerPlugin(VaultBiometricKeyPlugin.class);");
-  if (!main.includes("registerPlugin(VaultBiometricKeyPlugin.class)")) throw new Error("Biometric key plugin registration failed.");
+  main = main.replace(
+    "registerPlugin(VaultDocumentsPlugin.class);",
+    "registerPlugin(VaultDocumentsPlugin.class);\n        registerPlugin(VaultBiometricKeyPlugin.class);",
+  );
+  if (!main.includes("registerPlugin(VaultBiometricKeyPlugin.class)"))
+    throw new Error("Biometric key plugin registration failed.");
 }
 writeFileSync(mainPath, main);
 

@@ -36,7 +36,8 @@ export function TotpCode({ uri }: { uri: string }) {
     };
   }, [uri]);
 
-  if (!params) return <p className="text-sm text-destructive">This authenticator entry is invalid.</p>;
+  if (!params)
+    return <p className="text-sm text-destructive">This authenticator entry is invalid.</p>;
 
   return (
     <div className="space-y-3 rounded-md border border-border p-4 text-center">
@@ -45,10 +46,16 @@ export function TotpCode({ uri }: { uri: string }) {
         {code.slice(0, code.length / 2)} {code.slice(code.length / 2)}
       </p>
       <div className="mx-auto h-1.5 w-full max-w-48 overflow-hidden rounded-full bg-muted">
-        <div className="h-full bg-primary transition-[width] duration-1000 ease-linear" style={{ width: `${(left / params.period) * 100}%` }} />
+        <div
+          className="h-full bg-primary transition-[width] duration-1000 ease-linear"
+          style={{ width: `${(left / params.period) * 100}%` }}
+        />
       </div>
       <p className="text-xs text-muted-foreground">New code in {left}s</p>
-      <Button variant="outline" size="sm" onClick={() => void copy(code)}><Copy className="mr-1.5 h-4 w-4" />{copied ? "Copied" : "Copy code"}</Button>
+      <Button variant="outline" size="sm" onClick={() => void copy(code)}>
+        <Copy className="mr-1.5 h-4 w-4" />
+        {copied ? "Copied" : "Copy code"}
+      </Button>
     </div>
   );
 }

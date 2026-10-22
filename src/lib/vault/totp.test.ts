@@ -15,8 +15,16 @@ describe("base32", () => {
 
 describe("parseOtpAuth", () => {
   it("parses a full otpauth URI", () => {
-    const p = parseOtpAuth(`otpauth://totp/Example:alice@example.com?secret=${RFC_SECRET}&issuer=Example&digits=6&period=30`);
-    expect(p).toMatchObject({ label: "Example:alice@example.com", issuer: "Example", secret: RFC_SECRET, digits: 6, period: 30 });
+    const p = parseOtpAuth(
+      `otpauth://totp/Example:alice@example.com?secret=${RFC_SECRET}&issuer=Example&digits=6&period=30`,
+    );
+    expect(p).toMatchObject({
+      label: "Example:alice@example.com",
+      issuer: "Example",
+      secret: RFC_SECRET,
+      digits: 6,
+      period: 30,
+    });
   });
   it("accepts a bare base32 secret with defaults", () => {
     const p = parseOtpAuth(`  ${RFC_SECRET.toLowerCase()}  `);
@@ -50,12 +58,23 @@ describe("totpCode (RFC 6238 vectors, 8 digits)", () => {
 
 describe("secondsRemaining", () => {
   it("counts down within the period", () => {
-    expect(secondsRemaining({ label: "", issuer: "", secret: RFC_SECRET, digits: 6, period: 30 }, 59_000)).toBe(1);
-    expect(secondsRemaining({ label: "", issuer: "", secret: RFC_SECRET, digits: 6, period: 30 }, 60_000)).toBe(30);
+    expect(
+      secondsRemaining(
+        { label: "", issuer: "", secret: RFC_SECRET, digits: 6, period: 30 },
+        59_000,
+      ),
+    ).toBe(1);
+    expect(
+      secondsRemaining(
+        { label: "", issuer: "", secret: RFC_SECRET, digits: 6, period: 30 },
+        60_000,
+      ),
+    ).toBe(30);
   });
 });
 
-
 it("refuses non-SHA1 authenticator accounts", () => {
-  expect(() => parseOtpAuth("otpauth://totp/x?secret=JBSWY3DPEHPK3PXP&algorithm=SHA256")).toThrow(/SHA256/);
+  expect(() => parseOtpAuth("otpauth://totp/x?secret=JBSWY3DPEHPK3PXP&algorithm=SHA256")).toThrow(
+    /SHA256/,
+  );
 });

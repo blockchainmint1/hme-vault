@@ -20,11 +20,10 @@ function corsHeadersFor(origin: string | null): Record<string, string> {
   if (!origin || !ALLOWED_CORS_ORIGINS.has(origin)) return {};
   return {
     "Access-Control-Allow-Origin": origin,
-    "Vary": "Origin",
+    Vary: "Origin",
     "Access-Control-Allow-Credentials": "true",
     "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers":
-      "Content-Type, Authorization, X-Requested-With, Accept, Origin",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With, Accept, Origin",
     "Access-Control-Max-Age": "86400",
   };
 }

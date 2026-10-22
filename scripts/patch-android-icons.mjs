@@ -70,7 +70,12 @@ async function ensure(dir) {
 async function legacyIcon(markPath, bg, size, outPath) {
   const inner = Math.round(size * 0.68);
   const markBuf = await sharp(markPath)
-    .resize({ width: inner, height: inner, fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .resize({
+      width: inner,
+      height: inner,
+      fit: "contain",
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    })
     .png()
     .toBuffer();
   await sharp({
@@ -85,11 +90,21 @@ async function legacyIcon(markPath, bg, size, outPath) {
 async function adaptiveForeground(markPath, canvas, outPath) {
   const inner = Math.round(canvas * SAFE_RATIO);
   const markBuf = await sharp(markPath)
-    .resize({ width: inner, height: inner, fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .resize({
+      width: inner,
+      height: inner,
+      fit: "contain",
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    })
     .png()
     .toBuffer();
   await sharp({
-    create: { width: canvas, height: canvas, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } },
+    create: {
+      width: canvas,
+      height: canvas,
+      channels: 4,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    },
   })
     .composite([{ input: markBuf, gravity: "center" }])
     .png()

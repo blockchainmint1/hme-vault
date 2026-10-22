@@ -6,7 +6,8 @@ import { NETWORKS } from "./networks";
 import { decodeOmniSimpleSend, parsePsbt, reviewPsbt, signPsbt } from "./psbt";
 import { PartCollector, toParts } from "./qr-parts";
 
-const WORDS = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
+const WORDS =
+  "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
 const OTHER = "zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo wrong";
 const net = NETWORKS.TXC;
 
@@ -20,12 +21,29 @@ async function setup() {
   const fpBytes = Uint8Array.from(fp.match(/../g)!.map((h) => parseInt(h, 16)));
   const psbt = new Psbt({ network: net });
   psbt.addInput({
-    hash: "11".repeat(32), index: 0,
+    hash: "11".repeat(32),
+    index: 0,
     witnessUtxo: { script: p2(recv).output!, value: 100_000_000n },
-    bip32Derivation: [{ masterFingerprint: fpBytes as Buffer, path: "m/84'/696969'/0'/0/0", pubkey: recv.publicKey as Buffer }],
+    bip32Derivation: [
+      {
+        masterFingerprint: fpBytes as Buffer,
+        path: "m/84'/696969'/0'/0/0",
+        pubkey: recv.publicKey as Buffer,
+      },
+    ],
   });
   psbt.addOutput({ address: p2(other).address!, value: 30_000_000n });
-  psbt.addOutput({ address: p2(chg).address!, value: 69_990_000n, bip32Derivation: [{ masterFingerprint: fpBytes as Buffer, path: "m/84'/696969'/0'/1/0", pubkey: chg.publicKey as Buffer }] });
+  psbt.addOutput({
+    address: p2(chg).address!,
+    value: 69_990_000n,
+    bip32Derivation: [
+      {
+        masterFingerprint: fpBytes as Buffer,
+        path: "m/84'/696969'/0'/1/0",
+        pubkey: chg.publicKey as Buffer,
+      },
+    ],
+  });
   const seeds = [{ id: "a", name: "Main", words: WORDS, fingerprint: fp }];
   return { psbt, seeds, otherAddr: p2(other).address! };
 }
@@ -50,18 +68,33 @@ describe("offline signer", () => {
   });
   it("refuses a payment whose inputs belong to no stored seed", async () => {
     const { psbt } = await setup();
-    await expect(reviewPsbt(parsePsbt(psbt.toBase64()), [{ id: "b", name: "x", words: OTHER, fingerprint: "deadbeef" }])).rejects.toThrow(/doesn't belong/);
+    await expect(
+      reviewPsbt(parsePsbt(psbt.toBase64()), [
+        { id: "b", name: "x", words: OTHER, fingerprint: "deadbeef" },
+      ]),
+    ).rejects.toThrow(/doesn't belong/);
   });
   it("reads a 100 TSD transfer from the data output", async () => {
     const { psbt, seeds } = await setup();
-    const payload = Uint8Array.from(Buffer.from("6f6d6e69" + "0000" + "0000" + "00000027" + (100n * 100_000_000n).toString(16).padStart(16, "0"), "hex"));
+    const payload = Uint8Array.from(
+      Buffer.from(
+        "6f6d6e69" +
+          "0000" +
+          "0000" +
+          "00000027" +
+          (100n * 100_000_000n).toString(16).padStart(16, "0"),
+        "hex",
+      ),
+    );
     psbt.addOutput({ script: payments.embed({ data: [payload as Buffer] }).output!, value: 0n });
     const { review } = await reviewPsbt(parsePsbt(psbt.toBase64()), seeds);
     expect(review.token?.symbol).toBe("TSD");
     expect(review.token?.amount).toBe("100");
   });
   it("rejects trailing Omni data instead of labeling it as a token transfer", () => {
-    const valid = Uint8Array.from(Buffer.from("6a146f6d6e69000000000000002700000002540be400", "hex"));
+    const valid = Uint8Array.from(
+      Buffer.from("6a146f6d6e69000000000000002700000002540be400", "hex"),
+    );
     expect(decodeOmniSimpleSend(valid)?.propertyId).toBe(39);
     expect(decodeOmniSimpleSend(Uint8Array.from([...valid, 0]))).toBeNull();
   });

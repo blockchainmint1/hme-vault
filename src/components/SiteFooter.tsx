@@ -13,7 +13,14 @@ export function SiteFooter() {
       <div className="mx-auto max-w-xl px-4 space-y-2 text-sm text-muted-foreground">
         <p>
           Part of the{" "}
-          <a href="https://honest.money" target="_blank" rel="noreferrer" className="text-foreground hover:underline">honest.money</a>{" "}
+          <a
+            href="https://honest.money"
+            target="_blank"
+            rel="noreferrer"
+            className="text-foreground hover:underline"
+          >
+            honest.money
+          </a>{" "}
           ecosystem
         </p>
         <nav className="flex flex-wrap gap-x-5 gap-y-1">
@@ -32,9 +39,15 @@ export function SiteFooter() {
           >
             GitHub
           </a>
-          <Link to="/legal/terms" className="hover:text-foreground">Terms</Link>
-          <Link to="/legal/privacy" className="hover:text-foreground">Privacy</Link>
-          <Link to="/manifesto" className="hover:text-foreground">Manifesto</Link>
+          <Link to="/legal/terms" className="hover:text-foreground">
+            Terms
+          </Link>
+          <Link to="/legal/privacy" className="hover:text-foreground">
+            Privacy
+          </Link>
+          <Link to="/manifesto" className="hover:text-foreground">
+            Manifesto
+          </Link>
         </nav>
       </div>
     </footer>

@@ -34,9 +34,9 @@ function ManifestoPage() {
 
       <h2>1. Your keys, your coins.</h2>
       <p>
-        If someone else can move your money, it isn't yours. Every line of this app is written
-        to keep the keys with the person they belong to — you. No accounts. No custodian. No
-        password reset email that turns into a way for an attacker to drain you.
+        If someone else can move your money, it isn't yours. Every line of this app is written to
+        keep the keys with the person they belong to — you. No accounts. No custodian. No password
+        reset email that turns into a way for an attacker to drain you.
       </p>
 
       <h2>2. Honest defaults.</h2>
@@ -66,8 +66,8 @@ function ManifestoPage() {
         <a href="https://honest.money" target="_blank" rel="noreferrer">
           honest.money
         </a>{" "}
-        ecosystem — a set of independently-built, interoperable tools for people who want money
-        that works without permission.
+        ecosystem — a set of independently-built, interoperable tools for people who want money that
+        works without permission.
       </p>
     </main>
   );

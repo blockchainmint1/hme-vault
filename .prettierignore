@@ -6,3 +6,9 @@ pnpm-lock.yaml
 package-lock.json
 bun.lock
 routeTree.gen.ts
+src/integrations/
+src/lib/vault/transfer-page.ts
+src/lib/vault/standalone.ts
+.lovable/
+*.md
+*.asset.json

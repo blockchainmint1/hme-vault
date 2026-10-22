@@ -5,7 +5,10 @@ export const Route = createFileRoute("/legal/privacy")({
     meta: [
       { title: "Privacy — HME Vault" },
       { property: "og:title", content: "Privacy — HME Vault" },
-      { property: "og:description", content: "Privacy policy for offline seed and secret storage." },
+      {
+        property: "og:description",
+        content: "Privacy policy for offline seed and secret storage.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       {
@@ -37,17 +40,16 @@ function PrivacyPage() {
       <h2>What stays on your device</h2>
       <p>
         Your BIP39 seed phrase and any optional BIP39 passphrase are encrypted with a key derived
-        from your wallet password (PBKDF2-SHA256, 600,000 iterations) and stored in your
-        browser's local storage. The unencrypted seed exists only in memory while the wallet is
-        unlocked.
+        from your wallet password (PBKDF2-SHA256, 600,000 iterations) and stored in your browser's
+        local storage. The unencrypted seed exists only in memory while the wallet is unlocked.
       </p>
 
       <h2>What we ask the network</h2>
       <p>
         To show balances and broadcast transactions, the app talks to public TEXITcoin
         infrastructure (currently <code>mempool.texitcoin.org</code>). Those servers see your
-        addresses and the IP address of your device the same way any blockchain explorer does.
-        We do not run those servers and do not log any of those requests on our side.
+        addresses and the IP address of your device the same way any blockchain explorer does. We do
+        not run those servers and do not log any of those requests on our side.
       </p>
 
       <h2>Price data</h2>
@@ -67,9 +69,9 @@ function PrivacyPage() {
         the details of a specific exchange.
       </p>
       <p>
-        Swaps routed through THORChain, and every ordinary send, receive, or balance check, are
-        not logged this way. We never link this record to your seed phrase, and we do not use it
-        for analytics, profiling, or advertising.
+        Swaps routed through THORChain, and every ordinary send, receive, or balance check, are not
+        logged this way. We never link this record to your seed phrase, and we do not use it for
+        analytics, profiling, or advertising.
       </p>
 
       <h2>Children</h2>

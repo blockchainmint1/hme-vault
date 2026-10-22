@@ -5,10 +5,12 @@ import { payments, Psbt, Transaction } from "bitcoinjs-lib";
 import { NETWORKS, type CoinId } from "./networks";
 import { MAX_FEE_RATE, MAX_FEE_RATES, maxFeeRate, reviewPsbt, signPsbt } from "./psbt";
 
-const words = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
+const words =
+  "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
 async function payment(coin: CoinId = "DOGE", fee = 10_000n) {
   const root = HDKey.fromMasterSeed(await mnemonicToSeed(words));
-  const ct = coin === "TXC" ? 696969 : coin === "ISK" ? 969696 : coin === "BTC" ? 0 : coin === "LTC" ? 2 : 3;
+  const ct =
+    coin === "TXC" ? 696969 : coin === "ISK" ? 969696 : coin === "BTC" ? 0 : coin === "LTC" ? 2 : 3;
   const path = `m/44'/${ct}'/0'/0/0`;
   const key = root.derive(path);
   const destKey = root.derive(`m/44'/${ct}'/1'/0/0`);
@@ -20,11 +22,33 @@ async function payment(coin: CoinId = "DOGE", fee = 10_000n) {
   prev.addOutput(from.output, 1_000_000_000n);
   // Deliberately permissive caller options must not override Vault policy.
   const psbt = new Psbt({ network: NETWORKS[coin], maximumFeeRate: 10_000_000 });
-  psbt.addInput({ hash: prev.getId(), index: 0, nonWitnessUtxo: prev.toBuffer(), bip32Derivation: [{
-    masterFingerprint: Uint8Array.from(Buffer.from(root.fingerprint.toString(16).padStart(8, "0"), "hex")), path, pubkey: key.publicKey,
-  }] });
+  psbt.addInput({
+    hash: prev.getId(),
+    index: 0,
+    nonWitnessUtxo: prev.toBuffer(),
+    bip32Derivation: [
+      {
+        masterFingerprint: Uint8Array.from(
+          Buffer.from(root.fingerprint.toString(16).padStart(8, "0"), "hex"),
+        ),
+        path,
+        pubkey: key.publicKey,
+      },
+    ],
+  });
   psbt.addOutput({ address: to.address, value: 1_000_000_000n - fee });
-  return { psbt, key, seeds: [{ id: "dummy", name: "Dummy", words, fingerprint: root.fingerprint.toString(16).padStart(8, "0") }] };
+  return {
+    psbt,
+    key,
+    seeds: [
+      {
+        id: "dummy",
+        name: "Dummy",
+        words,
+        fingerprint: root.fingerprint.toString(16).padStart(8, "0"),
+      },
+    ],
+  };
 }
 function dataOutput(psbt: Psbt, payload: Uint8Array, value = 0n) {
   const script = payments.embed({ data: [payload] }).output;
@@ -37,7 +61,10 @@ describe("offline payment safety policy", () => {
   for (const coin of ["TXC", "ISK", "BTC", "LTC", "DOGE"] as const) {
     it(`blocks unreadable ${coin} swap memos before signing`, async () => {
       const { psbt, seeds, key } = await payment(coin);
-      dataOutput(psbt, new TextEncoder().encode("=:ETH.USDC:0x1111111111111111111111111111111111111111:1000000"));
+      dataOutput(
+        psbt,
+        new TextEncoder().encode("=:ETH.USDC:0x1111111111111111111111111111111111111111:1000000"),
+      );
       const before = psbt.toBase64();
       await expect(reviewPsbt(psbt, seeds, coin)).rejects.toThrow(/cannot verify/);
       expect(() => signPsbt(psbt, [key])).toThrow(/not reviewed/);
@@ -51,7 +78,13 @@ describe("offline payment safety policy", () => {
   }
   it("uses per-coin caps: BTC/LTC/TXC/ISK 5,000 and DOGE 1,000,000 base units per vB", () => {
     expect(MAX_FEE_RATE).toBe(5_000);
-    expect(MAX_FEE_RATES).toEqual({ BTC: 5_000, LTC: 5_000, TXC: 5_000, ISK: 5_000, DOGE: 1_000_000 });
+    expect(MAX_FEE_RATES).toEqual({
+      BTC: 5_000,
+      LTC: 5_000,
+      TXC: 5_000,
+      ISK: 5_000,
+      DOGE: 1_000_000,
+    });
     expect(Object.isFrozen(MAX_FEE_RATES)).toBe(true);
   });
   it("signs the original 0.01585 DOGE wallet fee that the Bitcoin cap used to block", async () => {
@@ -65,13 +98,21 @@ describe("offline payment safety policy", () => {
     const { psbt, seeds } = await payment("BTC", BigInt(size.maximumVsize) * 4_500n);
     const { review } = await reviewPsbt(psbt, seeds, "BTC");
     expect(review.warnings.some((w) => /close to Vault's BTC safety limit/.test(w))).toBe(true);
-    expect(sample.psbt && (await reviewPsbt(sample.psbt, sample.seeds, "BTC")).review.warnings.some((w) => /close to/.test(w))).toBe(false);
+    expect(
+      sample.psbt &&
+        (await reviewPsbt(sample.psbt, sample.seeds, "BTC")).review.warnings.some((w) =>
+          /close to/.test(w),
+        ),
+    ).toBe(false);
   });
   it("names the LAST non-change output as the Omni token recipient", async () => {
     const { psbt, seeds } = await payment("TXC");
     const decoy = psbt.txOutputs[0].address;
     const root = HDKey.fromMasterSeed(await mnemonicToSeed(words));
-    const real = payments.p2pkh({ pubkey: root.derive("m/44'/696969'/2'/0/0").publicKey ?? undefined, network: NETWORKS.TXC }).address!;
+    const real = payments.p2pkh({
+      pubkey: root.derive("m/44'/696969'/2'/0/0").publicKey ?? undefined,
+      network: NETWORKS.TXC,
+    }).address!;
     dataOutput(psbt, omni);
     psbt.addOutput({ address: real, value: 546n });
     const { review } = await reviewPsbt(psbt, seeds, "TXC");
@@ -106,17 +147,19 @@ describe("offline payment safety policy", () => {
     expect(() => signPsbt(psbt, [another])).toThrow(/changed/);
     expect(signPsbt(psbt, keys).hex.length).toBeGreaterThan(0);
   });
-  for (const coin of ["TXC", "ISK"] as const) it(`keeps readable ${coin} TSD transfers working`, async () => {
-    const { psbt, seeds } = await payment(coin);
-    dataOutput(psbt, omni);
-    const { review, keys } = await reviewPsbt(psbt, seeds, coin);
-    expect(review.token?.amount).toBe("100");
-    expect(review.token?.symbol).toBe("TSD");
-    expect(Transaction.fromHex(signPsbt(psbt, keys).hex).outs).toHaveLength(2);
-  });
+  for (const coin of ["TXC", "ISK"] as const)
+    it(`keeps readable ${coin} TSD transfers working`, async () => {
+      const { psbt, seeds } = await payment(coin);
+      dataOutput(psbt, omni);
+      const { review, keys } = await reviewPsbt(psbt, seeds, coin);
+      expect(review.token?.amount).toBe("100");
+      expect(review.token?.symbol).toBe("TSD");
+      expect(Transaction.fromHex(signPsbt(psbt, keys).hex).outs).toHaveLength(2);
+    });
   it("blocks multiple Omni instructions", async () => {
     const { psbt, seeds } = await payment("TXC");
-    dataOutput(psbt, omni); dataOutput(psbt, omni);
+    dataOutput(psbt, omni);
+    dataOutput(psbt, omni);
     await expect(reviewPsbt(psbt, seeds, "TXC")).rejects.toThrow(/one zero-value/);
   });
   it("blocks value burned into Omni data", async () => {
@@ -133,7 +176,10 @@ describe("offline payment safety policy", () => {
     const sample = await payment();
     const { review: size } = await reviewPsbt(sample.psbt, sample.seeds, "DOGE");
     // The lower-bound review permits this; shorter real signatures exceed the cap.
-    const { psbt, seeds } = await payment("DOGE", BigInt(size.maximumVsize) * BigInt(maxFeeRate("DOGE")) - 1n);
+    const { psbt, seeds } = await payment(
+      "DOGE",
+      BigInt(size.maximumVsize) * BigInt(maxFeeRate("DOGE")) - 1n,
+    );
     const before = psbt.toBase64();
     const { keys } = await reviewPsbt(psbt, seeds, "DOGE");
     expect(() => signPsbt(psbt, keys)).toThrow(/safety limit/);

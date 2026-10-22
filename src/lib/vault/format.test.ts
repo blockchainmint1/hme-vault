@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { lockSeed, unlockSeed } from "./format";
 
-const SEED = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
+const SEED =
+  "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
 
 describe("seed vault", () => {
   it("round-trips a seed with the right password", async () => {

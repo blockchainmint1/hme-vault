@@ -39,7 +39,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [resolved, setResolved] = useState<"light" | "dark">("dark");
 
   useEffect(() => {
-    const stored = (typeof localStorage !== "undefined" && (localStorage.getItem(KEY) as Theme | null)) || "system";
+    const stored =
+      (typeof localStorage !== "undefined" && (localStorage.getItem(KEY) as Theme | null)) ||
+      "system";
     setThemeState(stored);
     setResolved(apply(stored));
     const mq = window.matchMedia("(prefers-color-scheme: dark)");

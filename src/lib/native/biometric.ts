@@ -28,7 +28,6 @@ const BioKey = registerPlugin<{
   remove(): Promise<void>;
 }>("VaultBiometricKey");
 
-
 export interface BiometricStatus {
   available: boolean;
   enabled: boolean;
@@ -42,7 +41,11 @@ let legacyCleaned = false;
 async function cleanLegacy() {
   if (legacyCleaned || !isNative()) return;
   legacyCleaned = true;
-  try { localStorage.removeItem("hmsv.bio.enabled"); } catch { /* ignore */ }
+  try {
+    localStorage.removeItem("hmsv.bio.enabled");
+  } catch {
+    /* ignore */
+  }
 }
 
 export async function getBiometricStatus(): Promise<BiometricStatus> {
@@ -106,7 +109,10 @@ export async function unlockWithBiometric(): Promise<string | null> {
  * Fingerprint check before a sensitive action. Uses the same hardware key, so
  * it only succeeds when the released credential matches the currently open Vault.
  */
-export async function confirmWithBiometric(_reason: string, verify: (credential: string) => boolean): Promise<boolean> {
+export async function confirmWithBiometric(
+  _reason: string,
+  verify: (credential: string) => boolean,
+): Promise<boolean> {
   if (!isNative() || cachedFlag !== true) return false;
   try {
     const credential = await unlockWithBiometric();
