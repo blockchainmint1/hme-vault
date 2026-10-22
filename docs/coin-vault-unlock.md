@@ -1,6 +1,6 @@
 # Hidden coin QR unlock
 
-Vault accepts the existing Cold Storage Coins hidden BIP39 seed QR (plain English words or Standard SeedQR) as a local master password. Public coin address/AssetID labels cannot unlock Vault. No coin registry request, account sign-in, network verification, balance check or ownership claim is involved; the two coin projects are unchanged.
+Vault accepts the existing Cold Storage Coins hidden BIP39 seed QR (plain English words or Standard SeedQR) as a local master password. **By design (owner decision, 2026-10-17, reaffirmed 2026-10-22): any scanned QR content is accepted as the credential, including a coin's public side.** Seeds and private keys are normalized so rescans match; anything else is used exactly as scanned. Owners are told to use the hidden/secret QR. This is intentional and will not be changed in response to audit finding M1. No coin registry request, account sign-in, network verification, balance check or ownership claim is involved; the two coin projects are unchanged.
 
 ## Setup and existing Vaults
 
@@ -20,4 +20,4 @@ Full backups keep their separately chosen backup password. Changing the phone's 
 
 ## Verification
 
-Tests cover BIP39/Standard SeedQR normalization, rejecting public identifiers, explicit consent, matching second scan and HMVAULT1 recovery. Browser camera tests with a dummy QR verify setup, lock/unlock, saving and revealing a dummy secret, and rekeying an existing Vault with rejection of the former password. Android camera, fingerprint and USB recovery still require actual-device testing.
+Tests cover BIP39/Standard SeedQR normalization, accepting any scanned content, explicit consent, matching second scan and HMVAULT1 recovery. Browser camera tests with a dummy QR verify setup, lock/unlock, saving and revealing a dummy secret, and rekeying an existing Vault with rejection of the former password. Android camera, fingerprint and USB recovery still require actual-device testing.

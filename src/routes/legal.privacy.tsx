@@ -28,7 +28,7 @@ function PrivacyPage() {
         ← Home
       </Link>
       <h1>Privacy Policy</h1>
-      <p className="text-sm text-muted-foreground">Draft — last updated June 29, 2026</p>
+      <p className="text-sm text-muted-foreground">Draft — last updated October 22, 2026</p>
 
       <h2>The short version</h2>
       <ul>
@@ -39,39 +39,23 @@ function PrivacyPage() {
 
       <h2>What stays on your device</h2>
       <p>
-        Your BIP39 seed phrase and any optional BIP39 passphrase are encrypted with a key derived
-        from your wallet password (PBKDF2-SHA256, 600,000 iterations) and stored in your browser's
-        local storage. The unencrypted seed exists only in memory while the wallet is unlocked.
+        Seeds, passwords, notes, files and authenticator accounts are encrypted with a key derived
+        from your Vault password or coin QR (PBKDF2-SHA512, 1,000,000 iterations, AES-256-GCM) and
+        stored only on your device. They are decrypted in memory only while Vault is unlocked.
       </p>
 
       <h2>What we ask the network</h2>
       <p>
-        To show balances and broadcast transactions, the app talks to public TEXITcoin
-        infrastructure (currently <code>mempool.texitcoin.org</code>). Those servers see your
-        addresses and the IP address of your device the same way any blockchain explorer does. We do
-        not run those servers and do not log any of those requests on our side.
+        Nothing. Vault has no network code. The Android app is built without internet permission, so
+        the phone itself blocks every connection. Backups leave the device only when you save a file
+        or show a QR code yourself.
       </p>
 
-      <h2>Price data</h2>
+      <h2>The website</h2>
       <p>
-        If TXC price is shown, it is fetched server-side from a public price API. Your wallet
-        addresses are not sent with that request.
-      </p>
-
-      <h2>Exchange swaps (the one exception)</h2>
-      <p>
-        If — and only if — you place a swap through one of our third-party exchange partners
-        (currently SideShift and FixedFloat), anti-money-laundering rules require us to keep a
-        record of that order. For those orders we store the order reference, the coin and amount,
-        the payout asset and address, the deposit transaction, and your IP address, browser
-        User-Agent string, and browser language list. We keep it for 13 months and then delete it
-        automatically. We disclose it only if the exchange partner or a lawful authority requests
-        the details of a specific exchange.
-      </p>
-      <p>
-        Swaps routed through THORChain, and every ordinary send, receive, or balance check, are not
-        logged this way. We never link this record to your seed phrase, and we do not use it for
-        analytics, profiling, or advertising.
+        vault.honest.money serves the same app as a demo. Your browser downloads the page from our
+        host, which sees ordinary request details such as your IP address. Anything you type there
+        stays in your browser&apos;s storage. Never put real seeds in the website version.
       </p>
 
       <h2>Children</h2>
