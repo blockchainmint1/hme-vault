@@ -13,6 +13,11 @@ import {
   type SeedEntry,
 } from "./seeds";
 import { unlockText } from "./format";
+import { HDKey } from "@scure/bip32";
+import { mnemonicToSeed } from "@scure/bip39";
+import { publicKeyToAddress } from "viem/accounts";
+import { secp256k1 } from "@noble/curves/secp256k1";
+import { pairingPayload } from "./seeds";
 
 const SEED =
   "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
@@ -155,6 +160,61 @@ describe("vault rules", () => {
       "TZZCuca5ntPVCJL5ryTjh465Jvw5vHxsVd",
     );
   });
+  it("exports the standard public EVM account key at m/44'/60'/0'", async () => {
+    const pairing = JSON.parse(await pairingPayload(SEED));
+    const root = HDKey.fromMasterSeed(await mnemonicToSeed(SEED));
+    const account = HDKey.fromExtendedKey(pairing.evm.xpub);
+    expect(pairing.evm.xpub).toBe(root.derive("m/44'/60'/0'").publicExtendedKey);
+    expect(pairing.evm.xpub.startsWith("xpub")).toBe(true);
+    expect(account.versions.public).toBe(0x0488b21e);
+    expect(account.depth).toBe(3);
+    expect(account.privateKey).toBeNull();
+  });
+  it("preserves all existing pairing fields when adding the EVM xpub", async () => {
+    const pairing = JSON.parse(await pairingPayload(SEED));
+    const root = HDKey.fromMasterSeed(await mnemonicToSeed(SEED));
+    const accounts = (coin: number) =>
+      Object.fromEntries(
+        [84, 49, 44].map((purpose) => [
+          purpose,
+          root.derive(`m/${purpose}'/${coin}'/0'`).publicExtendedKey,
+        ]),
+      );
+    const { xpub: _xpub, ...legacyEvm } = pairing.evm;
+    expect({ ...pairing, evm: legacyEvm }).toEqual({
+      hmvault: 1,
+      fp: "73c5da0a",
+      txc: accounts(696969),
+      isk: accounts(969696),
+      btc: accounts(0),
+      ltc: accounts(2),
+      doge: { "44": root.derive("m/44'/3'/0'").publicExtendedKey },
+      evm: {
+        address: "0x9858effd232b4033e47d90003d41ec34ecaeda94",
+        path: "m/44'/60'/0'/0/0",
+      },
+    });
+  });
+  for (const passphrase of ["", "Nectar dummy passphrase"]) {
+    it(`derives Nectar sale addresses /0/1 and /0/2 without private keys (${passphrase ? "with" : "without"} passphrase)`, async () => {
+      const pairing = JSON.parse(await pairingPayload(SEED, passphrase));
+      const account = HDKey.fromExtendedKey(pairing.evm.xpub);
+      const root = HDKey.fromMasterSeed(await mnemonicToSeed(SEED, passphrase));
+      for (const index of [1, 2]) {
+        const child = account.derive(`m/0/${index}`);
+        const expected = root.derive(`m/44'/60'/0'/0/${index}`);
+        expect(child.privateKey).toBeNull();
+        expect(child.publicKey).toEqual(expected.publicKey);
+        if (!child.publicKey) throw new Error("Missing public child key");
+        const uncompressed = secp256k1.Point.fromHex(child.publicKey).toBytes(false);
+        const hex = `0x${Array.from(uncompressed, (b) => b.toString(16).padStart(2, "0")).join("")}` as const;
+        const address = publicKeyToAddress(hex);
+        expect(address.toLowerCase()).not.toBe(pairing.evm.address.toLowerCase());
+        if (!passphrase && index === 1)
+          expect(address.toLowerCase()).toBe("0x6fac4d18c912343bf86fa7049364dd4e424ab9c0");
+      }
+    });
+  }
 });
 
 import { parsePayload as _parse, seedFingerprint as _fp, MAX_SEED_NAME as _max } from "./seeds";

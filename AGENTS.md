@@ -23,6 +23,7 @@ Subdirectories (`src/lib/vault`, `src/lib/signer`) have their own `AGENTS.md`; r
 - Capacitor `hostname` (`vault.local`) is fixed after release. Why: localStorage is keyed by origin, so changing it orphans installed vaults.
 - The Capacitor entry generator reuses the root SPA shell for seed-vault routes only; never prerender removed wallet routes. Why: nonexistent routes return 404 and block APK and web builds.
 - Vault rules (lockout, auto-lock, merge, key derivation) live as pure functions in `src/lib/vault/seeds.ts` with tests beside them. Why: security rules stay testable without a UI.
+- Watch-only pairing extends the existing versioned payload additively, exporting only public account keys with standard BIP-32 public versions; preserve existing address/path fields. Why: merchant services need fresh receiving addresses without spending authority or breaking existing wallet readers.
 - Trigger shared backup reminders after persisted additions; clear on lock/wipe. Why: covers every entry type without retaining secrets.
 - Seed comparison shows the first TXC legacy receiving address with its full derivation path, using the signer's shared network definition. Why: owners can verify manual seed entry without sharing recovery words or confusing address formats.
 - Android document save/open uses the local VaultDocuments SAF plugin installed by the manifest patch script, without broad storage permissions. Why: owners can choose a USB drive without granting access to the entire device.

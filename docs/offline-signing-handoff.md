@@ -65,11 +65,17 @@ Raw base64/hex PSBT or EVM JSON. Long values use content-labelled `HMQR2:<8-hex 
   "btc": { "84": "xpub…", "49": "xpub…", "44": "xpub…" },
   "ltc": { "84": "xpub…", "49": "xpub…", "44": "xpub…" },
   "doge": { "44": "xpub…" },
-  "evm": { "address": "0x…", "path": "m/44'/60'/0'/0/0" }
+  "evm": { "address": "0x…", "path": "m/44'/60'/0'/0/0", "xpub": "xpub…" }
 }
 ```
 
 Account keys use standard **xpub version bytes on all coins** at `m/<purpose>'/<coin>'/0'`; apply the selected chain's address encoding when deriving `/0/i` and `/1/i`. No xprv is exported. These watch-only keys cannot spend, but reveal wallet history and should be shared privately.
+
+`evm.xpub` is the public account key at **`m/44'/60'/0'`**, with standard BIP-32 public version `0x0488b21e`. It is an additive field: the existing `evm.address` and `evm.path` still describe address #0. Old readers may ignore `xpub`; no pairing version or QR framing change is required. The seed's optional passphrase applies to this key just as it does to every other pairing key.
+
+Nectar.Pay derives relative `m/0/n` from this EVM account xpub, starting at **n = 1** (never sale address #0). Convert each compressed child public key to uncompressed form, take Keccak-256 of the 64-byte X/Y coordinates (without the `0x04` prefix), and use the last 20 bytes as the EVM address. This supplies fresh receiving addresses for ETH and EVM networks such as Base, BSC and ZCU without network access or spending keys in Vault. Nectar.Pay reports that presence of this field enables ETH linking automatically; merchant-side linking still needs an integration test.
+
+Privacy warning: an account xpub reveals all non-hardened receiving addresses. Never share a child private key with an xpub recipient: BIP-32 non-hardened derivation can expose the account private key when both are known. Vault's pairing QR contains public keys only; seed words, passphrases and private keys are not included.
 
 ## Before real funds
 
