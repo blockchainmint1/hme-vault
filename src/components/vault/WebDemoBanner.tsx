@@ -10,7 +10,7 @@ export function WebDemoBanner() {
   return (
     <div
       role="note"
-      className="relative sticky top-0 z-40 border-b border-destructive/40 bg-background px-4 py-2 text-center text-xs text-foreground"
+      className="sticky top-0 z-40 border-b border-destructive/40 bg-background px-4 py-2 text-center text-xs text-foreground"
     >
       <span aria-hidden className="absolute inset-0 bg-destructive/10" />
       <span className="relative">
