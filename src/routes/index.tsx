@@ -1,6 +1,6 @@
 import { assessPassword } from "@/lib/security/password-strength";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Camera, Fingerprint } from "lucide-react";
 import vaultMark from "@/assets/brand/vault-mark-512.png";
 import { Button } from "@/components/ui/button";
@@ -158,6 +158,8 @@ function UnlockForm() {
   const [pendingCoin, setPendingCoin] = useState("");
   const [extra, setExtra] = useState("");
   const [ready, setReady] = useState(false);
+  // Stable callback: OfflineCheck re-fires its effect whenever this identity changes.
+  const onCheckReady = useCallback((r: boolean) => setReady(r), []);
   useEffect(() => {
     getBiometricStatus().then((s) => setBio(s.enabled));
   }, []);
@@ -192,7 +194,7 @@ function UnlockForm() {
   return (
     <Card>
       <CardContent className="space-y-3 pt-6">
-        <OfflineCheck onReady={setReady} />
+        <OfflineCheck onReady={onCheckReady} />
         <form
           className="space-y-3"
           onSubmit={(e) => {
