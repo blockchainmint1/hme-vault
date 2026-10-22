@@ -65,6 +65,8 @@ Raw base64/hex PSBT or EVM JSON. Long values use content-labelled `HMQR2:<8-hex 
   "btc": { "84": "xpub…", "49": "xpub…", "44": "xpub…" },
   "ltc": { "84": "xpub…", "49": "xpub…", "44": "xpub…" },
   "doge": { "44": "xpub…" },
+  "bch": { "44": "xpub…" },
+  "dash": { "44": "xpub…" },
   "evm": { "address": "0x…", "path": "m/44'/60'/0'/0/0", "xpub": "xpub…" }
 }
 ```
@@ -101,17 +103,17 @@ The owner requires the Nectar.Pay integration handoff to cover **EVM, BTC, LTC, 
 | BTC | `btc["84"]` | `m/84'/0'/0'` | Native SegWit P2WPKH. Export implemented; Nectar.Pay reports using this field. |
 | LTC | `ltc["84"]` | `m/84'/2'/0'` | Native SegWit P2WPKH with Litecoin encoding. Export implemented; Nectar.Pay reports using this field. |
 | DOGE | `doge["44"]` | `m/44'/3'/0'` | Legacy P2PKH with Dogecoin encoding. Export implemented; Nectar.Pay reports using this field. |
-| BCH | **Not exported** | Proposed `m/44'/145'/0'` | BCH account export and CashAddr convention need coordinated implementation and reference-address verification; BCH signing is not supported by Vault. |
+| BCH | `bch["44"]` | `m/44'/145'/0'` | Public account export implemented. Derive P2PKH hash160 and encode as mainnet CashAddr (`bitcoincash:`) in Nectar.Pay. Merchant address verification pending; BCH signing is not supported by Vault. |
 | TXC | `txc["44"]` | `m/44'/696969'/0'` | Legacy P2PKH using TXC network bytes, also used for TSD. Export implemented; Nectar.Pay reports using this field. |
 | ISK | `isk["44"]` | `m/44'/969696'/0'` | Legacy P2PKH using ISK network bytes. Export implemented; Nectar.Pay's ISK field/address convention still needs confirmation. |
 | ZCU | `evm.xpub` (no separate `zcu` field) | `m/44'/60'/0'` | Same EVM account derivation; Nectar.Pay must identify ZCU's actual network/chain configuration independently. No chain ID is supplied by pairing. |
-| DASH | **Not exported** | Proposed `m/44'/5'/0'` | DASH account export and mainnet P2PKH encoding need coordinated implementation and reference-address verification; DASH signing is not supported by Vault. |
+| DASH | `dash["44"]` | `m/44'/5'/0'` | Public account export implemented. Mainnet P2PKH Base58Check version `0x4c` (76). Merchant address verification pending; DASH signing is not supported by Vault. |
 
 For implemented Bitcoin-family account keys, derive relative `/0/n` receiving children and apply the chosen chain's address encoding. The original Nectar.Pay request explicitly confirms n starts at 1 for EVM; confirm the starting index and reserved address #0 policy on each other chain rather than assuming it. All exported account keys use standard `xpub` public version bytes `0x0488b21e`, not network-specific extended-key prefixes. The master fingerprint and optional seed passphrase must remain consistent across all keys.
 
-**Which QR to scan today:** the dedicated **Pair with Nectar.Pay** QR is still EVM-only, exactly as documented above. It can supply EVM/ZCU account keys but cannot supply BTC/LTC/DOGE/TXC/ISK, BCH or DASH. For current multi-coin receiving keys, scan the existing **full wallet QR**; Nectar.Pay must also accept plain JSON and multi-part HMQR2. BCH and DASH are absent from both QRs. This handoff update changes documentation only, not the QR payload, seed screen, signer or APK.
+**Which QR to scan today:** the dedicated **Pair with Nectar.Pay** QR is still EVM-only, exactly as documented above. For all nine requested network categories, scan the existing **full wallet QR**, which now includes additive BCH and DASH public account fields. ZCU uses `evm.xpub`, not a duplicate ZCU key. Nectar.Pay must accept plain JSON and multi-part HMQR2. APK rebuilding, independent review and merchant-device testing remain pending.
 
-**Next integration contract:** agree with Nectar.Pay on additive `bch["44"]` and `dash["44"]` account fields and the proposed paths above, then implement public-only derivation with known-address tests. If the dedicated Nectar.Pay QR is later expanded to carry all requested coin keys, filter them from the full pairing payload rather than deriving separately, and remove the one-static-frame requirement: multiple account xpubs will exceed 600 characters. Preserve the full HME Wallet payload's existing fields and version. These are proposed follow-up changes, not implemented functionality.
+**Partner integration contract:** Nectar.Pay should read additive `bch["44"]` and `dash["44"]` account fields at the exact paths above, with standard xpub public versions. Existing full-pairing fields and version remain unchanged. Confirm receiving address encodings and sale indexes against independent references before use. If the dedicated Nectar.Pay QR is later expanded to carry all coin keys, filter them from the full payload rather than deriving separately and replace the one-static-frame requirement with animated transport; that dedicated-QR expansion is not part of this change.
 
 **Acceptance before release:** verify each of the nine requested network entries with Nectar.Pay, including first/next sale addresses, passphrase handling, real-phone QR collection and existing HME Wallet compatibility. Receiving-key export alone does not mean Vault can sign BCH or DASH transactions; neither is currently supported. ZCU spending uses the existing chain-bound EVM intent, with the actual chain ID and readable offline review. No internet, balances, broadcasting or online merchant features are added to Vault. Independent audit and the gated APK workflow remain required.
 

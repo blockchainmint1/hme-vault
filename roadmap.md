@@ -1,5 +1,7 @@
 # Roadmap — HME Seed Vault
 
+- [ ] Add BCH/DASH public account keys to full pairing, test derivation and QR transport, and update the Nectar.Pay auditor handoff (not spending support).
+
 - [x] Expand Nectar.Pay handoff to all nine requested networks, distinguish existing exports from BCH/DASH gaps and preserve the current EVM-only QR contract.
 
 - [x] Add a dedicated single-QR Nectar.Pay pairing filtered from the full pairing payload (162 tests passed; actual 158-character static QR decoded; desktop/narrow layout checked; audit handoff supplied).

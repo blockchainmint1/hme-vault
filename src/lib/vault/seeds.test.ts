@@ -18,7 +18,7 @@ import { mnemonicToSeed } from "@scure/bip39";
 import { publicKeyToAddress } from "viem/accounts";
 import { secp256k1 } from "@noble/curves/secp256k1";
 import { pairingPayload, nectarPairingPayload } from "./seeds";
-import { PART_SIZE, toParts } from "../signer/qr-parts";
+import { PART_SIZE, PartCollector, toParts } from "../signer/qr-parts";
 
 const SEED =
   "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
@@ -203,7 +203,8 @@ describe("vault rules", () => {
         ]),
       );
     const { xpub: _xpub, ...legacyEvm } = pairing.evm;
-    expect({ ...pairing, evm: legacyEvm }).toEqual({
+    const { bch: _bch, dash: _dash, ...legacyPairing } = pairing;
+    expect({ ...legacyPairing, evm: legacyEvm }).toEqual({
       hmvault: 1,
       fp: "73c5da0a",
       txc: accounts(696969),
@@ -217,6 +218,32 @@ describe("vault rules", () => {
       },
     });
   });
+  for (const [coin, coinType] of [["bch", 145], ["dash", 5]] as const) {
+    for (const passphrase of ["", "Nectar dummy passphrase"]) {
+      it(`exports public-only ${coin} account m/44'/${coinType}'/0' (${passphrase ? "with" : "without"} passphrase)`, async () => {
+        const full = await pairingPayload(SEED, passphrase);
+        const pairing = JSON.parse(full);
+        const root = HDKey.fromMasterSeed(await mnemonicToSeed(SEED, passphrase));
+        expect(Object.keys(pairing[coin])).toEqual(["44"]);
+        const xpub = pairing[coin]["44"];
+        expect(xpub).toBe(root.derive(`m/44'/${coinType}'/0'`).publicExtendedKey);
+        expect(xpub.startsWith("xpub")).toBe(true);
+        const account = HDKey.fromExtendedKey(xpub);
+        expect(account.versions.public).toBe(0x0488b21e);
+        expect(account.depth).toBe(3);
+        expect(account.privateKey).toBeNull();
+        for (const index of [1, 2]) {
+          const child = account.derive(`m/0/${index}`);
+          expect(child.privateKey).toBeNull();
+          expect(child.publicKey).toEqual(root.derive(`m/44'/${coinType}'/0'/0/${index}`).publicKey);
+        }
+        const collector = new PartCollector();
+        let restored: string | null = null;
+        for (const part of toParts(full)) restored = collector.add(part);
+        expect(restored).toBe(full);
+      });
+    }
+  }
   for (const passphrase of ["", "Nectar dummy passphrase"]) {
     it(`derives Nectar sale addresses /0/1 and /0/2 without private keys (${passphrase ? "with" : "without"} passphrase)`, async () => {
       const pairing = JSON.parse(await pairingPayload(SEED, passphrase));

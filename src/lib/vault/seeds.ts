@@ -224,6 +224,8 @@ export async function pairingPayload(words: string, passphrase = ""): Promise<st
     btc: acct(0),
     ltc: acct(2),
     doge: { "44": root.derive("m/44'/3'/0'").publicExtendedKey },
+    bch: { "44": root.derive("m/44'/145'/0'").publicExtendedKey },
+    dash: { "44": root.derive("m/44'/5'/0'").publicExtendedKey },
     evm: {
       address: evm.evmAddress,
       path: EVM_PATH,
