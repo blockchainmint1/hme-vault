@@ -16,9 +16,9 @@ describe("seed vault", () => {
   it("refuses passwords shorter than 8 characters", async () => {
     await expect(lockSeed(SEED, "short", 2000)).rejects.toThrow();
   });
-  it("defaults to 600,000 iterations", async () => {
+  it("defaults to 1,000,000 iterations", async () => {
     const v = await lockSeed(SEED, "correct horse");
-    expect(v.split(".")[1]).toBe("600000");
+    expect(v.split(".")[1]).toBe("1000000");
   });
   it("never writes an iteration count the offline reader refuses", async () => {
     await expect(lockSeed(SEED, "correct horse", 999)).rejects.toThrow();

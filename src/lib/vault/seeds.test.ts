@@ -32,7 +32,7 @@ describe("vault rules", () => {
       { id: "totp", name: "2FA", type: "totp" as const, content: "otpauth://totp/Dummy?secret=JBSWY3DPEHPK3PXP", createdAt: 0 },
     ] };
     const code = await encryptVaultBackup(payload, key);
-    expect(code.startsWith("HMVAULT1.600000.")).toBe(true);
+    expect(code.startsWith("HMVAULT1.1000000.")).toBe(true);
     const restored = parsePayload(await unlockText(code, key));
     expect(restored.seeds.map(s => [s.id, s.words, s.fingerprint])).toEqual([["seed", SEED, "73c5da0a"]]);
     expect(restored.secrets.map(s => s.type)).toEqual(["note", "file", "totp"]);

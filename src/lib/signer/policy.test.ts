@@ -3,7 +3,7 @@ import { HDKey } from "@scure/bip32";
 import { mnemonicToSeed } from "@scure/bip39";
 import { payments, Psbt, Transaction } from "bitcoinjs-lib";
 import { NETWORKS, type CoinId } from "./networks";
-import { MAX_FEE_RATE, reviewPsbt, signPsbt } from "./psbt";
+import { MAX_FEE_RATE, MAX_FEE_RATES, maxFeeRate, reviewPsbt, signPsbt } from "./psbt";
 
 const words = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
 async function payment(coin: CoinId = "DOGE", fee = 10_000n) {
@@ -17,13 +17,13 @@ async function payment(coin: CoinId = "DOGE", fee = 10_000n) {
   if (!from.output || !to.address || !key.publicKey) throw new Error("Missing dummy key");
   const prev = new Transaction();
   prev.addInput(new Uint8Array(32), 0xffffffff);
-  prev.addOutput(from.output, 100_000_000n);
+  prev.addOutput(from.output, 1_000_000_000n);
   // Deliberately permissive caller options must not override Vault policy.
   const psbt = new Psbt({ network: NETWORKS[coin], maximumFeeRate: 10_000_000 });
   psbt.addInput({ hash: prev.getId(), index: 0, nonWitnessUtxo: prev.toBuffer(), bip32Derivation: [{
     masterFingerprint: Uint8Array.from(Buffer.from(root.fingerprint.toString(16).padStart(8, "0"), "hex")), path, pubkey: key.publicKey,
   }] });
-  psbt.addOutput({ address: to.address, value: 100_000_000n - fee });
+  psbt.addOutput({ address: to.address, value: 1_000_000_000n - fee });
   return { psbt, key, seeds: [{ id: "dummy", name: "Dummy", words, fingerprint: root.fingerprint.toString(16).padStart(8, "0") }] };
 }
 function dataOutput(psbt: Psbt, payload: Uint8Array, value = 0n) {
@@ -44,12 +44,41 @@ describe("offline payment safety policy", () => {
       expect(psbt.toBase64()).toBe(before);
     });
     it(`keeps the explicit ${coin} fee cap despite caller overrides`, async () => {
-      const { psbt, seeds } = await payment(coin, 1_584_774n);
-      expect(MAX_FEE_RATE).toBe(5_000);
+      const { psbt, seeds } = await payment(coin, BigInt(maxFeeRate(coin)) * 400n);
       await expect(reviewPsbt(psbt, seeds, coin)).rejects.toThrow(/safety limit/);
       expect(psbt.data.inputs[0].partialSig).toBeUndefined();
     });
   }
+  it("uses per-coin caps: BTC/LTC/TXC/ISK 5,000 and DOGE 1,000,000 base units per vB", () => {
+    expect(MAX_FEE_RATE).toBe(5_000);
+    expect(MAX_FEE_RATES).toEqual({ BTC: 5_000, LTC: 5_000, TXC: 5_000, ISK: 5_000, DOGE: 1_000_000 });
+    expect(Object.isFrozen(MAX_FEE_RATES)).toBe(true);
+  });
+  it("signs the original 0.01585 DOGE wallet fee that the Bitcoin cap used to block", async () => {
+    const { psbt, seeds } = await payment("DOGE", 1_584_774n);
+    const { keys } = await reviewPsbt(psbt, seeds, "DOGE");
+    expect(signPsbt(psbt, keys).hex.length).toBeGreaterThan(0);
+  });
+  it("warns at review when the fee is within 20% of the cap", async () => {
+    const sample = await payment("BTC");
+    const { review: size } = await reviewPsbt(sample.psbt, sample.seeds, "BTC");
+    const { psbt, seeds } = await payment("BTC", BigInt(size.maximumVsize) * 4_500n);
+    const { review } = await reviewPsbt(psbt, seeds, "BTC");
+    expect(review.warnings.some((w) => /close to Vault's BTC safety limit/.test(w))).toBe(true);
+    expect(sample.psbt && (await reviewPsbt(sample.psbt, sample.seeds, "BTC")).review.warnings.some((w) => /close to/.test(w))).toBe(false);
+  });
+  it("names the LAST non-change output as the Omni token recipient", async () => {
+    const { psbt, seeds } = await payment("TXC");
+    const decoy = psbt.txOutputs[0].address;
+    const root = HDKey.fromMasterSeed(await mnemonicToSeed(words));
+    const real = payments.p2pkh({ pubkey: root.derive("m/44'/696969'/2'/0/0").publicKey ?? undefined, network: NETWORKS.TXC }).address!;
+    dataOutput(psbt, omni);
+    psbt.addOutput({ address: real, value: 546n });
+    const { review } = await reviewPsbt(psbt, seeds, "TXC");
+    expect(review.token?.to).toBe(real);
+    expect(review.token?.to).not.toBe(decoy);
+    expect(review.warnings.some((w) => /goes to the last one/.test(w))).toBe(true);
+  });
   it("still signs normal DOGE payments without mutating the unsigned request", async () => {
     const { psbt, seeds } = await payment();
     const before = psbt.toBase64();
@@ -104,7 +133,7 @@ describe("offline payment safety policy", () => {
     const sample = await payment();
     const { review: size } = await reviewPsbt(sample.psbt, sample.seeds, "DOGE");
     // The lower-bound review permits this; shorter real signatures exceed the cap.
-    const { psbt, seeds } = await payment("DOGE", BigInt(size.maximumVsize) * 5_000n - 1n);
+    const { psbt, seeds } = await payment("DOGE", BigInt(size.maximumVsize) * BigInt(maxFeeRate("DOGE")) - 1n);
     const before = psbt.toBase64();
     const { keys } = await reviewPsbt(psbt, seeds, "DOGE");
     expect(() => signPsbt(psbt, keys)).toThrow(/safety limit/);
