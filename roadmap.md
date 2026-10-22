@@ -1,6 +1,7 @@
 # Roadmap — HME Seed Vault
 
-- [ ] Add Nectar.Pay EVM account public key to the existing pairing QR, verify derivation and backward compatibility, and provide an auditor handoff (APK build and merchant-device scan remain external checks).
+- [x] Add Nectar.Pay EVM account public key to the existing pairing QR (159 tests passed; all four actual QR frames decoded; auditor handoff supplied).
+- [ ] Verify Nectar.Pay merchant linking and old HME Wallet pairing with the new APK (requires a gated APK build, independent review and the merchant/phone apps; existing download is unchanged).
 
 - [x] Harden checklist: API 28 SIM fallback, unknown setting sentinel, SIM/NFC-only permanent ignores, stable readiness effect and regression tests (23 focused tests; simulated unknown/ignore/override flow verified, not a phone test).
 - [ ] Build checklist APK through gated workflow, record source head and test on Pixel before replacing release/footer (requires GitHub workflow access and Bobby's phone).
