@@ -115,6 +115,17 @@ For implemented Bitcoin-family account keys, derive relative `/0/n` receiving ch
 
 **Partner integration contract:** Nectar.Pay should read additive `bch["44"]` and `dash["44"]` account fields at the exact paths above, with standard xpub public versions. Existing full-pairing fields and version remain unchanged. Confirm receiving address encodings and sale indexes against independent references before use. If the dedicated Nectar.Pay QR is later expanded to carry all coin keys, filter them from the full payload rather than deriving separately and replace the one-static-frame requirement with animated transport; that dedicated-QR expansion is not part of this change.
 
+Dummy reference addresses (mnemonic `abandon` × 11 + `about`, empty passphrase; never receive real funds here):
+
+| Network | Relative child | Reference P2PKH address |
+| --- | --- | --- |
+| BCH | `/0/1` | `18Cp2ivkLHyJwHMm9NzDRBh6Gi7m4MC2we` |
+| BCH | `/0/2` | `15Ax9BJRJ4TABF85UsPpz9QvuBpiJhCfsw` |
+| DASH | `/0/1` | `XbctnEsgWTn5j1co3emZynemxSFPqkLRKZ` |
+| DASH | `/0/2` | `XdD2biTJ3saZtcR6ravwJ9bvmkvmDq49Xg` |
+
+BCH reference addresses above use legacy Base58Check version 0 solely for hash160 comparison. Nectar.Pay should display the equivalent mainnet CashAddr and verify it maps to the same P2PKH hash; Vault exports an account xpub, not a BCH address encoder. DASH references use mainnet version 76. Tests pin both account xpubs and these addresses and check passphrase-dependent public child derivation.
+
 **Acceptance before release:** verify each of the nine requested network entries with Nectar.Pay, including first/next sale addresses, passphrase handling, real-phone QR collection and existing HME Wallet compatibility. Receiving-key export alone does not mean Vault can sign BCH or DASH transactions; neither is currently supported. ZCU spending uses the existing chain-bound EVM intent, with the actual chain ID and readable offline review. No internet, balances, broadcasting or online merchant features are added to Vault. Independent audit and the gated APK workflow remain required.
 
 THORChain swaps remain unsupported in Vault until a strict, readable swap-intent review can validate the memo, exact destination asset/network, recipient, minimum output and refund ownership against the transaction. HME Wallet also needs a dedicated THORChain builder (deposit output first, documented VIN0 change/refund handling), required expiry/fresh inbound checks before broadcast, and end-to-end small-payment/refund testing. An offline phone cannot independently verify a live quote, vault address, halted chain or eventual delivery. Do not fix the current failure by bypassing fee checks or treating the memo as an ordinary transfer.
