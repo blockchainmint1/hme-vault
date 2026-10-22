@@ -74,7 +74,7 @@ Recommended flow for the first APK on your device:
 
 - App ID: `money.honest.seedvault` (separate from the HME Wallet app; never change after release).
 - Generate the keystore offline on your own computer (that workflow was deleted 2026-10-18):
-  `keytool -genkey -v -keystore hme.jks -alias hme -keyalg RSA -keysize 4096 -validity 10950`).
+  `keytool -genkey -v -keystore hme.jks -alias hme -keyalg RSA -keysize 4096 -validity 10950`
 - Add these repo secrets so `android-apk.yml` produces a signed APK/AAB:
   - `ANDROID_KEYSTORE_BASE64`
   - `ANDROID_STORE_PASSWORD`

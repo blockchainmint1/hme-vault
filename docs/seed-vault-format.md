@@ -7,7 +7,7 @@ HMVAULT1.<iterations>.<salt>.<iv>.<ciphertext>
 ```
 All binary fields are base64url without padding.
 
-1. key = PBKDF2-HMAC-SHA512(password normalized NFKD, salt (16 bytes), iterations (default 600000)), 32 bytes
+1. key = PBKDF2-HMAC-SHA512(password normalized NFKD, salt (16 bytes), iterations (default 1000000 since 2026-10-22; older files use 600000 and still open — readers must honour the stored count)), 32 bytes
 2. plaintext = AES-256-GCM-decrypt(key, iv (12 bytes), ciphertext incl. 16-byte tag, AAD = ASCII "HMVAULT1")
 3. plaintext is UTF-8: either legacy lowercase BIP39 words separated by single spaces, or a JSON Vault payload:
 
