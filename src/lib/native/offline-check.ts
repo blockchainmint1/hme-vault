@@ -3,7 +3,7 @@
  * local VaultRadioCheck plugin, which reads only permission-free Settings.Global
  * values and the battery intent (the APK ships with zero network permissions).
  * Owner choice: problems warn, and the owner may override with a confirmation,
- * or permanently ignore a single row (stored in localStorage, non-secret).
+ * or permanently ignore SIM/NFC only (stored in localStorage, non-secret).
  */
 import { registerPlugin } from "@capacitor/core";
 import { isNative } from "./platform";
@@ -91,12 +91,19 @@ export function needsOverride(items: CheckItem[]): boolean {
 
 const IGNORE_KEY = "vault-offline-ignore";
 
-/** Rows the owner has chosen to always ignore (e.g. a built-in eSIM). Non-secret. */
+/** Protected rows cannot be bypassed by old stored preferences or direct calls. */
+export function canIgnoreCheck(key: string): boolean {
+  return key === "sim" || key === "nfc";
+}
+
+/** Permitted rows the owner has chosen to always ignore. Non-secret. */
 export function readIgnoredChecks(): string[] {
   try {
     const raw = globalThis.localStorage?.getItem(IGNORE_KEY);
     const parsed: unknown = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed.filter((k): k is string => typeof k === "string") : [];
+    return Array.isArray(parsed)
+      ? parsed.filter((k): k is string => typeof k === "string" && canIgnoreCheck(k))
+      : [];
   } catch {
     return [];
   }
@@ -104,7 +111,7 @@ export function readIgnoredChecks(): string[] {
 
 export function setCheckIgnored(key: string, ignored: boolean): string[] {
   const next = new Set(readIgnoredChecks());
-  if (ignored) next.add(key);
+  if (ignored && canIgnoreCheck(key)) next.add(key);
   else next.delete(key);
   try {
     globalThis.localStorage?.setItem(IGNORE_KEY, JSON.stringify([...next]));
@@ -116,6 +123,6 @@ export function setCheckIgnored(key: string, ignored: boolean): string[] {
 
 /** Checklist with ignored rows marked as passing. */
 export function applyIgnoredChecks(items: CheckItem[], ignored: string[]): CheckItem[] {
-  const set = new Set(ignored);
+  const set = new Set(ignored.filter(canIgnoreCheck));
   return items.map((i) => (set.has(i.key) && i.ok !== true ? { ...i, ok: true as const } : i));
 }

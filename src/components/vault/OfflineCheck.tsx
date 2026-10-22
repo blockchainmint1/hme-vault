@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Check, X, HelpCircle, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   applyIgnoredChecks,
+  canIgnoreCheck,
   needsOverride,
   offlineChecklist,
   readIgnoredChecks,
@@ -15,8 +16,8 @@ import {
  * Phone-only checklist shown above the unlock form. Calls onReady(true) when all
  * checks pass or the owner chooses "Open anyway". Rechecks when the app returns
  * to the foreground (after the owner flips switches in Android settings).
- * A failing row can be permanently ignored (e.g. a built-in eSIM that can't be
- * removed); the choice is stored in localStorage and holds no secrets.
+ * Only SIM and NFC can be permanently ignored, including unreadable states;
+ * the choice is stored in localStorage and holds no secrets.
  */
 export function OfflineCheck({ onReady }: { onReady: (ready: boolean) => void }) {
   const [items, setItems] = useState<CheckItem[] | null>(null);
@@ -41,7 +42,10 @@ export function OfflineCheck({ onReady }: { onReady: (ready: boolean) => void })
     };
   }, []);
 
-  const shown = items ? applyIgnoredChecks(items, ignored) : null;
+  const shown = useMemo(
+    () => (items ? applyIgnoredChecks(items, ignored) : null),
+    [items, ignored],
+  );
   const problem = shown ? needsOverride(shown) : false;
   useEffect(() => {
     if (native === false) onReady(true);
@@ -56,7 +60,9 @@ export function OfflineCheck({ onReady }: { onReady: (ready: boolean) => void })
       <ul className="space-y-1">
         {shown.map((i) => {
           const isIgnored =
-            ignored.includes(i.key) && items?.find((r) => r.key === i.key)?.ok !== true;
+            canIgnoreCheck(i.key) &&
+            ignored.includes(i.key) &&
+            items?.find((r) => r.key === i.key)?.ok !== true;
           return (
             <li key={i.key} className="flex items-center gap-2">
               {isIgnored ? (
@@ -77,23 +83,27 @@ export function OfflineCheck({ onReady }: { onReady: (ready: boolean) => void })
                       ? `${i.label} (couldn't check)`
                       : i.label}
               </span>
-              {!isIgnored && i.ok === false && (
-                <button
+              {!isIgnored && i.ok !== true && canIgnoreCheck(i.key) && (
+                <Button
                   type="button"
-                  className="text-xs text-muted-foreground underline"
+                  variant="link"
+                  size="sm"
+                  className="h-auto px-0 text-xs text-muted-foreground"
                   onClick={() => setIgnored(setCheckIgnored(i.key, true))}
                 >
                   Always ignore
-                </button>
+                </Button>
               )}
               {isIgnored && (
-                <button
+                <Button
                   type="button"
-                  className="text-xs text-muted-foreground underline"
+                  variant="link"
+                  size="sm"
+                  className="h-auto px-0 text-xs text-muted-foreground"
                   onClick={() => setIgnored(setCheckIgnored(i.key, false))}
                 >
                   Check again
-                </button>
+                </Button>
               )}
             </li>
           );
