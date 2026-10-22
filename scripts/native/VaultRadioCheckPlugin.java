@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.nfc.NfcAdapter;
 import android.os.BatteryManager;
+import android.os.Build;
 import android.provider.Settings;
 import android.telephony.TelephonyManager;
 import com.getcapacitor.JSObject;
@@ -23,29 +24,38 @@ import com.getcapacitor.annotation.CapacitorPlugin;
  */
 @CapacitorPlugin(name = "VaultRadioCheck")
 public class VaultRadioCheckPlugin extends Plugin {
+    private void putSetting(JSObject result, ContentResolver resolver, String key, String setting) {
+        try {
+            int value = Settings.Global.getInt(resolver, setting, -1);
+            result.put(key, value == -1 ? JSObject.NULL : value != 0);
+        } catch (Exception e) {
+            result.put(key, JSObject.NULL);
+        }
+    }
+
     @PluginMethod public void status(PluginCall call) {
         Context ctx = getContext();
         ContentResolver cr = ctx.getContentResolver();
         JSObject r = new JSObject();
-        try { r.put("airplane", Settings.Global.getInt(cr, Settings.Global.AIRPLANE_MODE_ON, 0) == 1); } catch (Exception e) { r.put("airplane", JSObject.NULL); }
-        try { r.put("wifi", Settings.Global.getInt(cr, "wifi_on", 0) != 0); } catch (Exception e) { r.put("wifi", JSObject.NULL); }
-        try { r.put("mobileData", Settings.Global.getInt(cr, "mobile_data", 0) != 0); } catch (Exception e) { r.put("mobileData", JSObject.NULL); }
-        try { r.put("bluetooth", Settings.Global.getInt(cr, "bluetooth_on", 0) != 0); } catch (Exception e) { r.put("bluetooth", JSObject.NULL); }
-        try { r.put("adb", Settings.Global.getInt(cr, Settings.Global.ADB_ENABLED, 0) != 0); } catch (Exception e) { r.put("adb", JSObject.NULL); }
+        putSetting(r, cr, "airplane", Settings.Global.AIRPLANE_MODE_ON);
+        putSetting(r, cr, "wifi", "wifi_on");
+        putSetting(r, cr, "mobileData", "mobile_data");
+        putSetting(r, cr, "bluetooth", "bluetooth_on");
+        putSetting(r, cr, "adb", Settings.Global.ADB_ENABLED);
         try { NfcAdapter n = NfcAdapter.getDefaultAdapter(ctx); r.put("nfc", n != null && n.isEnabled()); } catch (Exception e) { r.put("nfc", JSObject.NULL); }
         try {
             // Every SIM slot (physical + eSIM): a present, enabled profile counts.
             TelephonyManager t = (TelephonyManager) ctx.getSystemService(Context.TELEPHONY_SERVICE);
             boolean sim = false;
             if (t != null) {
-                int slots = t.getActiveModemCount();
+                int slots = Build.VERSION.SDK_INT >= 30 ? t.getActiveModemCount() : t.getPhoneCount();
                 for (int i = 0; i < slots; i++) {
                     int s = t.getSimState(i);
                     if (s != TelephonyManager.SIM_STATE_ABSENT && s != TelephonyManager.SIM_STATE_UNKNOWN) { sim = true; break; }
                 }
             }
             r.put("sim", sim);
-        } catch (Exception e) { r.put("sim", JSObject.NULL); }
+        } catch (Throwable e) { r.put("sim", JSObject.NULL); }
         try {
             // Phone plugged into a computer over USB (the real exfil path).
             Intent bat = ctx.registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));

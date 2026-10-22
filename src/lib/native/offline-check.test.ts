@@ -1,8 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   applyIgnoredChecks,
+  canIgnoreCheck,
   needsOverride,
   offlineChecklist,
+  readIgnoredChecks,
+  setCheckIgnored,
   type RadioStatus,
 } from "./offline-check";
 
@@ -18,6 +21,7 @@ const clean: RadioStatus = {
 };
 
 describe("offline checklist", () => {
+  afterEach(() => vi.unstubAllGlobals());
   it("opens without override when everything is off", () => {
     expect(needsOverride(offlineChecklist(clean))).toBe(false);
   });
@@ -51,12 +55,44 @@ describe("offline checklist", () => {
     expect(items.every((i) => i.ok === null)).toBe(true);
     expect(needsOverride(items)).toBe(true);
   });
-  it("ignored rows pass, but only that row", () => {
+  it("ignoring SIM does not bypass Wi-Fi, even with a stored Wi-Fi ignore", () => {
     const items = offlineChecklist({ ...clean, sim: true, wifi: true });
     const after = applyIgnoredChecks(items, ["sim"]);
     expect(after.find((i) => i.key === "sim")?.ok).toBe(true);
     expect(needsOverride(after)).toBe(true); // wifi still fails
-    expect(needsOverride(applyIgnoredChecks(items, ["sim", "wifi"]))).toBe(false);
+    expect(needsOverride(applyIgnoredChecks(items, ["sim", "wifi"]))).toBe(true);
+  });
+  it.each(["wifi", "mobileData", "bluetooth", "adb", "usbHost", "airplane"] as const)(
+    "never permanently ignores failed or unknown %s",
+    (key) => {
+      expect(canIgnoreCheck(key)).toBe(false);
+      for (const value of [key === "airplane" ? false : true, null]) {
+        const items = offlineChecklist({ ...clean, [key]: value });
+        const after = applyIgnoredChecks(items, [key]);
+        expect(after.find((item) => item.key === key)?.ok).toBe(value === null ? null : false);
+        expect(needsOverride(after)).toBe(true);
+      }
+    },
+  );
+  it.each(["sim", "nfc"] as const)("allows failed and unknown %s to be ignored", (key) => {
+    expect(canIgnoreCheck(key)).toBe(true);
+    for (const value of [true, null]) {
+      const after = applyIgnoredChecks(offlineChecklist({ ...clean, [key]: value }), [key]);
+      expect(after.find((item) => item.key === key)?.ok).toBe(true);
+      expect(needsOverride(after)).toBe(false);
+    }
+  });
+  it("filters old protected preferences and refuses to save new ones", () => {
+    let stored = JSON.stringify(["sim", "nfc", "adb", "usbHost", "wifi", "airplane"]);
+    vi.stubGlobal("localStorage", {
+      getItem: () => stored,
+      setItem: (_key: string, value: string) => { stored = value; },
+    });
+    expect(readIgnoredChecks()).toEqual(["sim", "nfc"]);
+    expect(setCheckIgnored("adb", true)).toEqual(["sim", "nfc"]);
+    expect(setCheckIgnored("usbHost", true)).toEqual(["sim", "nfc"]);
+    expect(JSON.parse(stored)).toEqual(["sim", "nfc"]);
+    expect(setCheckIgnored("sim", false)).toEqual(["nfc"]);
   });
   it("ignoring a row that already passes changes nothing", () => {
     const items = offlineChecklist(clean);

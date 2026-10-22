@@ -40,7 +40,8 @@ The auditor approved the checklist idea but rejected the permission trade and fo
 - Fail-open fixed: a native plugin error now yields an all-unknown status, so every row says "couldn't check" and the owner override is required.
 - New checks that matter more than the old ones: USB debugging (ADB) and "connected to a computer over USB" (the real exfil path), plus every SIM slot including eSIM.
 - Airplane mode is now shown; the unlock form passes a stable callback so the checklist effect doesn't re-fire every render.
-- eSIM handling: any failing row can be permanently ignored ("Always ignore"), stored in localStorage (non-secret), so a phone with an unremovable eSIM profile doesn't train the owner to tap through.
+- eSIM handling: only SIM and NFC may be permanently ignored ("Always ignore"), including unknown states, stored in localStorage (non-secret). Wi-Fi, mobile data, Bluetooth, ADB, USB-to-computer and airplane mode cannot be permanently ignored, even if unreadable. Shared logic rejects old protected ignore preferences; temporary explicit owner override remains available.
+- Compatibility hardening: SIM slot enumeration uses getPhoneCount on API 28/29 and getActiveModemCount on API 30+, catching Throwable only for the SIM block. Settings.Global reads use -1 as the missing sentinel and return unknown, never off, when missing. The displayed checklist is memoized to stabilize readiness updates. Native readings still require a Pixel test.
 
 ## Still open
 
