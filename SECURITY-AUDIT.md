@@ -6,7 +6,7 @@ This file describes **HME Vault**, the offline seed and secret vault (Android AP
 
 - One encrypted HMVAULT1 blob on disk: PBKDF2-HMAC-SHA512 (1,000,000 iterations for new files; the stored count is honoured, so 600,000-iteration files still open), AES-256-GCM, AAD `HMVAULT1`. Format: `docs/seed-vault-format.md`.
 - Decrypted seeds, secrets and the credential live in memory only and are dropped on lock (2 min idle, app hidden, page hide). Unlocks that finish after a lock are discarded.
-- Android APK: no INTERNET or other network permissions (`tools:node="remove"`), `allowBackup="false"`, data extraction excluded, minSdk 28, screenshots blocked.
+- Android APK: no INTERNET or network-changing permissions (`tools:node="remove"`); only read-only ACCESS_NETWORK_STATE and ACCESS_WIFI_STATE for the pre-unlock offline checklist (warns, owner may override), `allowBackup="false"`, data extraction excluded, minSdk 28, screenshots blocked.
 - Fingerprint: the credential is sealed by an AES key in Android Keystore (StrongBox when present), usable only after a strong biometric match and invalidated on enrolment change. Changing the credential disables it. Old secure-storage copies from builds before 0.1.202610181456 are deleted natively on every start.
 - Offline signing (`src/lib/signer`): explicit network selection; every input verified against vault seeds; SIGHASH_ALL only; unknown data outputs (including THORChain memos) blocked; frozen per-coin fee caps checked at review and after finalization; signing bound to reviewed bytes and keys.
 - CI gate: formatting, lint, typecheck and unit tests run on every push and before every APK build.
