@@ -207,7 +207,8 @@ describe("vault rules", () => {
         expect(child.publicKey).toEqual(expected.publicKey);
         if (!child.publicKey) throw new Error("Missing public child key");
         const uncompressed = secp256k1.Point.fromHex(child.publicKey).toBytes(false);
-        const hex = `0x${Array.from(uncompressed, (b) => b.toString(16).padStart(2, "0")).join("")}` as const;
+        const hex =
+          `0x${Array.from(uncompressed, (b) => b.toString(16).padStart(2, "0")).join("")}` as const;
         const address = publicKeyToAddress(hex);
         expect(address.toLowerCase()).not.toBe(pairing.evm.address.toLowerCase());
         if (!passphrase && index === 1)
