@@ -7,6 +7,7 @@ import { lockText, unlockText } from "./format";
 import { emptyVault, encryptVaultBackup, hasNewVaultEntries, mergeVaultBackup, lockoutMs, parsePayload, shouldAutoLock, type SeedEntry } from "./seeds";
 import { MAX_VAULT_CHARS, type SecretEntry } from "./secrets";
 import { setCoinExtraRequired } from "./coin-unlock";
+import { disableBiometric } from "../native/biometric";
 
 const VAULT_KEY = "hmsv.vault.v1";
 const FAILS_KEY = "hmsv.fails.v1";
@@ -103,8 +104,21 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     if (f.until > Date.now()) throw new Error("Too many wrong tries. Please wait.");
     const blob = localStorage.getItem(VAULT_KEY);
     if (!blob) throw new Error("No vault on this device.");
+    // Locking (or erasing) while the slow key derivation runs must win.
+    const version = generation.current;
+    let text: string;
     try {
-      const payload = parsePayload(await unlockText(blob, password));
+      text = await unlockText(blob, password);
+    } catch {
+      const n = f.n + 1;
+      const until = Date.now() + lockoutMs(n);
+      localStorage.setItem(FAILS_KEY, JSON.stringify({ n, until }));
+      setWaitUntil(until);
+      throw new Error("Wrong password.");
+    }
+    if (generation.current !== version || document.visibilityState === "hidden") throw new Error("Vault locked while unlocking. Please try again.");
+    {
+      const payload = parsePayload(text);
       localStorage.removeItem(FAILS_KEY);
       setWaitUntil(0);
       pw.current = password;
@@ -113,12 +127,6 @@ export function VaultProvider({ children }: { children: ReactNode }) {
       setSecrets(payload.secrets);
       data.current = { seeds: payload.seeds, secrets: payload.secrets };
       setStatus("unlocked");
-    } catch {
-      const n = f.n + 1;
-      const until = Date.now() + lockoutMs(n);
-      localStorage.setItem(FAILS_KEY, JSON.stringify({ n, until }));
-      setWaitUntil(until);
-      throw new Error("Wrong password.");
     }
   }, []);
 
@@ -158,6 +166,8 @@ export function VaultProvider({ children }: { children: ReactNode }) {
 
   const changePassword = useCallback(async (current: string, next: string) => {
     if (pw.current === null || current !== pw.current) throw new Error("Wrong password.");
+    // The fingerprint-sealed copy holds the OLD credential; drop it before re-keying.
+    await disableBiometric();
     await persist(data.current.seeds, data.current.secrets, next);
     pw.current = next;
   }, [persist]);
