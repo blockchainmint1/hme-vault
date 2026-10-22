@@ -10,8 +10,15 @@ export interface TokenSend { propertyId: number; symbol: string; amount: string;
 export interface Review { coin: CoinId; seedName: string; inputsSats: bigint; sendSats: bigint; changeSats: bigint; feeSats: bigint; feeRateMinimum: bigint; maximumVsize: number; outputs: ReviewOutput[]; token: TokenSend | null; warnings: string[] }
 const hex = (b: Uint8Array) => Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
 const KNOWN_TOKENS: Record<number, { symbol: string; divisible: boolean }> = { 39: { symbol: "TSD", divisible: true } };
-// Preserve the existing last-resort cap explicitly; no online quote can raise it.
-export const MAX_FEE_RATE = 5_000;
+// Per-coin last-resort fee caps in base units per virtual byte. Fixed in code; no QR or caller can raise them.
+// DOGE is priced ~1,000x below BTC per base unit, so a Bitcoin number would block ordinary DOGE wallets
+// (Dogecoin Core's default is 1,000 koinu/vB; 1,000,000 koinu/vB is ~2.3 DOGE for a one-input payment).
+export const MAX_FEE_RATES: Readonly<Record<CoinId, number>> = Object.freeze({ BTC: 5_000, LTC: 5_000, TXC: 5_000, ISK: 5_000, DOGE: 1_000_000 });
+/** Bitcoin cap, kept for compatibility. Use maxFeeRate(coin). */
+export const MAX_FEE_RATE = MAX_FEE_RATES.BTC;
+export const maxFeeRate = (coin: CoinId): number => MAX_FEE_RATES[coin];
+/** Review warns when the lower-bound rate is at or above this fraction of the cap. */
+export const NEAR_CAP_PERCENT = 80n;
 const approvals = new WeakMap<Psbt, { snapshot: string; keys: HDKey[]; coin: CoinId }>();
 
 function validateDataOutputs(psbt: Psbt, coin: CoinId) {
@@ -37,7 +44,7 @@ function maximumSignedVsize(psbt: Psbt, purposes: number[]): number {
 }
 
 function feeError(coin: CoinId, fee: bigint) {
-  return new Error(`Signing blocked: the ${formatCoins(fee)} ${coin} fee exceeds Vault's safety limit of ${MAX_FEE_RATE} base units per virtual byte. Ask your online wallet to rebuild the payment with a checked ${coin} fee. Nothing was returned for broadcasting.`);
+  return new Error(`Signing blocked: the ${formatCoins(fee)} ${coin} fee exceeds Vault's safety limit of ${maxFeeRate(coin)} base units per virtual byte. Ask your online wallet to rebuild the payment with a checked ${coin} fee. Nothing was returned for broadcasting.`);
 }
 
 export function decodeOmniSimpleSend(script: Uint8Array): { propertyId: number; amount: bigint } | null {
@@ -148,13 +155,18 @@ export async function reviewPsbt(psbt: Psbt, seeds: SignerSeed[], selected: Coin
   if (feeSats < 0n) throw new Error("This payment spends more than its inputs hold.");
   const maximumVsize = maximumSignedVsize(psbt, purposes);
   const feeRateMinimum = feeSats / BigInt(maximumVsize);
-  if (feeRateMinimum >= BigInt(MAX_FEE_RATE)) throw feeError(selected, feeSats);
+  const cap = BigInt(maxFeeRate(selected));
+  if (feeRateMinimum >= cap) throw feeError(selected, feeSats);
+  if (feeRateMinimum * 100n >= cap * NEAR_CAP_PERCENT) warnings.push(`This fee is close to Vault's ${selected} safety limit. Signing may still be refused once the exact size is known; if so, ask your online wallet for a lower fee.`);
   let token: TokenSend | null = null;
   if (selected === "TXC" || selected === "ISK") for (const o of psbt.txOutputs) {
     const d = o.script[0] === 0x6a ? decodeOmniSimpleSend(o.script) : null;
     if (!d) continue;
     const info = KNOWN_TOKENS[d.propertyId];
-    token = { propertyId: d.propertyId, symbol: info?.symbol ?? `Token #${d.propertyId}`, amount: info?.divisible ? formatCoins(d.amount) : d.amount.toString(), to: outputs.find((x) => !x.isData && !x.isChange)?.address ?? null };
+    // Omni's reference (recipient) output is the LAST non-data, non-change output.
+    const recipients = outputs.filter((x) => !x.isData && !x.isChange);
+    token = { propertyId: d.propertyId, symbol: info?.symbol ?? `Token #${d.propertyId}`, amount: info?.divisible ? formatCoins(d.amount) : d.amount.toString(), to: recipients[recipients.length - 1]?.address ?? null };
+    if (recipients.length > 1) warnings.push(`This token payment has ${recipients.length} non-change coin outputs. The token goes to the last one (${recipients[recipients.length - 1].address}); check every address.`);
     if (!info) warnings.push(`Token #${d.propertyId} isn't one this vault knows, so the amount is shown as raw units.`);
   }
   if (sendSats > 0n && feeSats * 20n > sendSats) warnings.push("The network fee is more than 5% of what you're sending.");
@@ -171,7 +183,7 @@ export function signPsbt(psbt: Psbt, keys: HDKey[]): { hex: string; txid: string
   }
   if (keys.length !== psbt.inputCount) throw new Error("Missing input signing keys.");
   // Never partially sign/mutate the reviewed object; a failed attempt can safely be retried.
-  const signing = Psbt.fromBase64(approved.snapshot, { network: NETWORKS[approved.coin], maximumFeeRate: MAX_FEE_RATE });
+  const signing = Psbt.fromBase64(approved.snapshot, { network: NETWORKS[approved.coin], maximumFeeRate: maxFeeRate(approved.coin) });
   validateDataOutputs(signing, approved.coin);
   keys.forEach((k, i) => {
     const publicKey = k.publicKey;
@@ -179,7 +191,7 @@ export function signPsbt(psbt: Psbt, keys: HDKey[]): { hex: string; txid: string
     signing.signInput(i, { publicKey, sign: (hash: Uint8Array) => k.sign(hash) }, [Transaction.SIGHASH_ALL]);
   });
   signing.finalizeAllInputs();
-  if (signing.getFeeRate() >= MAX_FEE_RATE) throw feeError(approved.coin, signing.getFee());
+  if (signing.getFeeRate() >= maxFeeRate(approved.coin)) throw feeError(approved.coin, signing.getFee());
   const tx = signing.extractTransaction();
   return { hex: tx.toHex(), txid: tx.getId() };
 }
