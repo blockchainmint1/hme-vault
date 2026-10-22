@@ -19,7 +19,9 @@ The user selects TXC, ISK, BTC, LTC or DOGE before scanning. PSBT does **not** c
 - Only unsigned inputs and SIGHASH_ALL are accepted. No multisig, Taproot, MWEB, Dogecoin segwit or partially signed PSBTs in this release.
 - Change should carry matching output bip32Derivation; otherwise it is shown as a payment, never silently hidden.
 - All outputs, change and known input values determine the displayed fee. Input values for segwit are supplied by the online wallet; this phone cannot query the chain.
-- TXC/ISK Omni Simple Send property 39 displays TSD amounts. Unknown data produces a warning.
+- TXC/ISK Omni Simple Send property 39 displays TSD amounts. Only one zero-value, exactly decoded Omni Simple Send data output is accepted on TXC/ISK; unknown properties display raw units. All other data outputs, including THORChain swap memos, are blocked, not merely warned about.
+- The existing conservative fee cap is explicitly 5,000 base units/vB on all Bitcoin-family networks (not 5,000 coins). Review checks a lower bound on fee rate using the maximum supported signed size; finalization checks the exact rate. No QR field or online quote can raise this cap. This is a safety ceiling, not a recommended network fee, and can reject legitimate DOGE fees.
+- Signing requires the same PSBT bytes and keys that passed review and signs a private clone. Failed signing never leaves the reviewed PSBT partially signed. No signed QR is returned on rejection.
 - Mainnet networks only. BTC/LTC/DOGE tests cover a signed raw transaction for every supported address purpose; real chain broadcast/payment tests still require the online wallet.
 
 ## EVM transfers
@@ -70,5 +72,7 @@ Raw base64/hex PSBT or EVM JSON. Long values use content-labelled `HMQR2:<8-hex 
 Account keys use standard **xpub version bytes on all coins** at `m/<purpose>'/<coin>'/0'`; apply the selected chain's address encoding when deriving `/0/i` and `/1/i`. No xprv is exported. These watch-only keys cannot spend, but reveal wallet history and should be shared privately.
 
 ## Before real funds
+
+THORChain swaps remain unsupported in Vault until a strict, readable swap-intent review can validate the memo, exact destination asset/network, recipient, minimum output and refund ownership against the transaction. HME Wallet also needs a dedicated THORChain builder (deposit output first, documented VIN0 change/refund handling), required expiry/fresh inbound checks before broadcast, and end-to-end small-payment/refund testing. An offline phone cannot independently verify a live quote, vault address, halted chain or eventual delivery. Do not fix the current failure by bypassing fee checks or treating the memo as an ordinary transfer.
 
 Online-wallet implementation, device QR signing/return tests, actual small payment broadcasts on each chain, and independent security review remain required. Unit/browser tests use dummy seeds and do not establish production safety.

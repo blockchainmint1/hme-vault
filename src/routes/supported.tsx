@@ -126,6 +126,7 @@ function SupportedPage() {
       <h2 className="mt-8 text-xl font-semibold tracking-tight">What Vault will not sign</h2>
       <ul className="mt-4 list-disc space-y-1 pl-5 leading-relaxed text-muted-foreground">
         <li>Contract approvals, allowances, swaps, staking or arbitrary contract calls</li>
+        <li>THORChain swap memos or other unreadable data outputs; only TXC/ISK Omni Simple Send data is accepted</li>
         <li>Message or "sign in" signatures</li>
         <li>Anything where the fee, recipient or network is unclear</li>
         <li>Anything that would need the vault to reach the internet</li>

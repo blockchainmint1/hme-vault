@@ -63,8 +63,8 @@ function SignPage() {
   }
 
   function signPsbtNow() {
-    if (!state) return;
-    setPw("");
+    if (!state || !active.current) return;
+    setPw(""); setErr("");
     try { setSigned(signPsbt(state.psbt, state.keys)); } catch (x) { setErr((x as Error).message); }
   }
 
@@ -171,9 +171,11 @@ function SignPage() {
               ))}
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <span className="text-muted-foreground">Network fee</span><span className="text-right font-medium">{formatCoins(r.feeSats)} {r.coin}</span>
+                <span className="text-muted-foreground">Fee rate (at least)</span><span className="text-right">{r.feeRateMinimum.toString()} base units/vB</span>
                 <span className="text-muted-foreground">Back to you (change)</span><span className="text-right">{formatCoins(r.changeSats)} {r.coin}</span>
                 <span className="text-muted-foreground">Total leaving</span><span className="text-right font-semibold">{formatCoins(r.sendSats + r.feeSats)} {r.coin}</span>
               </div>
+              <p className="text-xs text-muted-foreground">Fee rate uses the maximum signed size of {r.maximumVsize} vB; the exact rate is checked again before a signed QR is returned. This phone cannot check current network fees.</p>
               {r.warnings.map((w) => (
                 <p key={w} className="flex gap-2 rounded-md border border-destructive/50 p-2 text-sm"><AlertTriangle className="h-4 w-4 shrink-0 text-destructive" />{w}</p>
               ))}
