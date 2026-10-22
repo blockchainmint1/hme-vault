@@ -110,7 +110,6 @@ The owner requires the Nectar.Pay integration handoff to cover **EVM, BTC, LTC, 
 | ISK | `isk["44"]` | `m/44'/969696'/0'` | Legacy P2PKH using ISK network bytes. Export implemented; Nectar.Pay's ISK field/address convention still needs confirmation. |
 | ZCU | `evm.xpub` (no separate `zcu` field) | `m/44'/60'/0'` | Same EVM account derivation; Nectar.Pay must identify ZCU's actual network/chain configuration independently. No chain ID is supplied by pairing. |
 | DASH | `dash["44"]` | `m/44'/5'/0'` | Public account export implemented. Mainnet P2PKH Base58Check version `0x4c` (76). Merchant address verification pending; DASH signing is not supported by Vault. |
-
 | TRON | `tron["44"]` | `m/44'/195'/0'` | Standard public xpub; derive `/0/n`, apply TRON Base58Check encoding. Merchant recognition/index policy pending; no TRON signing. |
 | Solana | `sol.address`, `sol.path` | `m/44'/501'/0'/0'` | One fixed receiving address: Base58 of raw 32-byte SLIP-0010 ed25519 public key. No public derivation of further accounts; no Solana signing. |
 
