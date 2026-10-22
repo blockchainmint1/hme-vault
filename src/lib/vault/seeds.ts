@@ -1,5 +1,7 @@
 /** Pure seed-vault helpers: payload shape, merge, lockout, key info. No storage, no network. */
 import { HDKey } from "@scure/bip32";
+import { HDKey as Ed25519HDKey } from "micro-key-producer/slip10.js";
+import { base58 } from "@scure/base";
 import {
   mnemonicToSeed,
   mnemonicToSeedSync,
@@ -184,6 +186,7 @@ export interface SeedKeys {
 export const TXC_ACCOUNT_PATH = "m/44'/696969'/0'";
 export const TXC_ADDRESS_PATH = `${TXC_ACCOUNT_PATH}/0/0`;
 export const EVM_PATH = "m/44'/60'/0'/0/0";
+export const SOLANA_PATH = "m/44'/501'/0'/0'";
 
 export async function deriveKeys(words: string, passphrase = ""): Promise<SeedKeys> {
   const root = HDKey.fromMasterSeed(await mnemonicToSeed(normalizeSeed(words), passphrase));
@@ -208,7 +211,15 @@ export async function deriveKeys(words: string, passphrase = ""): Promise<SeedKe
  * Format: docs/offline-signing-handoff.md.
  */
 export async function pairingPayload(words: string, passphrase = ""): Promise<string> {
-  const root = HDKey.fromMasterSeed(await mnemonicToSeed(normalizeSeed(words), passphrase));
+  const seed = await mnemonicToSeed(normalizeSeed(words), passphrase);
+  const root = HDKey.fromMasterSeed(seed);
+  // SLIP-0010 ed25519 cannot derive hardened children from a public key.
+  // Export only one raw public address, never its private key or chain code.
+  const sol = {
+    address: base58.encode(Ed25519HDKey.fromMasterSeed(seed).derive(SOLANA_PATH).publicKeyRaw),
+    path: SOLANA_PATH,
+  };
+  seed.fill(0);
   const fp = root.fingerprint.toString(16).padStart(8, "0");
   const acct = (ct: number) => ({
     "84": root.derive(`m/84'/${ct}'/0'`).publicExtendedKey,
@@ -226,6 +237,8 @@ export async function pairingPayload(words: string, passphrase = ""): Promise<st
     doge: { "44": root.derive("m/44'/3'/0'").publicExtendedKey },
     bch: { "44": root.derive("m/44'/145'/0'").publicExtendedKey },
     dash: { "44": root.derive("m/44'/5'/0'").publicExtendedKey },
+    tron: { "44": root.derive("m/44'/195'/0'").publicExtendedKey },
+    sol,
     evm: {
       address: evm.evmAddress,
       path: EVM_PATH,

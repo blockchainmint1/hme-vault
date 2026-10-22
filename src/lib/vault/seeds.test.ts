@@ -10,6 +10,7 @@ import {
   parsePayload,
   shouldAutoLock,
   TXC_ADDRESS_PATH,
+  SOLANA_PATH,
   type SeedEntry,
 } from "./seeds";
 import { unlockText } from "./format";
@@ -20,6 +21,9 @@ import { secp256k1 } from "@noble/curves/secp256k1";
 import { pairingPayload, nectarPairingPayload } from "./seeds";
 import { PART_SIZE, PartCollector, toParts } from "../signer/qr-parts";
 import { payments, networks } from "bitcoinjs-lib";
+import { base58, base58check } from "@scure/base";
+import { sha256 } from "@noble/hashes/sha2.js";
+import { keccak_256 } from "@noble/hashes/sha3.js";
 
 const SEED =
   "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
@@ -204,7 +208,7 @@ describe("vault rules", () => {
         ]),
       );
     const { xpub: _xpub, ...legacyEvm } = pairing.evm;
-    const { bch: _bch, dash: _dash, ...legacyPairing } = pairing;
+    const { bch: _bch, dash: _dash, tron: _tron, sol: _sol, ...legacyPairing } = pairing;
     expect({ ...legacyPairing, evm: legacyEvm }).toEqual({
       hmvault: 1,
       fp: "73c5da0a",
@@ -219,6 +223,51 @@ describe("vault rules", () => {
       },
     });
   });
+  for (const passphrase of ["", "Nectar dummy passphrase"]) {
+    it(`exports TRON public account 195 with public receiving derivation (${passphrase || "empty"})`, async () => {
+      const full = await pairingPayload(SEED, passphrase);
+      const pairing = JSON.parse(full);
+      const root = HDKey.fromMasterSeed(await mnemonicToSeed(SEED, passphrase));
+      expect(Object.keys(pairing.tron)).toEqual(["44"]);
+      expect(pairing.tron["44"]).toBe(root.derive("m/44'/195'/0'").publicExtendedKey);
+      const account = HDKey.fromExtendedKey(pairing.tron["44"]);
+      expect(account.versions.public).toBe(0x0488b21e);
+      expect(account.depth).toBe(3);
+      expect(account.privateKey).toBeNull();
+      if (!passphrase)
+        expect(pairing.tron["44"]).toBe(
+          "xpub6D1AabNHCupeiLM65ZR9UStMhJ1vCpyV4XbZdyhMZBiJXALQtmn9p42VTQckoHVn8WNqS7dqnJokZHAHcHGoaQgmv8D45oNUKx6DZMNZBCd",
+        );
+      for (const index of [0, 1, 2]) {
+        const child = account.derive(`m/0/${index}`);
+        expect(child.privateKey).toBeNull();
+        expect(child.publicKey).toEqual(root.derive(`m/44'/195'/0'/0/${index}`).publicKey);
+        if (!child.publicKey) throw new Error("Missing TRON public key");
+        const hash = keccak_256(secp256k1.Point.fromHex(child.publicKey).toBytes(false).slice(1));
+        const address = base58check(sha256).encode(Uint8Array.of(0x41, ...hash.slice(-20)));
+        if (!passphrase && index < 2)
+          expect(address).toBe(
+            ["TUEZSdKsoDHQMeZwihtdoBiN46zxhGWYdH", "TSeJkUh4Qv67VNFwY8LaAxERygNdy6NQZK"][index],
+          );
+      }
+      const collector = new PartCollector();
+      let restored: string | null = null;
+      for (const part of toParts(full)) restored = collector.add(part);
+      expect(restored).toBe(full);
+    });
+    it(`exports only Solana raw public address and hardened path (${passphrase || "empty"})`, async () => {
+      const pairing = JSON.parse(await pairingPayload(SEED, passphrase));
+      expect(SOLANA_PATH).toBe("m/44'/501'/0'/0'");
+      expect(pairing.sol).toEqual({
+        address: passphrase
+          ? "nfPtm3Bu5wtxSWRN4wxP9C6knv8UR3dUQ8uy3ykUMfi"
+          : "HAgk14JpMQLgt6rVgv7cBQFJWFto5Dqxi472uT3DKpqk",
+        path: "m/44'/501'/0'/0'",
+      });
+      expect(base58.decode(pairing.sol.address)).toHaveLength(32);
+      expect(Object.keys(pairing.sol).sort()).toEqual(["address", "path"]);
+    });
+  }
   for (const [coin, coinType] of [
     ["bch", 145],
     ["dash", 5],
