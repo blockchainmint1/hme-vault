@@ -8,8 +8,10 @@
  * Cipher:     AES-256-GCM, 12-byte IV, AAD = "HMVAULT1"
  * Plaintext:  the seed phrase, words separated by single spaces (UTF-8)
  */
+import { assessPassword } from "../security/password-strength";
+
 export const VAULT_PREFIX = "HMVAULT1";
-export const DEFAULT_ITERATIONS = 600_000;
+export const DEFAULT_ITERATIONS = 1_000_000;
 
 const enc = new TextEncoder();
 const dec = new TextDecoder();
@@ -40,7 +42,7 @@ export function normalizeSeed(seed: string): string {
 }
 
 export async function lockSeed(seed: string, password: string, iterations = DEFAULT_ITERATIONS): Promise<string> {
-  return lockText(normalizeSeed(seed), password, iterations);
+  return lockTypedText(normalizeSeed(seed), password, iterations);
 }
 
 /** Lock any UTF-8 text (a seed phrase, or a JSON vault/backup payload). */
@@ -54,6 +56,17 @@ export async function lockText(text: string, password: string, iterations = DEFA
     await crypto.subtle.encrypt({ name: "AES-GCM", iv, additionalData: enc.encode(VAULT_PREFIX) }, key, enc.encode(text)),
   );
   return [VAULT_PREFIX, String(iterations), b64u(salt), b64u(iv), b64u(ct)].join(".");
+}
+
+/**
+ * Lock with a password the owner TYPED (transfer pages, recovery-page seeds).
+ * Enforces the same strength rule as the app UI at the format boundary.
+ * Coin-QR credentials are exempt by design and go through lockText directly.
+ */
+export async function lockTypedText(text: string, password: string, iterations = DEFAULT_ITERATIONS): Promise<string> {
+  const v = assessPassword(password);
+  if (!v.ok) throw new Error(v.message);
+  return lockText(text, password, iterations);
 }
 
 export const unlockSeed = unlockText;

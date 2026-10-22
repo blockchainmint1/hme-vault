@@ -1,6 +1,6 @@
 /** Bundled into one downloadable offline HTML; never requests a remote resource. */
 import QRCode from "qrcode";
-import { lockText } from "./format";
+import { lockTypedText } from "./format";
 import { bytesToBase64, MAX_FILE_BYTES, validateSecret } from "./secrets";
 import { toParts } from "../signer/qr-parts";
 const find = (id: string) => document.getElementById(id);
@@ -34,7 +34,7 @@ find("go")?.addEventListener("click", async () => {
     }
     if (!content) throw new Error("Enter a secret or choose a non-empty file.");
     const secret = validateSecret({ id: crypto.randomUUID(), name: input("name"), type, content, filename, createdAt: Date.now() });
-    encrypted = await lockText(JSON.stringify({ v: 1, kind: "hm-seed-vault", seeds: [], secrets: [secret] }), input("pw"));
+    encrypted = await lockTypedText(JSON.stringify({ v: 1, kind: "hm-seed-vault", seeds: [], secrets: [secret] }), input("pw"));
     clearSource();
     frames = toParts(encrypted); index = 0; await show();
     if (result) result.hidden = false;
