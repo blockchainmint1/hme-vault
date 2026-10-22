@@ -1,5 +1,8 @@
 # Roadmap — HME Seed Vault
 
+- [x] Unpack uploaded 0.1.202610222009 APK for owner testing; archive/checksum and release signature verified, zero network permissions and backups disabled confirmed; APK and auditor brief supplied.
+- [ ] Replace website APK with 0.1.202610222009 only after verified gated workflow, independent review and actual Pixel checklist result (uploaded binary alone does not verify these release gates).
+
 - [x] Add TRON public account pairing and Solana fixed public receiving address; 170 tests passed, independent Solana fixtures verified, full QR displayed without runtime errors. Dedicated Nectar QR stays EVM-only; auditor handoff supplied. Merchant/device checks and APK rebuild remain pending below.
 
 - [x] Add BCH/DASH public account keys to full pairing (166 tests passed; independent xpub/address vectors match; all four actual QR frames decoded; updated auditor handoff supplied; not spending support).
