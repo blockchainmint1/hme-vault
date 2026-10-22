@@ -179,12 +179,16 @@ function SeedPage() {
                         Pair with online wallet (TXC, ISK, BTC, LTC, DOGE + EVM)
                       </p>
                       <AnimatedQr value={pairing} size={240} />
-                      <p className="text-xs text-muted-foreground">Fingerprint {keys.fingerprint}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Fingerprint {keys.fingerprint}
+                      </p>
                     </div>
                     <div className="flex w-60 flex-col items-center gap-1">
                       <p className="text-center text-sm font-medium">Pair with Nectar.Pay</p>
                       <QrCode value={nectarPairingPayload(pairing)} size={240} />
-                      <p className="text-xs text-muted-foreground">Fingerprint {keys.fingerprint}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Fingerprint {keys.fingerprint}
+                      </p>
                     </div>
                   </div>
                 )}
