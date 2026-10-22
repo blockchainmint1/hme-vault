@@ -19,6 +19,7 @@ import { publicKeyToAddress } from "viem/accounts";
 import { secp256k1 } from "@noble/curves/secp256k1";
 import { pairingPayload, nectarPairingPayload } from "./seeds";
 import { PART_SIZE, PartCollector, toParts } from "../signer/qr-parts";
+import { payments, networks } from "bitcoinjs-lib";
 
 const SEED =
   "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
@@ -235,12 +236,31 @@ describe("vault rules", () => {
         expect(account.versions.public).toBe(0x0488b21e);
         expect(account.depth).toBe(3);
         expect(account.privateKey).toBeNull();
+        if (!passphrase) {
+          expect(xpub).toBe(
+            coin === "bch"
+              ? "xpub6ByHsPNSQXTWZ7PLESMY2FufyYWtLXagSUpMQq7Un96SiThZH2iJB1X7pwviH1WtKVeDP6K8d6xxFzzoaFzF3s8BKCZx8oEDdDkNnp4owAZ"
+              : "xpub6CYEjsU6zPM3sADS2ubu2aZeGxCm3C5KabkCpo4rkNbXGAH9M7rRUJ4E5CKiyUddmRzrSCopPzisTBrXkfCD4o577XKM9mzyZtP1Xdbizyk",
+          );
+        }
         for (const index of [1, 2]) {
           const child = account.derive(`m/0/${index}`);
           expect(child.privateKey).toBeNull();
           expect(child.publicKey).toEqual(
             root.derive(`m/44'/${coinType}'/0'/0/${index}`).publicKey,
           );
+          if (!passphrase) {
+            if (!child.publicKey) throw new Error("Missing public child key");
+            const address = payments.p2pkh({
+              pubkey: child.publicKey,
+              network: { ...networks.bitcoin, pubKeyHash: coin === "bch" ? 0 : 76 },
+            }).address;
+            expect(address).toBe(
+              coin === "bch"
+                ? ["18Cp2ivkLHyJwHMm9NzDRBh6Gi7m4MC2we", "15Ax9BJRJ4TABF85UsPpz9QvuBpiJhCfsw"][index - 1]
+                : ["XbctnEsgWTn5j1co3emZynemxSFPqkLRKZ", "XdD2biTJ3saZtcR6ravwJ9bvmkvmDq49Xg"][index - 1],
+            );
+          }
         }
         const collector = new PartCollector();
         let restored: string | null = null;
