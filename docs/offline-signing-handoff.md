@@ -19,10 +19,22 @@ The user selects TXC, ISK, BTC, LTC or DOGE before scanning. PSBT does **not** c
 - Only unsigned inputs and SIGHASH_ALL are accepted. No multisig, Taproot, MWEB, Dogecoin segwit or partially signed PSBTs in this release.
 - Change should carry matching output bip32Derivation; otherwise it is shown as a payment, never silently hidden.
 - All outputs, change and known input values determine the displayed fee. Input values for segwit are supplied by the online wallet; this phone cannot query the chain.
-- TXC/ISK Omni Simple Send property 39 displays TSD amounts. Only one zero-value, exactly decoded Omni Simple Send data output is accepted on TXC/ISK; unknown properties display raw units. All other data outputs, including THORChain swap memos, are blocked, not merely warned about.
+- TXC/ISK Omni Simple Send property 39 displays TSD amounts; unknown Simple Send properties display raw units. TXC also supports the strictly bounded TSD Send To Many contract below. Only one zero-value supported Omni data output is accepted. All other data outputs, including THORChain swap memos, are blocked, not merely warned about.
 - The existing conservative fee cap is explicitly 5,000 base units/vB on all Bitcoin-family networks (not 5,000 coins). Review checks a lower bound on fee rate using the maximum supported signed size; finalization checks the exact rate. No QR field or online quote can raise this cap. This is a safety ceiling, not a recommended network fee, and can reject legitimate DOGE fees.
 - Signing requires the same PSBT bytes and keys that passed review and signs a private clone. Failed signing never leaves the reviewed PSBT partially signed. No signed QR is returned on rejection.
 - Mainnet networks only. BTC/LTC/DOGE tests cover a signed raw transaction for every supported address purpose; real chain broadcast/payment tests still require the online wallet.
+
+### TXC TSD Send To Many — October 25, 2026
+
+Vault accepts **TXC only**, version 0/type 7/property 39 (TSD), 1–7 recipients, in one zero-value canonical OP_RETURN. The payload is `"omni" | version u16 BE | type u16 BE | property u32 BE | count u8 | (vout u8, amount u64 BE) × count`. Its size is `13 + 9n` bytes including the four-byte Omni marker (76 bytes at seven recipients). Use a direct push for 1–6, OP_PUSHDATA1 for seven; no trailing or extra pushes. Every amount must be positive and the total must not exceed signed-64-bit maximum. Duplicate indices and out-of-range/data/verified-change/zero-value targets are rejected.
+
+Recipients are mapped by **actual transaction output index**, not order in a filtered address list or Simple Send's last-output convention. Vault shows the exact address and TSD amount for every mapping, plus total TSD, coin outputs, network fee and verified change. The existing input/path/script/fingerprint, SIGHASH_ALL, approval binding and review/final fee checks remain. ISK type 7, other properties, multiple OP_RETURN packets and arbitrary Omni commands remain blocked.
+
+The supplied public dummy fixture is retained under `src/lib/signer/fixtures` and must never be broadcast. It sends 100 TSD to each of seven recipients (700 total), pays 10,000 base units of TXC per reference output and a 1,000-base-unit fee. **The actual fixture has 0.99929000 TXC change, not the accompanying README's 0.98929000.** Signed output matches the supplied hex exactly, txid `aa960bfea77fc0984529693d29b1b90f9e951ce06af5812f8fe443da239f22fb`, 518 vB. No live transaction has been broadcast.
+
+Source review: TEXITcoin.org snapshot `8efb7361`, `src/routes/build.tsx` section 5b, plus the [public TXC Send To Many patch](https://core.honest.money/patches/send-to-many.patch). The patch confirms version/type/property/count/vout/amount layout and actual-vout destination mapping; site examples have inconsistent output placement but explicit indices remove that ambiguity. The node patch permits broader packets; Vault deliberately narrows acceptance to the readable contract above. Site documentation claims activation at block 364,100 on v0.26.1+, but neither the site nor this dummy fixture proves any live node runs that code or confirms token balances/activation. ISK activation has not been established, so it is not enabled.
+
+For 35 recipients the wallet can prepare five independent seven-recipient requests, each requiring separate review and signature. Previous-change chaining and unconfirmed broadcast policy are the online wallet/node's responsibility and remain unverified; Vault does not automatically authorize a batch. Independent audit, gated APK rebuild, real-device QR round-trip and TXC node/regtest validation are required before real funds.
 
 ## EVM transfers
 

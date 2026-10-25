@@ -9,6 +9,7 @@ This file describes **HME Vault**, the offline seed and secret vault (Android AP
 - Android APK: zero network permissions — INTERNET, CHANGE_* and ACCESS_NETWORK_STATE/ACCESS_WIFI_STATE are all removed with `tools:node="remove"`, so the manifest itself proves the app cannot open a socket. The pre-unlock offline checklist reads only permission-free Settings.Global values and the battery plug state (warns, owner may override or permanently ignore a single row); on any native read error every row reports "couldn't check" and the override is required (never fails open). `allowBackup="false"`, data extraction excluded, minSdk 28, screenshots blocked.
 - Fingerprint: the credential is sealed by an AES key in Android Keystore (StrongBox when present), usable only after a strong biometric match and invalidated on enrolment change. Changing the credential disables it. Old secure-storage copies from builds before 0.1.202610181456 are deleted natively on every start.
 - Offline signing (`src/lib/signer`): explicit network selection; every input verified against vault seeds; SIGHASH_ALL only; unknown data outputs (including THORChain memos) blocked; frozen per-coin fee caps checked at review and after finalization; signing bound to reviewed bytes and keys.
+- TXC TSD Send To Many (2026-10-25): only version 0/type 7/property 39, 1–7 positive amounts with unique explicit output indices and signed-64-bit-bounded total; one canonical zero-value OP_RETURN, no missing/data/verified-change/zero-value recipient targets. Review displays every actual output address and token amount; existing fee and approval safeguards remain. ISK type 7 and broader Omni instructions remain blocked. Published node patch and exact dummy signing vectors verified; independent review, live-node/regtest acceptance and APK/device checks remain required.
 - CI gate: formatting, lint, typecheck and unit tests run on every push and before every APK build.
 
 ## Status of the 2026-10-21/22 review (Fable)
@@ -20,7 +21,7 @@ This file describes **HME Vault**, the offline seed and secret vault (Android AP
 | M1 coin QR accepts any text | **Declined — by design.** The owner requires that any scanned QR works as the credential. Seeds and private keys are normalized; other content is used verbatim. Owners are told to use the hidden/secret QR. Not a defect to be fixed |
 | M2 KDF cost | Fixed: 1,000,000 iterations. Argon2id (HMVAULT2) not planned yet |
 | M3 no password change | Fixed: Settings → Change Vault password; `changePassword` disables fingerprint itself |
-| M4 Omni recipient label | Fixed: last non-change output, with a warning when there are several |
+| M4 Omni recipient label | Simple Send: last non-change output, with a warning when there are several. TXC Send To Many: explicit vout-to-address/amount mapping for every recipient |
 | M5 no CI gate | Fixed: `ci.yml` and APK workflow gates; repo formatted |
 | M6 APK fingerprints | Fixed: footer publishes file SHA-256 and signing-certificate SHA-256 (`src/lib/release.ts`) |
 | M7 stale docs | Fixed: this file, `CAPACITOR.md`, `ANDROID.md`, privacy page, CSP comment |
