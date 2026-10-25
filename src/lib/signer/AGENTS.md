@@ -1,6 +1,7 @@
 # Signer rules
 
 - QR collectors bound cumulative unique chunk characters before storing for both HMQR2 and legacy HMQR; duplicates do not consume the budget. Why: incomplete hostile streams must not bypass the assembled-text limit.
+- Outgoing PSBT and EVM signed QR displays explicitly select the signing chunk policy rather than changing shared transfer defaults. Why: webcam tuning must not alter backup exports or incoming wallet requests.
 
 - Offline signing (`src/lib/signer`) requires explicit PSBT network selection (TXC legacy coin-0 remains TXC only when selected), verifies every input fingerprint/path/script and SIGHASH_ALL, and permits EVM native/ERC-20 transfers only with chain-bound fees and matching sender; signed raw hex leaves by QR. Why: PSBT has no chain ID, and blind calls or unverified fees defeat offline review.
 - EVM signing uses local viem account signing, strict versioned transfer intents and locally encoded ERC-20 calldata; unknown networks/tokens display raw units. Why: the vault cannot fetch trusted metadata and must never accept opaque contract calls.

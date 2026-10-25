@@ -1,6 +1,7 @@
 /** Bound, session-labelled framing; legacy HMQR frames remain readable. */
 export const PART_SIZE = 600;
 export const PAIRING_PART_SIZE = 240;
+export const SIGNING_PART_SIZE = 240;
 const MAX_TEXT = 3 * 1024 * 1024;
 const MAX_PARTS = Math.ceil(MAX_TEXT / PAIRING_PART_SIZE);
 function contentTag(text: string): string {
