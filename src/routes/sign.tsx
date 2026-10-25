@@ -272,6 +272,18 @@ function SignPage() {
                     {r.token.amount} {r.token.symbol}
                   </p>
                   {r.token.to && <p className="break-all font-mono text-sm">to {r.token.to}</p>}
+                  {r.token.recipients && (
+                    <div className="mt-3 divide-y divide-border">
+                      {r.token.recipients.map((recipient) => (
+                        <div key={recipient.vout} className="py-2 space-y-1">
+                          <p className="text-sm font-semibold">
+                            {recipient.amount} {r.token?.symbol}
+                          </p>
+                          <p className="break-all font-mono text-sm">to {recipient.address}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
               {r.outputs

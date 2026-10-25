@@ -3,6 +3,7 @@ import { address as baddress, payments, Psbt, Transaction } from "bitcoinjs-lib"
 import { HDKey } from "@scure/bip32";
 import { mnemonicToSeed } from "@scure/bip39";
 import { NETWORKS, coinFromCoinType, type CoinId } from "./networks";
+import { decodeOmniSendToMany } from "./omni";
 
 export interface SignerSeed {
   id: string;
@@ -22,6 +23,7 @@ export interface TokenSend {
   symbol: string;
   amount: string;
   to: string | null;
+  recipients?: { vout: number; address: string; amount: string }[];
 }
 export interface Review {
   coin: CoinId;
@@ -59,14 +61,20 @@ const approvals = new WeakMap<Psbt, { snapshot: string; keys: HDKey[]; coin: Coi
 
 function validateDataOutputs(psbt: Psbt, coin: CoinId) {
   const data = psbt.txOutputs.filter((o) => o.script[0] === 0x6a);
-  if (data.some((o) => !(coin === "TXC" || coin === "ISK") || !decodeOmniSimpleSend(o.script))) {
+  if (
+    data.some(
+      (o) =>
+        !((coin === "TXC" || coin === "ISK") && decodeOmniSimpleSend(o.script)) &&
+        !(coin === "TXC" && decodeOmniSendToMany(o.script)),
+    )
+  ) {
     throw new Error(
       "Signing blocked: Vault cannot verify these swap or data instructions. THORChain swaps are not supported yet. Nothing was returned for broadcasting.",
     );
   }
   if (data.length > 1 || data.some((o) => o.value !== 0n))
     throw new Error(
-      "Signing blocked: token payments require one zero-value Omni Simple Send data output.",
+      "Signing blocked: token payments require one zero-value supported Omni data output.",
     );
 }
 
@@ -267,6 +275,24 @@ export async function reviewPsbt(
       `This fee is close to Vault's ${selected} safety limit. Signing may still be refused once the exact size is known; if so, ask your online wallet for a lower fee.`,
     );
   let token: TokenSend | null = null;
+  if (selected === "TXC")
+    for (const o of psbt.txOutputs) {
+      const decoded = decodeOmniSendToMany(o.script);
+      if (!decoded) continue;
+      const recipients = decoded.map(({ vout, amount }) => {
+        const output = outputs[vout];
+        if (!output || output.isData || output.isChange || output.sats <= 0n)
+          throw new Error("Signing blocked: Omni recipient points to a missing, data, change or zero-value output.");
+        return { vout, address: output.address, amount: formatCoins(amount) };
+      });
+      token = {
+        propertyId: 39,
+        symbol: "TSD",
+        amount: formatCoins(decoded.reduce((sum, receiver) => sum + receiver.amount, 0n)),
+        to: null,
+        recipients,
+      };
+    }
   if (selected === "TXC" || selected === "ISK")
     for (const o of psbt.txOutputs) {
       const d = o.script[0] === 0x6a ? decodeOmniSimpleSend(o.script) : null;
