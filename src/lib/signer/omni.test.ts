@@ -150,8 +150,21 @@ describe("TXC Omni Send To Many", () => {
     const original = parsePsbt(fixture);
     const expensive = new Psbt({ maximumFeeRate: 10_000_000 });
     expensive.setVersion(original.version);
-    original.txInputs.forEach((input, i) => expensive.addInput({ hash: input.hash, index: input.index, sequence: input.sequence, ...original.data.inputs[i] }));
-    original.txOutputs.forEach((o, i) => expensive.addOutput({ script: o.script, value: i === 8 ? o.value - BigInt(review.maximumVsize * maxFeeRate("TXC")) : o.value, ...original.data.outputs[i] }));
+    original.txInputs.forEach((input, i) =>
+      expensive.addInput({
+        hash: input.hash,
+        index: input.index,
+        sequence: input.sequence,
+        ...original.data.inputs[i],
+      }),
+    );
+    original.txOutputs.forEach((o, i) =>
+      expensive.addOutput({
+        script: o.script,
+        value: i === 8 ? o.value - BigInt(review.maximumVsize * maxFeeRate("TXC")) : o.value,
+        ...original.data.outputs[i],
+      }),
+    );
     await expect(reviewPsbt(expensive, seeds, "TXC")).rejects.toThrow("safety limit");
   });
 });
