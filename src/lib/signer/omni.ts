@@ -1,5 +1,6 @@
 /** TXC Send To Many v0/type 7: one canonical push, TSD property 39, explicit vout mapping. */
 export const MAX_OMNI_RECEIVERS = 7;
+const MAX_OMNI_AMOUNT = (1n << 63n) - 1n;
 export interface OmniReceiver {
   vout: number;
   amount: bigint;
@@ -18,11 +19,13 @@ export function decodeOmniSendToMany(script: Uint8Array): OmniReceiver[] | null 
   const view = new DataView(payload.buffer, payload.byteOffset, payload.byteLength);
   const receivers: OmniReceiver[] = [];
   const seen = new Set<number>();
+  let total = 0n;
   for (let i = 0; i < count; i++) {
     const start = 13 + i * 9;
     const vout = payload[start];
     const amount = view.getBigUint64(start + 1, false);
-    if (seen.has(vout) || amount === 0n) return null;
+    total += amount;
+    if (seen.has(vout) || amount === 0n || total > MAX_OMNI_AMOUNT) return null;
     seen.add(vout);
     receivers.push({ vout, amount });
   }

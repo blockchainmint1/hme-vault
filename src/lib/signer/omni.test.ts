@@ -103,6 +103,13 @@ describe("TXC Omni Send To Many", () => {
     bytes.fill(0, 14, 22);
     expect(decodeOmniSendToMany(script(bytes))).toBeNull();
   });
+  it("rejects signed-64-bit total overflow without wrapping", () => {
+    const bytes = payload(2);
+    const view = new DataView(bytes.buffer);
+    view.setBigUint64(14, (1n << 63n) - 1n);
+    view.setBigUint64(23, 1n);
+    expect(decodeOmniSendToMany(script(bytes))).toBeNull();
+  });
   it("rejects truncated, trailing and noncanonical data", () => {
     const good = script(payload());
     expect(decodeOmniSendToMany(good.slice(0, -1))).toBeNull();
