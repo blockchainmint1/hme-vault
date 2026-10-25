@@ -1,5 +1,7 @@
 # Roadmap — HME Seed Vault
 
+- [ ] Simplify full watch-only pairing into smaller rotating QR frames; verify exact payload recovery and provide an auditor handoff. Webcam/merchant-device verification and new APK remain external release checks.
+
 - [x] Unpack uploaded 0.1.202610222009 APK for owner testing; archive/checksum and release signature verified, zero network permissions and backups disabled confirmed; APK and auditor brief supplied.
 - [ ] Replace website APK with 0.1.202610222009 only after verified gated workflow, independent review and actual Pixel checklist result (uploaded binary alone does not verify these release gates).
 
