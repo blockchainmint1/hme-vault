@@ -282,7 +282,9 @@ export async function reviewPsbt(
       const recipients = decoded.map(({ vout, amount }) => {
         const output = outputs[vout];
         if (!output || output.isData || output.isChange || output.sats <= 0n)
-          throw new Error("Signing blocked: Omni recipient points to a missing, data, change or zero-value output.");
+          throw new Error(
+            "Signing blocked: Omni recipient points to a missing, data, change or zero-value output.",
+          );
         return { vout, address: output.address, amount: formatCoins(amount) };
       });
       token = {

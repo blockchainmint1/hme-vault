@@ -8,8 +8,7 @@ export function decodeOmniSendToMany(script: Uint8Array): OmniReceiver[] | null 
   if (script[0] !== 0x6a) return null;
   const size = script[1] === 0x4c ? script[2] : script[1];
   const offset = script[1] === 0x4c ? 3 : 2;
-  if (size === undefined || size < 22 || size > 76 || script.length !== offset + size)
-    return null;
+  if (size === undefined || size < 22 || size > 76 || script.length !== offset + size) return null;
   if ((size < 76 && offset !== 2) || (size === 76 && offset !== 3)) return null;
   const payload = script.subarray(offset);
   const header = [0x6f, 0x6d, 0x6e, 0x69, 0, 0, 0, 7, 0, 0, 0, 39];
