@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PartCollector } from "@/lib/signer/qr-parts";
+import { PartCollector, SIGNING_PART_SIZE } from "@/lib/signer/qr-parts";
 import { Fingerprint } from "lucide-react";
 import { getBiometricStatus, unlockWithBiometric } from "@/lib/native/biometric";
 
@@ -195,7 +195,7 @@ function SignPage() {
             <p className="text-sm">
               Scan this with your online wallet to send it. This phone never sends anything.
             </p>
-            <AnimatedQr value={signed.hex} />
+            <AnimatedQr value={signed.hex} frameSize={SIGNING_PART_SIZE} />
             <p className="break-all font-mono text-xs text-muted-foreground">
               Transaction ID: {signed.txid}
             </p>

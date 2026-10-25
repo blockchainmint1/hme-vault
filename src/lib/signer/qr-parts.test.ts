@@ -1,5 +1,25 @@
 import { expect, it } from "vitest";
-import { PAIRING_PART_SIZE, PartCollector, toParts } from "./qr-parts";
+import { PAIRING_PART_SIZE, SIGNING_PART_SIZE, PartCollector, toParts } from "./qr-parts";
+import { readFileSync } from "node:fs";
+
+it("limits signed-payment chunks to 240 characters and reconstructs exact signed bytes", () => {
+  const hex = readFileSync(
+    new URL("./fixtures/txc-multisend.signed.txt", import.meta.url),
+    "utf8",
+  ).trim();
+  expect(SIGNING_PART_SIZE).toBe(240);
+  const parts = toParts(hex, SIGNING_PART_SIZE);
+  expect(parts).toHaveLength(Math.ceil(hex.length / 240));
+  for (const part of parts) {
+    const chunk = /^HMQR2:[a-f0-9]{8}:\d+\/\d+:([\s\S]*)$/.exec(part)?.[1];
+    expect(chunk).toBeDefined();
+    expect(chunk?.length).toBeLessThanOrEqual(240);
+  }
+  const collector = new PartCollector();
+  let result: string | null = null;
+  for (const part of [...parts].reverse()) result = collector.add(part);
+  expect(result).toBe(hex);
+});
 it("collects cycling encrypted transfer parts in any order with repeats", () => {
   const text = "HMVAULT1." + "xyz".repeat(1500);
   const parts = toParts(text);
