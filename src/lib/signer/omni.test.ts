@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { payments, Psbt, Transaction } from "bitcoinjs-lib";
 import { decodeOmniSendToMany } from "./omni";
-import { parsePsbt, reviewPsbt, signPsbt } from "./psbt";
+import { maxFeeRate, parsePsbt, reviewPsbt, signPsbt } from "./psbt";
 
 const fixture = readFileSync(
   new URL("./fixtures/txc-multisend.psbt.txt", import.meta.url),
@@ -69,7 +69,8 @@ describe("TXC Omni Send To Many", () => {
       psbt.txOutputs.slice(0, 7).map((o, vout) => ({ vout, address: o.address, amount: "100" })),
     );
     expect(review.feeSats).toBe(1000n);
-    expect(review.changeSats).toBe(98_929_000n);
+    // Actual fixture differs from README's change figure: 1 TXC - 7×0.0001 - 0.00001.
+    expect(review.changeSats).toBe(99_929_000n);
     const signed = signPsbt(psbt, keys);
     expect(signed.hex).toBe(expected);
     expect(signed.txid).toBe("aa960bfea77fc0984529693d29b1b90f9e951ce06af5812f8fe443da239f22fb");
@@ -142,5 +143,15 @@ describe("TXC Omni Send To Many", () => {
     const { keys } = await reviewPsbt(psbt, seeds, "TXC");
     psbt.addOutput({ script: psbt.txOutputs[0].script, value: 1n });
     expect(() => signPsbt(psbt, keys)).toThrow("changed");
+  });
+  it("keeps the TXC fee cap for multi-send despite permissive caller options", async () => {
+    const psbt = parsePsbt(fixture);
+    const { review } = await reviewPsbt(psbt, seeds, "TXC");
+    const original = parsePsbt(fixture);
+    const expensive = new Psbt({ maximumFeeRate: 10_000_000 });
+    expensive.setVersion(original.version);
+    original.txInputs.forEach((input, i) => expensive.addInput({ hash: input.hash, index: input.index, sequence: input.sequence, ...original.data.inputs[i] }));
+    original.txOutputs.forEach((o, i) => expensive.addOutput({ script: o.script, value: i === 8 ? o.value - BigInt(review.maximumVsize * maxFeeRate("TXC")) : o.value, ...original.data.outputs[i] }));
+    await expect(reviewPsbt(expensive, seeds, "TXC")).rejects.toThrow("safety limit");
   });
 });
