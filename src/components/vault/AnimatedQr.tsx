@@ -1,22 +1,32 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { QrCode } from "@/components/wallet/QrCode";
-import { toParts } from "@/lib/signer/qr-parts";
+import { PART_SIZE, toParts } from "@/lib/signer/qr-parts";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
 
 /** One QR if it fits, otherwise cycles through numbered parts. */
-export function AnimatedQr({ value, size = 280 }: { value: string; size?: number }) {
-  const parts = toParts(value);
+export function AnimatedQr({
+  value,
+  size = 280,
+  frameSize = PART_SIZE,
+  intervalMs = 700,
+}: {
+  value: string;
+  size?: number;
+  frameSize?: number;
+  intervalMs?: number;
+}) {
+  const parts = useMemo(() => toParts(value, frameSize), [value, frameSize]);
   const [i, setI] = useState(0);
   const [paused, setPaused] = useState(false);
   useEffect(() => {
     setI(0);
-  }, [value]);
+  }, [value, frameSize]);
   useEffect(() => {
     if (parts.length < 2 || paused) return;
-    const t = setInterval(() => setI((n) => (n + 1) % parts.length), 700);
+    const t = setInterval(() => setI((n) => (n + 1) % parts.length), intervalMs);
     return () => clearInterval(t);
-  }, [value, paused, parts.length]);
+  }, [value, paused, parts.length, intervalMs]);
   return (
     <div className="flex flex-col items-center gap-1">
       <QrCode value={parts[i] ?? parts[0]} size={size} />

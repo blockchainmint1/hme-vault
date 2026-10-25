@@ -1,5 +1,7 @@
 # Roadmap — HME Seed Vault
 
+- [x] Simplify full watch-only pairing: 240-character frames, 1-second rotation, 280 px display; 10 actual QR images decoded to the unchanged 2,301-character dummy payload; 174 tests passed; auditor handoff supplied. Physical webcam/merchant-device verification and gated new APK remain external release checks.
+
 - [x] Unpack uploaded 0.1.202610222009 APK for owner testing; archive/checksum and release signature verified, zero network permissions and backups disabled confirmed; APK and auditor brief supplied.
 - [ ] Replace website APK with 0.1.202610222009 only after verified gated workflow, independent review and actual Pixel checklist result (uploaded binary alone does not verify these release gates).
 

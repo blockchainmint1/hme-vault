@@ -1,15 +1,19 @@
 /** Bound, session-labelled framing; legacy HMQR frames remain readable. */
 export const PART_SIZE = 600;
+export const PAIRING_PART_SIZE = 240;
 const MAX_TEXT = 3 * 1024 * 1024;
-const MAX_PARTS = Math.ceil(MAX_TEXT / PART_SIZE);
-export function toParts(text: string, size = PART_SIZE): string[] {
-  if (text.length > MAX_TEXT || !Number.isInteger(size) || size < PART_SIZE || size > 2000)
-    throw new Error("QR transfer is too large.");
-  if (text.length <= size) return [text];
+const MAX_PARTS = Math.ceil(MAX_TEXT / PAIRING_PART_SIZE);
+function contentTag(text: string): string {
   // Stable content label prevents accidentally mixing two cycling transfers.
   let hash = 2166136261;
   for (let i = 0; i < text.length; i++) hash = Math.imul(hash ^ text.charCodeAt(i), 16777619);
-  const tag = (hash >>> 0).toString(16).padStart(8, "0");
+  return (hash >>> 0).toString(16).padStart(8, "0");
+}
+export function toParts(text: string, size = PART_SIZE): string[] {
+  if (text.length > MAX_TEXT || !Number.isInteger(size) || size < PAIRING_PART_SIZE || size > 2000)
+    throw new Error("QR transfer is too large.");
+  if (text.length <= size) return [text];
+  const tag = contentTag(text);
   const total = Math.ceil(text.length / size);
   return Array.from(
     { length: total },
@@ -52,7 +56,7 @@ export class PartCollector {
     if (this.parts.size !== total) return null;
     const text = Array.from({ length: total }, (_, i) => this.parts.get(i + 1) ?? "").join("");
     if (text.length > MAX_TEXT) throw new Error("Transfer is too large.");
-    if (modern && toParts(text)[0]?.split(":")[1] !== tag)
+    if (modern && contentTag(text) !== tag)
       throw new Error("QR transfer was damaged. Start again.");
     return text;
   }

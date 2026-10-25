@@ -5,7 +5,7 @@ export function QrCode({ value, size = 240 }: { value: string; size?: number }) 
   const [dataUrl, setDataUrl] = useState<string>("");
   useEffect(() => {
     let cancelled = false;
-    QRCode.toDataURL(value, { width: size, margin: 1, errorCorrectionLevel: "M" })
+    QRCode.toDataURL(value, { width: size, margin: 4, errorCorrectionLevel: "M" })
       .then((url) => {
         if (!cancelled) setDataUrl(url);
       })
@@ -33,7 +33,7 @@ export function QrCode({ value, size = 240 }: { value: string; size?: number }) 
       height={size}
       alt="QR code"
       draggable={false}
-      className="pointer-events-none select-none rounded-lg border border-border bg-white p-2"
+      className="pointer-events-none max-w-full h-auto select-none rounded-lg border border-border bg-background p-2"
     />
   );
 }

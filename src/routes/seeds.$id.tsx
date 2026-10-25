@@ -8,6 +8,7 @@ import { CredentialInput } from "@/components/vault/CredentialInput";
 import { Label } from "@/components/ui/label";
 import { QrCode } from "@/components/wallet/QrCode";
 import { AnimatedQr } from "@/components/vault/AnimatedQr";
+import { PAIRING_PART_SIZE } from "@/lib/signer/qr-parts";
 import { Unlocked } from "@/components/vault/Unlocked";
 import { useVault } from "@/lib/vault/vault-context";
 import {
@@ -174,12 +175,17 @@ function SeedPage() {
                 </div>
                 {pairing && (
                   <div className="flex flex-wrap justify-center gap-6">
-                    <div className="flex w-60 flex-col items-center gap-1">
+                    <div className="flex w-70 max-w-full flex-col items-center gap-1">
                       <p className="text-center text-sm font-medium">
                         Pair with online wallet (TXC, ISK, BTC, LTC, DOGE, BCH, DASH, TRON, Solana +
                         EVM)
                       </p>
-                      <AnimatedQr value={pairing} size={240} />
+                      <AnimatedQr
+                        value={pairing}
+                        size={280}
+                        frameSize={PAIRING_PART_SIZE}
+                        intervalMs={1000}
+                      />
                       <p className="text-xs text-muted-foreground">
                         Fingerprint {keys.fingerprint}
                       </p>

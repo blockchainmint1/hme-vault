@@ -53,6 +53,14 @@ Example native transfer (test addresses; never use these as live payment details
 
 Raw base64/hex PSBT or EVM JSON. Long values use content-labelled `HMQR2:<8-hex label>:<n>/<total>:<chunk>` (600 characters per frame, ~700 ms cycling). Read both HMQR2 and legacy HMQR; reject conflicting parts. See `src/lib/signer/qr-parts.ts` for bounds. Vault returns signed raw transaction bytes, not a JSON response wrapper.
 
+### Webcam-friendly full pairing — October 25, 2026
+
+The full watch-only pairing QR now uses **240-character chunks**, **1,000 ms per frame**, and a **280 px** display instead of 600-character chunks at 700 ms and 240 px. Every displayed QR has a four-module quiet zone. The complete JSON and all public receiving data remain identical; only transport density and timing change. Pause/previous/next controls remain available. Individual addresses and the compact EVM-only Nectar.Pay QR remain static.
+
+Readers must collect numbered HMQR2 chunks in any order with repeats and concatenate exactly before parsing JSON; do not assume 600 characters per chunk. Verify the content label over the assembled text independent of chunk size. Vault's collector now handles 240–2,000-character chunk sizes (default writer 600), including transfers whose combined text is shorter than 600. The 3 MiB assembled-text bound, conflicting-part rejection and legacy HMQR reading remain. The bounded part-count ceiling becomes 13,108 to accommodate the existing maximum at 240 characters. FNV-1a labels detect accidental mixing/damage, not malicious authentication.
+
+Backup and payment transfers retain their 600-character/700 ms defaults. Real webcam focus, Nectar.Pay and existing HME Wallet scanning still need partner/device checks; software decoding alone does not establish physical webcam performance. A gated APK rebuild and independent audit remain necessary before phone release.
+
 ## Watch-only pairing
 
 `hmvault: 1` remains backward-compatible; additional keys are optional to old readers:
