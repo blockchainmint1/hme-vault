@@ -64,3 +64,27 @@ it("rejects damaged and mixed webcam-friendly transfers", () => {
   mixed.add(parts[0]);
   expect(() => mixed.add(toParts("b".repeat(700), 240)[1])).toThrow("Different transfer");
 });
+
+for (const prefix of ["HMQR2:12345678", "HMQR"]) {
+  it(`bounds stored ${prefix} chunks at 3 MiB before completion without counting repeats`, () => {
+    const limit = 3 * 1024 * 1024;
+    const collector = new PartCollector();
+    const total = 2000;
+    const chunk = "x".repeat(2000);
+    const fullChunks = Math.floor(limit / chunk.length);
+    for (let n = 1; n <= fullChunks; n++) {
+      const frame = `${prefix}:${n}/${total}:${chunk}`;
+      expect(collector.add(frame)).toBeNull();
+      expect(collector.add(frame)).toBeNull();
+    }
+    const last = `${prefix}:${fullChunks + 1}/${total}:${"x".repeat(limit % 2000)}`;
+    expect(collector.add(last)).toBeNull();
+    expect(collector.add(last)).toBeNull();
+    expect(collector.progress).toEqual({ have: fullChunks + 1, total });
+    expect(() => collector.add(`${prefix}:${fullChunks + 2}/${total}:x`)).toThrow(
+      "Transfer is too large.",
+    );
+    expect(collector.progress).toEqual({ have: fullChunks + 1, total });
+    expect(() => collector.add(last.replace(/x$/, "y"))).toThrow("Conflicting QR part");
+  });
+}
