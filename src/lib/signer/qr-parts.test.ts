@@ -3,7 +3,10 @@ import { PAIRING_PART_SIZE, SIGNING_PART_SIZE, PartCollector, toParts } from "./
 import { readFileSync } from "node:fs";
 
 it("limits signed-payment chunks to 240 characters and reconstructs exact signed bytes", () => {
-  const hex = readFileSync(new URL("./fixtures/txc-multisend.signed.txt", import.meta.url), "utf8").trim();
+  const hex = readFileSync(
+    new URL("./fixtures/txc-multisend.signed.txt", import.meta.url),
+    "utf8",
+  ).trim();
   expect(SIGNING_PART_SIZE).toBe(240);
   const parts = toParts(hex, SIGNING_PART_SIZE);
   expect(parts).toHaveLength(Math.ceil(hex.length / 240));
