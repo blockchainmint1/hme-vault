@@ -1,5 +1,7 @@
 # Roadmap — HME Seed Vault
 
+- [x] Add the audit-approved cumulative QR collector size guard with exact-limit, duplicate and pre-completion overflow tests for HMQR2 and legacy HMQR. Independent review of this small follow-up remains required before release.
+
 - [x] Add strictly reviewed TXC TSD Send To Many signing (1–7 recipients): published node patch checked, all seven amounts displayed, supplied QR images scanned through the UI, exact signed bytes and txid matched; 196 tests passed. Auditor handoff supplied; ISK activation, live node/regtest acceptance, independent review and gated APK/device checks remain external release requirements.
 
 - [x] Simplify full watch-only pairing: 240-character frames, 1-second rotation, 280 px display; 10 actual QR images decoded to the unchanged 2,301-character dummy payload; 174 tests passed; auditor handoff supplied. Physical webcam/merchant-device verification and gated new APK remain external release checks.

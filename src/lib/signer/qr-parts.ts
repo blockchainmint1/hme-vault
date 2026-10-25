@@ -22,6 +22,7 @@ export function toParts(text: string, size = PART_SIZE): string[] {
 }
 export class PartCollector {
   private parts = new Map<number, string>();
+  private stored = 0;
   private total = 0;
   private tag = "";
   add(code: string): string | null {
@@ -50,6 +51,10 @@ export class PartCollector {
       throw new Error("Different transfer detected. Close the scanner and start again.");
     if (this.parts.has(n) && this.parts.get(n) !== chunk)
       throw new Error("Conflicting QR part. Start again.");
+    if (!this.parts.has(n)) {
+      if (this.stored + chunk.length > MAX_TEXT) throw new Error("Transfer is too large.");
+      this.stored += chunk.length;
+    }
     this.total = total;
     this.tag = tag;
     this.parts.set(n, chunk);

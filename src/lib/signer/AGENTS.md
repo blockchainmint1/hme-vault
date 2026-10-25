@@ -1,5 +1,7 @@
 # Signer rules
 
+- QR collectors bound cumulative unique chunk characters before storing for both HMQR2 and legacy HMQR; duplicates do not consume the budget. Why: incomplete hostile streams must not bypass the assembled-text limit.
+
 - Offline signing (`src/lib/signer`) requires explicit PSBT network selection (TXC legacy coin-0 remains TXC only when selected), verifies every input fingerprint/path/script and SIGHASH_ALL, and permits EVM native/ERC-20 transfers only with chain-bound fees and matching sender; signed raw hex leaves by QR. Why: PSBT has no chain ID, and blind calls or unverified fees defeat offline review.
 - EVM signing uses local viem account signing, strict versioned transfer intents and locally encoded ERC-20 calldata; unknown networks/tokens display raw units. Why: the vault cannot fetch trusted metadata and must never accept opaque contract calls.
 - PSBT review blocks unknown data (including THORChain memos), permits one zero-value TXC/ISK Omni Simple Send or TXC-only TSD Send To Many data output, checks the frozen per-coin cap table (`MAX_FEE_RATES`: 5,000 base units/vB for BTC/LTC/TXC/ISK, 1,000,000 for DOGE) before approval and after finalization, warns at 80% of the cap, labels the last non-change output as the Simple Send recipient, and binds signing to the reviewed bytes and keys using a private in-memory approval. Sign a clone with no fee bypass. Why: unreadable swaps are blind signing, Bitcoin defaults must not silently govern retries, and changed or failed requests must never reuse approval.
