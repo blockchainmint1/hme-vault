@@ -1,6 +1,6 @@
 # Roadmap — HME Seed Vault
 
-- [ ] Move Sign above the seed list and add offline Receive: choose seed/network, show public address QR; verify derivation, locking and narrow-screen flow, supply auditor brief.
+- [x] Move Sign above the seed list and add offline Receive: choose seed/network, show fixed first public address QR from pairing accounts; 228 tests pass, two dummy seeds/passphrase switching and locked redirect verified, displayed BTC QR decoded, desktop/narrow screens checked. Independent review, partner path checks and gated APK/device testing remain external release gates.
 
 - [x] Use smaller signing chunks for all outgoing signed payments; exact-byte round-trip regression added. External review and physical webcam/partner verification remain release gates.
 
