@@ -27,10 +27,16 @@ function SeedsPage() {
       <VaultTabs />
       <div className="mb-4 grid grid-cols-2 gap-2">
         <Button asChild className="h-14 text-base">
-          <Link to="/sign"><Camera className="h-5 w-5 mr-2" />Sign</Link>
+          <Link to="/sign">
+            <Camera className="h-5 w-5 mr-2" />
+            Sign
+          </Link>
         </Button>
         <Button asChild variant="secondary" className="h-14 text-base">
-          <Link to="/receive"><ArrowDownLeft className="h-5 w-5 mr-2" />Receive</Link>
+          <Link to="/receive">
+            <ArrowDownLeft className="h-5 w-5 mr-2" />
+            Receive
+          </Link>
         </Button>
       </div>
       <div className="space-y-2">
