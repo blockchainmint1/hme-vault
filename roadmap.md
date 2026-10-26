@@ -1,5 +1,7 @@
 # Roadmap — HME Seed Vault
 
+- [ ] Replace cashaddrjs with a local P2PKH-only CashAddr encoder; prove reference/passphrase address equivalence, remove its obsolete dependency branch, and provide an audit handoff. No publication or APK replacement.
+
 - [x] Move Sign above the seed list and add offline Receive: choose seed/network, show fixed first public address QR from pairing accounts; 228 tests pass, two dummy seeds/passphrase switching and locked redirect verified, displayed BTC QR decoded, desktop/narrow screens checked. Independent review, partner path checks and gated APK/device testing remain external release gates.
 
 - [x] Use smaller signing chunks for all outgoing signed payments; exact-byte round-trip regression added. External review and physical webcam/partner verification remain release gates.
