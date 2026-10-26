@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatorRouteImport } from './routes/authenticator'
 import { Route as BackupRouteImport } from './routes/backup'
 import { Route as ManifestoRouteImport } from './routes/manifesto'
+import { Route as ReceiveRouteImport } from './routes/receive'
 import { Route as SecretsRouteImport } from './routes/secrets'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SignRouteImport } from './routes/sign'
@@ -43,6 +44,11 @@ const BackupRoute = BackupRouteImport.update({
 const ManifestoRoute = ManifestoRouteImport.update({
   id: '/manifesto',
   path: '/manifesto',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReceiveRoute = ReceiveRouteImport.update({
+  id: '/receive',
+  path: '/receive',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SecretsRoute = SecretsRouteImport.update({
@@ -106,6 +112,7 @@ export interface FileRoutesByFullPath {
   '/authenticator': typeof AuthenticatorRoute
   '/backup': typeof BackupRoute
   '/manifesto': typeof ManifestoRoute
+  '/receive': typeof ReceiveRoute
   '/secrets': typeof SecretsRoute
   '/settings': typeof SettingsRoute
   '/sign': typeof SignRoute
@@ -123,6 +130,7 @@ export interface FileRoutesByTo {
   '/authenticator': typeof AuthenticatorRoute
   '/backup': typeof BackupRoute
   '/manifesto': typeof ManifestoRoute
+  '/receive': typeof ReceiveRoute
   '/secrets': typeof SecretsRoute
   '/settings': typeof SettingsRoute
   '/sign': typeof SignRoute
@@ -141,6 +149,7 @@ export interface FileRoutesById {
   '/authenticator': typeof AuthenticatorRoute
   '/backup': typeof BackupRoute
   '/manifesto': typeof ManifestoRoute
+  '/receive': typeof ReceiveRoute
   '/secrets': typeof SecretsRoute
   '/settings': typeof SettingsRoute
   '/sign': typeof SignRoute
@@ -160,6 +169,7 @@ export interface FileRouteTypes {
     | '/authenticator'
     | '/backup'
     | '/manifesto'
+    | '/receive'
     | '/secrets'
     | '/settings'
     | '/sign'
@@ -177,6 +187,7 @@ export interface FileRouteTypes {
     | '/authenticator'
     | '/backup'
     | '/manifesto'
+    | '/receive'
     | '/secrets'
     | '/settings'
     | '/sign'
@@ -194,6 +205,7 @@ export interface FileRouteTypes {
     | '/authenticator'
     | '/backup'
     | '/manifesto'
+    | '/receive'
     | '/secrets'
     | '/settings'
     | '/sign'
@@ -212,6 +224,7 @@ export interface RootRouteChildren {
   AuthenticatorRoute: typeof AuthenticatorRoute
   BackupRoute: typeof BackupRoute
   ManifestoRoute: typeof ManifestoRoute
+  ReceiveRoute: typeof ReceiveRoute
   SecretsRoute: typeof SecretsRoute
   SettingsRoute: typeof SettingsRoute
   SignRoute: typeof SignRoute
@@ -253,6 +266,13 @@ declare module '@tanstack/react-router' {
       path: '/manifesto'
       fullPath: '/manifesto'
       preLoaderRoute: typeof ManifestoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/receive': {
+      id: '/receive'
+      path: '/receive'
+      fullPath: '/receive'
+      preLoaderRoute: typeof ReceiveRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/secrets': {
@@ -340,6 +360,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatorRoute: AuthenticatorRoute,
   BackupRoute: BackupRoute,
   ManifestoRoute: ManifestoRoute,
+  ReceiveRoute: ReceiveRoute,
   SecretsRoute: SecretsRoute,
   SettingsRoute: SettingsRoute,
   SignRoute: SignRoute,

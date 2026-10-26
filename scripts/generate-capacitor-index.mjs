@@ -18,6 +18,7 @@ const staticSpaRoutes = [
   "authenticator",
   "settings",
   "sign",
+  "receive",
   "vault",
   "manifesto",
   "legal/privacy",

@@ -1,5 +1,7 @@
 # Roadmap — HME Seed Vault
 
+- [x] Move Sign above the seed list and add offline Receive: choose seed/network, show fixed first public address QR from pairing accounts; 228 tests pass, two dummy seeds/passphrase switching and locked redirect verified, displayed BTC QR decoded, desktop/narrow screens checked. Independent review, partner path checks and gated APK/device testing remain external release gates.
+
 - [x] Use smaller signing chunks for all outgoing signed payments; exact-byte round-trip regression added. External review and physical webcam/partner verification remain release gates.
 
 - [x] Add the audit-approved cumulative QR collector size guard with exact-limit, duplicate and pre-completion overflow tests for HMQR2 and legacy HMQR. Independent review of this small follow-up remains required before release.

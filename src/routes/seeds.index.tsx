@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { KeyRound, Plus, HardDriveDownload, Settings, Camera } from "lucide-react";
+import { KeyRound, Plus, HardDriveDownload, Settings, Camera, ArrowDownLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Unlocked } from "@/components/vault/Unlocked";
@@ -25,6 +25,20 @@ function SeedsPage() {
   return (
     <Unlocked title="My seeds">
       <VaultTabs />
+      <div className="mb-4 grid grid-cols-2 gap-2">
+        <Button asChild className="h-14 text-base">
+          <Link to="/sign">
+            <Camera className="h-5 w-5 mr-2" />
+            Sign
+          </Link>
+        </Button>
+        <Button asChild variant="secondary" className="h-14 text-base">
+          <Link to="/receive">
+            <ArrowDownLeft className="h-5 w-5 mr-2" />
+            Receive
+          </Link>
+        </Button>
+      </div>
       <div className="space-y-2">
         {seeds.length === 0 && (
           <Card>
@@ -71,15 +85,6 @@ function SeedsPage() {
             </Link>
           </Button>
         </div>
-        <Button asChild variant="outline" className="h-14 text-base">
-          <Link to="/sign">
-            <Camera className="h-5 w-5 mr-2" />
-            Sign a payment
-          </Link>
-        </Button>
-        <p className="text-xs text-center text-muted-foreground">
-          The next screen scans the payment QR with your camera.
-        </p>
       </div>
     </Unlocked>
   );
