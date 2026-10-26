@@ -1,7 +1,10 @@
 /** Pure seed-vault helpers: payload shape, merge, lockout, key info. No storage, no network. */
 import { HDKey } from "@scure/bip32";
 import { HDKey as Ed25519HDKey } from "micro-key-producer/slip10.js";
-import { base58 } from "@scure/base";
+import { base58, base58check } from "@scure/base";
+import { sha256 } from "@noble/hashes/sha2.js";
+import { ripemd160 } from "@noble/hashes/legacy.js";
+import cashaddr from "cashaddrjs";
 import {
   mnemonicToSeed,
   mnemonicToSeedSync,
@@ -259,4 +262,48 @@ export function nectarPairingPayload(fullPairing: string): string {
     fp: pairing.fp,
     evm: { xpub: pairing.evm.xpub },
   });
+}
+
+export const RECEIVE_COINS = [
+  "TXC", "ISK", "BTC", "LTC", "DOGE", "BCH", "DASH", "EVM", "ZCU", "TRON", "SOL",
+] as const;
+export type ReceiveCoin = (typeof RECEIVE_COINS)[number];
+export interface ReceivingAddress {
+  address: string;
+  path: string;
+  fingerprint: string;
+  format: string;
+}
+
+/** First receiving address only; public children of the SAME accounts exported for pairing. */
+export async function receivingAddress(
+  words: string,
+  passphrase: string,
+  coin: ReceiveCoin,
+): Promise<ReceivingAddress> {
+  if (!RECEIVE_COINS.includes(coin)) throw new Error("Unsupported receiving network.");
+  const pairing = JSON.parse(await pairingPayload(words, passphrase));
+  const common = { fingerprint: pairing.fp };
+  if (coin === "SOL")
+    return { ...common, ...pairing.sol, format: "Solana · fixed address" };
+  if (coin === "EVM" || coin === "ZCU")
+    return { ...common, address: pairing.evm.address, path: pairing.evm.path, format: "EVM" };
+  const purpose = coin === "BTC" || coin === "LTC" ? "84" : "44";
+  const coinType = { TXC: 696969, ISK: 969696, BTC: 0, LTC: 2, DOGE: 3, BCH: 145, DASH: 5, TRON: 195 }[coin];
+  const account = HDKey.fromExtendedKey(pairing[coin.toLowerCase()][purpose]);
+  const publicKey = account.derive("m/0/0").publicKey;
+  if (!publicKey) throw new Error("Could not derive receiving public key.");
+  const path = `m/${purpose}'/${coinType}'/0'/0/0`;
+  if (coin === "TRON") {
+    const hash = keccak_256(secp256k1.Point.fromHex(publicKey).toBytes(false).slice(1));
+    return { ...common, path, address: base58check(sha256).encode(Uint8Array.of(0x41, ...hash.slice(-20))), format: "TRON" };
+  }
+  if (coin === "BCH")
+    return { ...common, path, address: cashaddr.encode("bitcoincash", "P2PKH", ripemd160(sha256(publicKey))), format: "CashAddr · P2PKH" };
+  const network = coin === "DASH" ? { ...NETWORKS.BTC, pubKeyHash: 0x4c } : NETWORKS[coin];
+  const address = purpose === "84"
+    ? payments.p2wpkh({ pubkey: publicKey, network }).address
+    : payments.p2pkh({ pubkey: publicKey, network }).address;
+  if (!address) throw new Error("Could not derive receiving address.");
+  return { ...common, address, path, format: purpose === "84" ? "Native SegWit · P2WPKH" : "Legacy · P2PKH" };
 }
