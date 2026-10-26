@@ -3,7 +3,7 @@ import { HDKey } from "@scure/bip32";
 import { payments } from "bitcoinjs-lib";
 import { base58check } from "@scure/base";
 import { sha256 } from "@noble/hashes/sha2.js";
-import cashaddr from "cashaddrjs";
+import { encodeCashAddrP2PKH } from "./cashaddr";
 import { NETWORKS } from "../signer/networks";
 import { pairingPayload, receivingAddress, RECEIVE_COINS, deriveKeys } from "./seeds";
 
@@ -57,10 +57,9 @@ describe("offline Receive", () => {
             : payments.p2pkh({ pubkey: child.publicKey, network }).address;
         if (coin === "BCH") {
           if (!expected) throw new Error("Missing legacy BCH address");
-          const decoded = cashaddr.decode(result.address);
-          expect(decoded.prefix).toBe("bitcoincash");
-          expect(decoded.type).toBe("P2PKH");
-          expect(decoded.hash).toEqual(base58check(sha256).decode(expected).slice(1));
+          expect(result.address).toBe(
+            encodeCashAddrP2PKH(base58check(sha256).decode(expected).slice(1)),
+          );
         } else expect(result.address).toBe(expected);
       });
     }
@@ -90,8 +89,18 @@ describe("offline Receive", () => {
   });
   it("encodes the published CashAddr reference hash", () => {
     const hash = base58check(sha256).decode("1BpEi6DfDAUFd7GtittLSdBeYJvcoaVggu").slice(1);
-    expect(cashaddr.encode("bitcoincash", "P2PKH", hash)).toBe(
+    expect(encodeCashAddrP2PKH(hash)).toBe(
       "bitcoincash:qpm2qsznhks23z7629mms6s4cwef74vcwvy22gdx6a",
+    );
+  });
+  it("preserves the original BCH first address without a passphrase", async () => {
+    expect((await receivingAddress(WORDS, "", "BCH")).address).toBe(
+      "bitcoincash:qqyx49mu0kkn9ftfj6hje6g2wfer34yfnq5tahq3q6",
+    );
+  });
+  it("preserves the original BCH first address with a passphrase", async () => {
+    expect((await receivingAddress(WORDS, "Nectar dummy passphrase", "BCH")).address).toBe(
+      "bitcoincash:qzxjcvrpjvha5t3ejrdfrfcaqwa7yyylmuywmwwj25",
     );
   });
 });

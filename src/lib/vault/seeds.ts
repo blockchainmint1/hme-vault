@@ -4,7 +4,7 @@ import { HDKey as Ed25519HDKey } from "micro-key-producer/slip10.js";
 import { base58, base58check } from "@scure/base";
 import { sha256 } from "@noble/hashes/sha2.js";
 import { ripemd160 } from "@noble/hashes/legacy.js";
-import cashaddr from "cashaddrjs";
+import { encodeCashAddrP2PKH } from "./cashaddr";
 import {
   mnemonicToSeed,
   mnemonicToSeedSync,
@@ -325,7 +325,7 @@ export async function receivingAddress(
     return {
       ...common,
       path,
-      address: cashaddr.encode("bitcoincash", "P2PKH", ripemd160(sha256(publicKey))),
+      address: encodeCashAddrP2PKH(ripemd160(sha256(publicKey))),
       format: "CashAddr · P2PKH",
     };
   const network = coin === "DASH" ? { ...NETWORKS.BTC, pubKeyHash: 0x4c } : NETWORKS[coin];
