@@ -1,6 +1,6 @@
 # Roadmap — HME Seed Vault
 
-- [ ] Replace cashaddrjs with a local P2PKH-only CashAddr encoder; prove reference/passphrase address equivalence, remove its obsolete dependency branch, and provide an audit handoff. No publication or APK replacement.
+- [x] Replace cashaddrjs with a local P2PKH-only CashAddr encoder; published reference and both original BCH addresses match, 233 tests pass, unlocked Receive checked with both dummy seeds, obsolete big-integer 1.6.36 removed. Audit handoff includes separate dependency-scan warnings; no publication or APK replacement.
 
 - [x] Move Sign above the seed list and add offline Receive: choose seed/network, show fixed first public address QR from pairing accounts; 228 tests pass, two dummy seeds/passphrase switching and locked redirect verified, displayed BTC QR decoded, desktop/narrow screens checked. Independent review, partner path checks and gated APK/device testing remain external release gates.
 
