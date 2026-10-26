@@ -1,5 +1,8 @@
 # Roadmap — HME Seed Vault
 
+- [x] Record the owner's independent CashAddr review at head 838c6b0 (5,000 random hashes plus edge cases reported with zero mismatches); locally rerun all 233 tests successfully. No app, dependency, workflow or APK changes authorized by this review alone.
+- [ ] Evaluate and apply in-range tooling security updates, a dependency-audit CI gate, explicit APK workflow permissions and a production-build step in CI after owner confirmation of the review response. Gate severity/exceptions and tag-release write permissions must be deliberate; do not perform the unnecessary Zod major upgrade.
+
 - [x] Replace cashaddrjs with a local P2PKH-only CashAddr encoder; published reference and both original BCH addresses match, 233 tests pass, unlocked Receive checked with both dummy seeds, obsolete big-integer 1.6.36 removed. Audit handoff includes separate dependency-scan warnings; no publication or APK replacement.
 
 - [x] Move Sign above the seed list and add offline Receive: choose seed/network, show fixed first public address QR from pairing accounts; 228 tests pass, two dummy seeds/passphrase switching and locked redirect verified, displayed BTC QR decoded, desktop/narrow screens checked. Independent review, partner path checks and gated APK/device testing remain external release gates.
