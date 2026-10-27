@@ -100,11 +100,19 @@ for (const prefix of ["HMQR2:12345678", "HMQR"]) {
     const last = `${prefix}:${fullChunks + 1}/${total}:${"x".repeat(limit % 2000)}`;
     expect(collector.add(last)).toBeNull();
     expect(collector.add(last)).toBeNull();
-    expect(collector.progress).toEqual({ have: fullChunks + 1, total });
+    expect(collector.progress).toMatchObject({ have: fullChunks + 1, total });
     expect(() => collector.add(`${prefix}:${fullChunks + 2}/${total}:x`)).toThrow(
       "Transfer is too large.",
     );
-    expect(collector.progress).toEqual({ have: fullChunks + 1, total });
+    expect(collector.progress).toMatchObject({ have: fullChunks + 1, total });
     expect(() => collector.add(last.replace(/x$/, "y"))).toThrow("Conflicting QR part");
   });
 }
+
+test("reports exactly which numbered parts have been received", () => {
+  const parts = toParts("x".repeat(2400), 240);
+  const c = new PartCollector();
+  [parts[0], parts[2], parts[2], parts[9]].forEach((p) => c.add(p));
+  expect(c.progress.total).toBe(10);
+  expect([...c.progress.received].sort((a, b) => a - b)).toEqual([1, 3, 10]);
+});
