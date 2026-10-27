@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { ScannerDialog } from "@/components/wallet/QrScanButton";
 import { PartCollector } from "@/lib/signer/qr-parts";
+import { PartDots } from "@/components/vault/PartDots";
 import { openBackupFile } from "@/lib/vault/save-file";
 import { useVault } from "@/lib/vault/vault-context";
 
@@ -25,6 +26,7 @@ export function TransferInput({
   }, [pendingCode, value, onChange]);
   const [scan, setScan] = useState(false);
   const [progress, setProgress] = useState("");
+  const [parts, setParts] = useState<{ total: number; received: number[] } | null>(null);
   const [err, setErr] = useState("");
   const collector = useRef(new PartCollector());
   return (
@@ -51,6 +53,7 @@ export function TransferInput({
           variant="outline"
           onClick={() => {
             collector.current = new PartCollector();
+            setParts(null);
             setErr("");
             setProgress("");
             setScan(true);
@@ -87,12 +90,14 @@ export function TransferInput({
         <ScannerDialog
           keepScanning
           hint={progress || "Point at the encrypted QR. Keep scanning until all parts arrive."}
+          extra={parts && <PartDots total={parts.total} received={parts.received} />}
           onClose={() => setScan(false)}
           onScan={(code) => {
             try {
               const full = collector.current.add(code);
               const p = collector.current.progress;
               setProgress(`${p.have} of ${p.total} parts received`);
+              setParts(p.total ? { total: p.total, received: p.received } : null);
               if (full) {
                 setScan(false);
                 setPendingCode(full);

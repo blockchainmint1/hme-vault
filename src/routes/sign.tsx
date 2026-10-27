@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PartCollector, SIGNING_PART_SIZE } from "@/lib/signer/qr-parts";
+import { PartDots } from "@/components/vault/PartDots";
 import { Fingerprint } from "lucide-react";
 import { getBiometricStatus, unlockWithBiometric } from "@/lib/native/biometric";
 
@@ -46,7 +47,11 @@ export const Route = createFileRoute("/sign")({
 function SignPage() {
   const { seeds, checkPassword, status } = useVault();
   const [scan, setScan] = useState(false);
-  const [progress, setProgress] = useState<{ have: number; total: number } | null>(null);
+  const [progress, setProgress] = useState<{
+    have: number;
+    total: number;
+    received: number[];
+  } | null>(null);
   const collector = useRef(new PartCollector());
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
@@ -425,6 +430,7 @@ function SignPage() {
               ? `Got part ${progress.have} of ${progress.total}… keep pointing.`
               : "Point the camera at the unsigned payment QR."
           }
+          extra={progress && <PartDots total={progress.total} received={progress.received} />}
           onClose={() => {
             setScan(false);
             setProgress(null);

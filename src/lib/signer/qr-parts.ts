@@ -67,6 +67,6 @@ export class PartCollector {
     return text;
   }
   get progress() {
-    return { have: this.parts.size, total: this.total };
+    return { have: this.parts.size, total: this.total, received: [...this.parts.keys()] };
   }
 }

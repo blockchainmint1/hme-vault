@@ -66,11 +66,13 @@ export function ScannerDialog({
   onScan,
   keepScanning = false,
   hint,
+  extra,
 }: {
   onClose: () => void;
   onScan: (t: string) => void;
   keepScanning?: boolean;
   hint?: string;
+  extra?: React.ReactNode;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -212,6 +214,7 @@ export function ScannerDialog({
         </div>
         <div className="p-4 text-xs text-muted-foreground min-h-[3rem]">
           {error ? error : ready ? (hint ?? "Point the camera at a QR code.") : "Starting camera…"}
+          {extra}
         </div>
       </DialogContent>
     </Dialog>
