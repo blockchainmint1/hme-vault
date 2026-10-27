@@ -109,7 +109,7 @@ for (const prefix of ["HMQR2:12345678", "HMQR"]) {
   });
 }
 
-test("reports exactly which numbered parts have been received", () => {
+it("reports exactly which numbered parts have been received", () => {
   const parts = toParts("x".repeat(2400), 240);
   const c = new PartCollector();
   [parts[0], parts[2], parts[2], parts[9]].forEach((p) => c.add(p));
