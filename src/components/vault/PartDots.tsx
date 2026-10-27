@@ -20,10 +20,7 @@ export function PartDots({ total, received }: { total: number; received: number[
   return (
     <div className="mt-3 space-y-2">
       {total <= MAX_DOTS ? (
-        <div
-          className="flex flex-wrap gap-1"
-          aria-label={`${got.size} of ${total} parts captured`}
-        >
+        <div className="flex flex-wrap gap-1" aria-label={`${got.size} of ${total} parts captured`}>
           {Array.from({ length: total }, (_, i) => (
             <span
               key={i}

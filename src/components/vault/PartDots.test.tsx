@@ -29,10 +29,7 @@ describe("PartDots", () => {
 
   it("keeps listing missing numbers once a large transfer is nearly complete", () => {
     const html = renderToStaticMarkup(
-      <PartDots
-        total={13108}
-        received={Array.from({ length: 13105 }, (_, i) => i + 1)}
-      />,
+      <PartDots total={13108} received={Array.from({ length: 13105 }, (_, i) => i + 1)} />,
     );
     expect(dotCount(html)).toBe(0);
     expect(html).toContain("Still missing: 13106, 13107, 13108");
