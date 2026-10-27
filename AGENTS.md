@@ -13,7 +13,7 @@
 
 This project is the offline seed vault (remixed from HME Wallet). The everyday wallet lives in its own project; never re-add wallet, price, swap, sign-in or server features here.
 
-Subdirectories (`src/lib/vault`, `src/lib/signer`) have their own `AGENTS.md`; read it before changing files there.
+Subdirectories (`src/lib/vault`, `src/lib/signer`, `src/components/vault`) have their own `AGENTS.md`; read it before changing files there.
 
 - No network code in the app: no fetch, server functions, API routes, analytics or error reporting. Why: the vault runs on a never-online phone and the APK ships without the INTERNET permission.
 - `scripts/patch-android-manifest.mjs` must keep removing INTERNET and every other network permission (including ACCESS_NETWORK_STATE/ACCESS_WIFI_STATE) with `tools:node="remove"` and keep `allowBackup="false"`; the APK provably ships with zero network permissions. The pre-unlock offline checklist reads only permission-free settings and the battery intent; missing settings return unknown, SIM enumeration supports API 28+, and readiness uses a memoized list. Shared checklist logic enforces permanent ignores for SIM/NFC only, rejecting legacy protected preferences; other failures/unknowns require temporary owner override. Why: plugins can merge permissions back in, backups could copy the vault off-phone, and UI-only exceptions cannot safely enforce the checklist.
