@@ -44,6 +44,20 @@ The auditor approved the checklist idea but rejected the permission trade and fo
 - eSIM handling: only SIM and NFC may be permanently ignored ("Always ignore"), including unknown states, stored in localStorage (non-secret). Wi-Fi, mobile data, Bluetooth, ADB, USB-to-computer and airplane mode cannot be permanently ignored, even if unreadable. Shared logic rejects old protected ignore preferences; temporary explicit owner override remains available.
 - Compatibility hardening: SIM slot enumeration uses getPhoneCount on API 28/29 and getActiveModemCount on API 30+, catching Throwable only for the SIM block. Settings.Global reads use -1 as the missing sentinel and return unknown, never off, when missing. The displayed checklist is memoized to stabilize readiness updates. Native readings still require a Pixel test.
 
+## Follow-up on the QR progress dots (2026-10-27)
+
+The scanner dialog lists one dot per numbered part. A frame only has to *claim* a
+total, and the collector accepts up to 13,108 parts, so a crafted or simply very
+large transfer would have built thirteen thousand DOM nodes and rebuilt them on
+every captured frame — stalling the phone camera at the one moment the owner needs
+it smooth. `PartDots` now draws dots only up to 120 parts and above that a single
+progress bar with the count ("1 of 13108 parts"); the "Still missing: …" list is
+kept in both modes and its scan is skipped while more than twelve parts are out.
+Display only: no wire-format, parsing, validation or collector limit changed, and
+nothing new is disclosed (part numbers already appear in every frame header).
+Verified in a live browser with a fake camera feeding a frame declaring 1/13108
+(bar, zero dot elements) and one declaring 1/4 (four dots, missing list).
+
 ## Still open
 
 - Device testing of the new APK (fingerprint, USB, blocked network, legacy cleanup on an old phone, checklist rows on the Pixel).

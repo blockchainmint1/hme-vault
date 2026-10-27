@@ -1,5 +1,7 @@
 # Roadmap — HME Seed Vault
 
+- [x] Cap the scanner's per-part dot grid at 120 parts and show a progress bar plus count above that (auditor performance fix); 237 tests pass, live fake-camera check of a frame declaring 1/13108 and one declaring 1/4. Independent review of this display-only change remains required before release.
+- [ ] Record the new APK's fingerprints and publish only after the owner's phone tests and the release gates above.
 - [x] Record the owner's independent CashAddr review at head 838c6b0 (5,000 random hashes plus edge cases reported with zero mismatches); locally rerun all 233 tests successfully. No app, dependency, workflow or APK changes authorized by this review alone.
 - [ ] Evaluate and apply in-range tooling security updates, a dependency-audit CI gate, explicit APK workflow permissions and a production-build step in CI after owner confirmation of the review response. Gate severity/exceptions and tag-release write permissions must be deliberate; do not perform the unnecessary Zod major upgrade.
 
