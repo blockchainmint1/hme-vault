@@ -1,5 +1,8 @@
 # Roadmap — HME Seed Vault
 
+- [x] Evaluate THORChain spec v2; owner decided /1/1 only, owner-compared deposit address, short USDC/USDT payouts allowed from UTXO, EVM fee caps 0.02 ETH / 0.002 Base / 0.02 BNB.
+- [ ] Build THORChain swap signing per spec v2 + owner decisions (waits on Honest Money switching memo to /1/1).
+
 - [x] Consider HME Wallet's 2026-10-28 THORChain request against both source snapshots and official protocol guidance; provide a coordination/auditor response without enabling swaps. Implementation waits on owner approval and agreement on memo semantics, dynamic inbound trust, token identity, expiry and the online approval/broadcast sequence.
 - [x] Cap the scanner's per-part dot grid at 120 parts and show a progress bar plus count above that (auditor performance fix); 237 tests pass, live fake-camera check of a frame declaring 1/13108 and one declaring 1/4. Independent review of this display-only change remains required before release.
 - [ ] Record the new APK's fingerprints and publish only after the owner's phone tests and the release gates above.
