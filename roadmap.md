@@ -1,5 +1,6 @@
 # Roadmap — HME Seed Vault
 
+- [x] Consider HME Wallet's 2026-10-28 THORChain request against both source snapshots and official protocol guidance; provide a coordination/auditor response without enabling swaps. Implementation waits on owner approval and agreement on memo semantics, dynamic inbound trust, token identity, expiry and the online approval/broadcast sequence.
 - [x] Cap the scanner's per-part dot grid at 120 parts and show a progress bar plus count above that (auditor performance fix); 237 tests pass, live fake-camera check of a frame declaring 1/13108 and one declaring 1/4. Independent review of this display-only change remains required before release.
 - [ ] Record the new APK's fingerprints and publish only after the owner's phone tests and the release gates above.
 - [x] Record the owner's independent CashAddr review at head 838c6b0 (5,000 random hashes plus edge cases reported with zero mismatches); locally rerun all 233 tests successfully. No app, dependency, workflow or APK changes authorized by this review alone.
