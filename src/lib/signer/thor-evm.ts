@@ -16,7 +16,16 @@ import {
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import type { SignerSeed } from "./psbt";
-import { THOR_CHAINS, format1e8, parseThorMemo, resolveThorSource, type ThorAsset } from "./thor";
+import {
+  MIN_EXPIRY_SECONDS,
+  THOR_CHAINS,
+  format1e8,
+  parseThorMemo,
+  resolveThorSource,
+  slippageProblem,
+  vaultOwnsAddress,
+  type ThorAsset,
+} from "./thor";
 
 const MAX_UINT256 = (1n << 256n) - 1n;
 const uint = z
@@ -254,10 +263,18 @@ function verify(request: ThorSwapRequest) {
     refuse("the quoted payout minimum differs from the swap memo.");
   if (quote.to.trim().toUpperCase() !== memo.asset.field)
     refuse("the quoted payout asset differs from the swap memo.");
+  const slip = slippageProblem(
+    asBigInt(quote.expectedOut),
+    memo.minimumOut,
+    quote.toleranceBps,
+  );
+  if (slip) refuse(slip);
 
   const expiry = asBigInt(quote.expiry);
   const now = BigInt(Math.floor(Date.now() / 1000));
   if (expiry <= now) refuse("this swap quote has already expired. Ask for a fresh one.");
+  if (expiry < now + BigInt(MIN_EXPIRY_SECONDS))
+    refuse("this swap quote expires in under five minutes. Ask for a fresh one.");
   if (expiry > now + 3600n) refuse("this swap quote expires more than one hour ahead.");
 
   const expected = expectedCall(request, source);
@@ -286,7 +303,10 @@ export async function reviewThorSwap(text: string, seeds: SignerSeed[]): Promise
   warnings.push(
     "A failed swap returns your coins to the sending address shown above; this Vault cannot check pool state offline.",
   );
+  if (!(await vaultOwnsAddress(seeds, memo.asset.payout, memo.destination, new Map())))
+    warnings.push("The payout goes to an address this Vault does not control.");
   const native = source.token ? null : source;
+  const expectedOut = format1e8(asBigInt(request.quote.expectedOut));
   const amountLabel = source.token
     ? `${formatUnits(BigInt(request.quote.rawIn), source.token.decimals)} ${source.token.ticker}`
     : `${formatUnits(BigInt(request.quote.rawIn), 18)} ${chain.symbol}`;
@@ -303,11 +323,14 @@ export async function reviewThorSwap(text: string, seeds: SignerSeed[]): Promise
     symbol: chain.symbol,
     actionLabel,
     amountLabel: native ? amountLabel : amountLabel,
-    payoutLabel: `at least ${format1e8(memo.minimumOut)} ${memo.asset.label}`,
+    payoutLabel: `expected about ${expectedOut}, at least ${format1e8(memo.minimumOut)} ${memo.asset.label}`,
     destination: memo.destination,
     depositAddress: request.quote.inbound,
     expiryLabel: new Date(Number(expiry) * 1000).toISOString().replace("T", " ").slice(0, 19),
-    feeLabel: `${formatUnits(fee, 18)} ${chain.symbol}`,
+    feeLabel:
+      chain.name === "Base"
+        ? `${formatUnits(fee, 18)} ${chain.symbol}, plus a small Base data fee not shown here`
+        : `${formatUnits(fee, 18)} ${chain.symbol}`,
     warnings,
   };
 }

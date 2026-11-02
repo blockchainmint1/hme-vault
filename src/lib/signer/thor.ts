@@ -20,6 +20,22 @@ export const THOR_MEMO_SUFFIX = "/1/1";
 /** Owner decision (Bobby, 2 Nov 2026): no affiliate or aggregator tag is ever accepted. */
 export const MEMO_ACTIONS = ["=", "SWAP", "s"] as const;
 
+/**
+ * THORChain ignores (and never refunds) deposits at or below its dust threshold.
+ * Pinned from THORChain's published inbound dust thresholds, in each coin's base units.
+ */
+export const THOR_DUST: Readonly<Partial<Record<CoinId, bigint>>> = Object.freeze({
+  BTC: 10_000n,
+  LTC: 10_000n,
+  DOGE: 100_000_000n,
+});
+
+/** Widest slippage tolerance Vault accepts on a quote, in basis points (3%). */
+export const MAX_TOLERANCE_BPS = 300;
+
+/** A quote must stay valid at least this long, so the owner has time to compare and confirm. */
+export const MIN_EXPIRY_SECONDS = 300;
+
 export interface ThorChainInfo {
   name: string;
   symbol: string;
@@ -172,8 +188,46 @@ const FORMS: ReadonlyMap<string, AssetForm> = (() => {
   return map;
 })();
 
+/**
+ * Accepts the canonical forms above, plus the short display form `CHAIN.TICKER-<suffix>`
+ * (e.g. `ETH.USDC-EB48`) when the 4+ hex-character suffix matches the end of exactly one
+ * pinned contract on that chain. Suffix forms count as shorthand (UTXO sources only).
+ */
 export function resolveThorAssetField(field: string): AssetForm | null {
-  return FORMS.get(field.trim().toUpperCase()) ?? null;
+  const want = field.trim().toUpperCase();
+  const exact = FORMS.get(want);
+  if (exact) return exact;
+  const m = /^([A-Z]+)\.([A-Z]+)-([0-9A-F]{4,40})$/.exec(want);
+  if (!m) return null;
+  const [, prefix, ticker, suffix] = m;
+  const hits = THOR_TOKENS.filter(
+    (t) =>
+      CHAIN_PREFIX[t.chainId] === prefix &&
+      t.ticker === ticker &&
+      t.contract.toUpperCase().endsWith(suffix),
+  );
+  if (hits.length !== 1) return null;
+  const asset = ASSETS.find((a) => a.token === hits[0]);
+  return asset ? { asset, terse: false, utxoOnly: true } : null;
+}
+
+/**
+ * Slippage floor: tolerance at most MAX_TOLERANCE_BPS and the minimum payout no lower than
+ * expected × (10000 − tolerance) / 10000. Returns a refusal message, or null when acceptable.
+ */
+export function slippageProblem(
+  expectedOut: bigint,
+  minimumOut: bigint,
+  toleranceBps: number,
+): string | null {
+  if (expectedOut <= 0n) return "the quote states no expected payout.";
+  if (toleranceBps > MAX_TOLERANCE_BPS)
+    return `the quote allows ${toleranceBps / 100}% slippage; Vault accepts at most ${MAX_TOLERANCE_BPS / 100}%.`;
+  if (minimumOut > expectedOut) return "the payout minimum is above the expected payout.";
+  const floor = (expectedOut * BigInt(10_000 - toleranceBps)) / 10_000n;
+  if (minimumOut < floor)
+    return "the payout minimum is lower than the quote's own slippage tolerance allows.";
+  return null;
 }
 
 /** Native coin of a chain, used to check `quote.from` for native sources. */
@@ -356,6 +410,9 @@ export function utxoSwapProblem(coin: CoinId, memo: ThorMemo, shape: UtxoSwapSha
     return "a swap payment must have a deposit output, the memo, and at most one change output.";
   if (outputs[0].isData || outputs[0].sats <= 0n)
     return "the first output must be the THORChain deposit with a positive amount.";
+  const dust = THOR_DUST[coin];
+  if (dust !== undefined && outputs[0].sats <= dust)
+    return `the deposit is at or below THORChain's ${coin} dust limit, so it would be lost without a refund.`;
   if (outputs.length === 3) {
     if (!outputs[1].isChange)
       return "the second output must be change that this Vault can verify as your own.";
@@ -396,18 +453,26 @@ export async function vaultOwnsAddress(
       continue;
     }
     const ct = payout === "BTC" ? 0 : payout === "LTC" ? 2 : 3;
-    for (let i = 0; i < OWN_ADDRESS_GAP; i++) {
-      const key = root.derive(`m/44'/${ct}'/0'/0/${i}`);
-      const script = key.publicKey
-        ? payments.p2pkh({ pubkey: key.publicKey, network: NETWORKS[payout] }).output
-        : undefined;
-      if (!script) continue;
-      try {
-        if (baddress.fromOutputScript(script, NETWORKS[payout]).toLowerCase() === want) return true;
-      } catch {
-        /* address form not usable on this coin */
+    const network = NETWORKS[payout];
+    // BTC/LTC Receive addresses are native SegWit; also recognise nested SegWit and legacy.
+    const purposes = payout === "DOGE" ? [44] : [84, 49, 44];
+    for (const purpose of purposes)
+      for (let i = 0; i < OWN_ADDRESS_GAP; i++) {
+        const pubkey = root.derive(`m/${purpose}'/${ct}'/0'/0/${i}`).publicKey;
+        if (!pubkey) continue;
+        const script =
+          purpose === 84
+            ? payments.p2wpkh({ pubkey, network }).output
+            : purpose === 49
+              ? payments.p2sh({ redeem: payments.p2wpkh({ pubkey, network }), network }).output
+              : payments.p2pkh({ pubkey, network }).output;
+        if (!script) continue;
+        try {
+          if (baddress.fromOutputScript(script, network).toLowerCase() === want) return true;
+        } catch {
+          /* address form not usable on this coin */
+        }
       }
-    }
   }
   return false;
 }
