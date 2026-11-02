@@ -71,9 +71,10 @@ export function TransferInput({
                 // Tolerate a byte-order mark, line wrapping or extra text added by
                 // other apps; take the first HMVAULT1 code found in the file.
                 const clean = text.replace(/^\uFEFF/, "");
-                const match = clean.match(/HMVAULT1\.[A-Za-z0-9_\-.=\s]+/);
+                const isPage = /<html|<!doctype/i.test(clean);
+                const match = isPage ? null : clean.match(/HMVAULT1\.[A-Za-z0-9_\-.=\s]+/);
                 if (!match) {
-                  if (/<html|<!doctype/i.test(clean))
+                  if (isPage)
                     throw new Error(
                       "That file is the offline unlocker page, not a backup. Choose the seed-vault-backup-….txt file.",
                     );
