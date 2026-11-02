@@ -144,7 +144,8 @@ async function swapPayment(
   } = {},
 ) {
   const root = opts.root ?? HDKey.fromMasterSeed(await mnemonicToSeed(words));
-  const ct = coin === "BTC" ? 0 : coin === "LTC" ? 2 : 3;
+  const ct =
+    coin === "TXC" ? 696969 : coin === "ISK" ? 969696 : coin === "BTC" ? 0 : coin === "LTC" ? 2 : 3;
   const path = `m/44'/${ct}'/0'/0/0`;
   const key = root.derive(path);
   const fpHex = root.fingerprint.toString(16).padStart(8, "0");
@@ -181,15 +182,17 @@ async function swapPayment(
     network: NETWORKS[coin],
   }).output!;
   const outputs: { script: Uint8Array; value: bigint; bip32Derivation?: unknown }[] = [];
+  const depositScript = payments.p2pkh({
+    pubkey: depositKey.publicKey!,
+    network: NETWORKS[coin],
+  }).output!;
   if (opts.memoFirst) outputs.push({ script: memoScript, value: opts.memoValue ?? 0n });
-  outputs.push({ script: from.output!, value: depositSats });
+  outputs.push({ script: depositScript, value: depositSats });
   outputs.push({
     script: changeScript,
     value: 1_000_000_000n - depositSats - fee,
     bip32Derivation: deriv(changeKey, opts.changePath ?? path),
   });
-  if (!opts.memoFirst) outputs.push({ script: memoScript, value: opts.memoValue ?? 0n });
-  if (opts.secondMemo) outputs.push({ script: memoScript, value: 0n });
   if (opts.extraOutput)
     outputs.push({
       script: payments.p2pkh({
@@ -198,6 +201,8 @@ async function swapPayment(
       }).output!,
       value: 1n,
     });
+  if (!opts.memoFirst) outputs.push({ script: memoScript, value: opts.memoValue ?? 0n });
+  if (opts.secondMemo) outputs.push({ script: memoScript, value: 0n });
   for (const o of outputs)
     psbt.addOutput(
       o.bip32Derivation
@@ -219,15 +224,19 @@ describe("THORChain memo grammar", () => {
     expect(memo.destination).toBe("0x1111111111111111111111111111111111111111");
     expect(memo.minimumOut).toBe(10_000_000n);
     expect(format1e8(memo.minimumOut)).toBe("0.1");
-    expect(memo.bytes).toBe(58);
+    expect(memo.bytes).toBe(65);
   });
-  it("accepts both SWAP and s command words and terse payout codes", () => {
-    expect(parseThorMemo("SWAP:b:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4:1/1/1").asset.field).toBe(
-      "BTC.BTC",
+  it("accepts both SWAP and s command words and terse payout codes", async () => {
+    const root = HDKey.fromMasterSeed(await mnemonicToSeed(words));
+    const doge = baddress.fromOutputScript(
+      payments.p2pkh({ pubkey: root.derive("m/44'/3'/9'/0/0").publicKey!, network: NETWORKS.DOGE })
+        .output!,
+      NETWORKS.DOGE,
     );
-    expect(parseThorMemo("s:d:DHnao9D1dFKGqchVssZCL8TSQ7zYkKQ2ip:1/1/1").asset.field).toBe(
-      "DOGE.DOGE",
-    );
+    expect(
+      parseThorMemo("SWAP:b:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4:1/1/1").asset.field,
+    ).toBe("BTC.BTC");
+    expect(parseThorMemo(`s:d:${doge}:1/1/1`).asset.field).toBe("DOGE.DOGE");
   });
   it(`refuses streaming memos: only …${THOR_MEMO_SUFFIX} is a single trade`, () => {
     const base = "=:BTC.BTC:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4:10000000";
@@ -588,7 +597,7 @@ describe("THORChain EVM swap signing", () => {
     await expect(signThorSwap({ ...r, request: tampered }, seeds)).rejects.toThrow(/Signing blocked/);
   });
   it("pins the three routers and three fee ceilings", () => {
-    expect(Object.keys(THOR_CHAINS)).toEqual(["1", "8453", "56"]);
+    expect(Object.keys(THOR_CHAINS)).toEqual(["1", "56", "8453"]);
     expect(THOR_CHAINS[1].router).toBe(ETH_ROUTER);
     expect(THOR_CHAINS[8453].router).toBe(BASE_ROUTER);
     expect(THOR_CHAINS[56].router).toBe(BSC_ROUTER);
