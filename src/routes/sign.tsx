@@ -13,11 +13,7 @@ import { Unlocked } from "@/components/vault/Unlocked";
 import { useVault } from "@/lib/vault/vault-context";
 import { formatCoins, parsePsbt, reviewPsbt, signPsbt, type Review } from "@/lib/signer/psbt";
 import { reviewEvm, signEvm, type EvmReview } from "@/lib/signer/evm";
-import {
-  reviewThorSwap,
-  signThorSwap,
-  type ThorSwapReview,
-} from "@/lib/signer/thor-evm";
+import { reviewThorSwap, signThorSwap, type ThorSwapReview } from "@/lib/signer/thor-evm";
 import { format1e8 } from "@/lib/signer/thor";
 import { COIN_IDS, type CoinId } from "@/lib/signer/networks";
 import { EvmPaymentReview } from "@/components/vault/EvmPaymentReview";

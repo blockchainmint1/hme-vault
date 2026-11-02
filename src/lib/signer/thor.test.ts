@@ -18,8 +18,7 @@ import { reviewThorSwap, signThorSwap } from "./thor-evm";
 // Dummy mnemonic only. Nothing here touches a real wallet or the network.
 const words =
   "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
-const otherWords =
-  "zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo wrong";
+const otherWords = "zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo wrong";
 const seeds = [{ id: "dummy", name: "Dummy", words, fingerprint: "73c5da0a" }];
 const EVM_FROM = "0x9858effd232b4033e47d90003d41ec34ecaeda94";
 
@@ -122,7 +121,11 @@ function swapRequest(over: Record<string, unknown> = {}, drop: string[] = []) {
     },
   };
   const { quote: baseQuote, transaction: baseTx, ...rest } = base;
-  const { quote: overQuote, transaction: overTx, ...overRest } = over as {
+  const {
+    quote: overQuote,
+    transaction: overTx,
+    ...overRest
+  } = over as {
     quote?: Record<string, unknown>;
     transaction?: Record<string, unknown>;
   };
@@ -162,9 +165,7 @@ async function swapPayment(
   const key = root.derive(path);
   const fpHex = root.fingerprint.toString(16).padStart(8, "0");
   const fp = Uint8Array.from(Buffer.from(fpHex, "hex"));
-  const deriv = (k: HDKey, p: string) => [
-    { masterFingerprint: fp, path: p, pubkey: k.publicKey! },
-  ];
+  const deriv = (k: HDKey, p: string) => [{ masterFingerprint: fp, path: p, pubkey: k.publicKey! }];
   const from = payments.p2pkh({ pubkey: key.publicKey!, network: NETWORKS[coin] });
   const prev = new Transaction();
   prev.addInput(new Uint8Array(32), 0xffffffff);
@@ -217,11 +218,9 @@ async function swapPayment(
   if (opts.secondMemo) outputs.push({ script: memoScript, value: 0n });
   for (const o of outputs)
     psbt.addOutput(
-      (
-        o.bip32Derivation
-          ? { script: o.script, value: o.value, bip32Derivation: o.bip32Derivation }
-          : { script: o.script, value: o.value }
-      ) as Parameters<Psbt["addOutput"]>[0],
+      (o.bip32Derivation
+        ? { script: o.script, value: o.value, bip32Derivation: o.bip32Derivation }
+        : { script: o.script, value: o.value }) as Parameters<Psbt["addOutput"]>[0],
     );
   return { psbt, key, seeds, fpHex };
 }
@@ -258,16 +257,13 @@ describe("THORChain memo grammar", () => {
     expect(() => parseThorMemo(`${base}/5/3`)).toThrow(/single-trade/);
   });
   it("refuses a memo with no payout minimum", () => {
-    expect(() => parseThorMemo("=:BTC.BTC:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4:10000000")).toThrow(
-      /no payout minimum/,
-    );
+    expect(() =>
+      parseThorMemo("=:BTC.BTC:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4:10000000"),
+    ).toThrow(/no payout minimum/);
   });
   it("refuses affiliate and aggregator tags", () => {
-    expect(
-      () =>
-        parseThorMemo(
-          "=:BTC.BTC:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4:10000000/1/1:hme:50",
-        ),
+    expect(() =>
+      parseThorMemo("=:BTC.BTC:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4:10000000/1/1:hme:50"),
     ).toThrow(/affiliate|four fields/);
   });
   it("refuses memos over 80 bytes but accepts a 77-byte one", () => {
@@ -279,25 +275,25 @@ describe("THORChain memo grammar", () => {
     expect(parseThorMemo(ok).minimumOut).toBe(BigInt("1".repeat(20)));
   });
   it("refuses unknown payout assets and unknown commands", () => {
-    expect(() => parseThorMemo("=:BTC.BTCX:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4:1/1/1")).toThrow(
-      /unknown payout asset/,
-    );
-    expect(() => parseThorMemo("ADD:BTC.BTC:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4:1/1/1")).toThrow(
-      /not a recognised swap command/,
-    );
+    expect(() =>
+      parseThorMemo("=:BTC.BTCX:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4:1/1/1"),
+    ).toThrow(/unknown payout asset/);
+    expect(() =>
+      parseThorMemo("ADD:BTC.BTC:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4:1/1/1"),
+    ).toThrow(/not a recognised swap command/);
   });
   it("refuses a payout address that is not valid on the payout chain", () => {
-    expect(() => parseThorMemo("=:BTC.BTC:0x1111111111111111111111111111111111111111:1/1/1")).toThrow(
-      /not a valid Bitcoin address/,
-    );
-    expect(() => parseThorMemo("=:ETH.ETH:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4:1/1/1")).toThrow(
-      /not a valid Ether on Ethereum address/,
-    );
+    expect(() =>
+      parseThorMemo("=:BTC.BTC:0x1111111111111111111111111111111111111111:1/1/1"),
+    ).toThrow(/not a valid Bitcoin address/);
+    expect(() =>
+      parseThorMemo("=:ETH.ETH:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4:1/1/1"),
+    ).toThrow(/not a valid Ether on Ethereum address/);
   });
   it("refuses a zero payout minimum", () => {
-    expect(() => parseThorMemo("=:BTC.BTC:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4:0/1/1")).toThrow(
-      /must be positive/,
-    );
+    expect(() =>
+      parseThorMemo("=:BTC.BTC:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4:0/1/1"),
+    ).toThrow(/must be positive/);
   });
   it("requires full payout names on EVM sources", () => {
     expect(() => parseThorMemo(UTXO_MEMO, { fullForms: true })).not.toThrow();
@@ -574,32 +570,104 @@ describe("THORChain EVM swap signing", () => {
   });
 
   const attacks: [string, Record<string, unknown>][] = [
-    ["sender not derived from the fingerprint and path", { transaction: { from: "0x3333333333333333333333333333333333333333" } }],
+    [
+      "sender not derived from the fingerprint and path",
+      { transaction: { from: "0x3333333333333333333333333333333333333333" } },
+    ],
     ["unsupported chain", { transaction: { chainId: 137 } }],
     ["router not pinned for that chain", { quote: { router: BASE_ROUTER } }],
-    ["approval to a spender other than the router", { action: "approval", quote: { from: USDC_ETH }, transaction: { to: USDC_ETH, value: "0", data: approve("0x2222222222222222222222222222222222222222", 1000000000000000000n) } }],
-    ["approval of a different amount", { action: "approval", quote: { from: USDC_ETH }, transaction: { to: USDC_ETH, value: "0", data: approve(ETH_ROUTER, 999999999999999999n) } }],
-    ["native value on a token deposit", { quote: { from: USDC_ETH, rawIn: "1000000" }, transaction: { value: "1000000", data: deposit(INBOUND, USDC_ETH, 1000000n, EVM_MEMO, soon()) } }],
-    ["calldata differing by one byte", { transaction: { data: deposit(INBOUND, ZERO, 1000000000000000000n, EVM_MEMO, soon()).replace(/0$/, "1") } }],
+    [
+      "approval to a spender other than the router",
+      {
+        action: "approval",
+        quote: { from: USDC_ETH },
+        transaction: {
+          to: USDC_ETH,
+          value: "0",
+          data: approve("0x2222222222222222222222222222222222222222", 1000000000000000000n),
+        },
+      },
+    ],
+    [
+      "approval of a different amount",
+      {
+        action: "approval",
+        quote: { from: USDC_ETH },
+        transaction: { to: USDC_ETH, value: "0", data: approve(ETH_ROUTER, 999999999999999999n) },
+      },
+    ],
+    [
+      "native value on a token deposit",
+      {
+        quote: { from: USDC_ETH, rawIn: "1000000" },
+        transaction: {
+          value: "1000000",
+          data: deposit(INBOUND, USDC_ETH, 1000000n, EVM_MEMO, soon()),
+        },
+      },
+    ],
+    [
+      "calldata differing by one byte",
+      {
+        transaction: {
+          data: deposit(INBOUND, ZERO, 1000000000000000000n, EVM_MEMO, soon()).replace(/0$/, "1"),
+        },
+      },
+    ],
     ["unknown selector", { transaction: { data: "0xdeadbeef" } }],
     ["expiry already passed", { quote: { expiry: Number(now() - 100n) } }],
     ["expiry more than one hour ahead", { quote: { expiry: Number(now() + 7200n) } }],
-    ["calldata expiry differing from the quote", { quote: { expiry: Number(now() + 600n) }, transaction: { data: deposit(INBOUND, ZERO, 1000000000000000000n, EVM_MEMO, now() + 660n) } }],
+    [
+      "calldata expiry differing from the quote",
+      {
+        quote: { expiry: Number(now() + 600n) },
+        transaction: { data: deposit(INBOUND, ZERO, 1000000000000000000n, EVM_MEMO, now() + 660n) },
+      },
+    ],
     ["access list present", { transaction: { accessList: [] } }],
-    ["legacy type carrying EIP-1559 fields", { transaction: { type: "legacy", gasPrice: "1000000000" } }],
+    [
+      "legacy type carrying EIP-1559 fields",
+      { transaction: { type: "legacy", gasPrice: "1000000000" } },
+    ],
     ["eip1559 type carrying gasPrice", { transaction: { gasPrice: "1000000000" } }],
-    ["fee above the Ethereum ceiling", { transaction: { gas: "21000", maxFeePerGas: "1000000000000" } }],
-    ["fee above the Base ceiling", { quote: { router: BASE_ROUTER, from: "BASE.ETH" }, transaction: { chainId: 8453, to: BASE_ROUTER, gas: "21000", maxFeePerGas: "1000000000000" } }],
-    ["payout destination differing from the memo", { quote: { destination: "bc1qarpvw2rqv9gr6t82CdN3fmdlq3t9qh35py3xr3" } }],
+    [
+      "fee above the Ethereum ceiling",
+      { transaction: { gas: "21000", maxFeePerGas: "1000000000000" } },
+    ],
+    [
+      "fee above the Base ceiling",
+      {
+        quote: { router: BASE_ROUTER, from: "BASE.ETH" },
+        transaction: {
+          chainId: 8453,
+          to: BASE_ROUTER,
+          gas: "21000",
+          maxFeePerGas: "1000000000000",
+        },
+      },
+    ],
+    [
+      "payout destination differing from the memo",
+      { quote: { destination: "bc1qarpvw2rqv9gr6t82CdN3fmdlq3t9qh35py3xr3" } },
+    ],
     ["payout minimum differing from the memo", { quote: { minimumOut: "9999999" } }],
     ["payout asset differing from the memo", { quote: { to: "ETH.ETH" } }],
-    ["short payout name on an EVM source", { quote: { memo: "=:ETH.USDC:0x1111111111111111111111111111111111111111:10000000/1/1" } }],
-    ["terse payout code on an EVM source", { quote: { memo: "=:e:0x1111111111111111111111111111111111111111:10000000/1/1" } }],
+    [
+      "short payout name on an EVM source",
+      { quote: { memo: "=:ETH.USDC:0x1111111111111111111111111111111111111111:10000000/1/1" } },
+    ],
+    [
+      "terse payout code on an EVM source",
+      { quote: { memo: "=:e:0x1111111111111111111111111111111111111111:10000000/1/1" } },
+    ],
     ["streaming memo", { quote: { memo: EVM_MEMO.replace("/1/1", "/1/0") } }],
     ["affiliate tag", { quote: { memo: `${EVM_MEMO}:hme:50` } }],
     ["unknown source asset", { quote: { from: "DOGEO.DOGE" } }],
     ["token from another chain", { quote: { from: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" } }],
-    ["allowance reset on a native coin", { action: "approval-reset", transaction: { data: approve(ETH_ROUTER, 0n) } }],
+    [
+      "allowance reset on a native coin",
+      { action: "approval-reset", transaction: { data: approve(ETH_ROUTER, 0n) } },
+    ],
     ["unknown top-level field", { extra: 1 }],
     ["unknown quote field", { quote: { extra: 1 } }],
     ["wrong format", { format: "hm-evm-tx" }],
@@ -608,9 +676,9 @@ describe("THORChain EVM swap signing", () => {
   ];
   for (const [rule, change] of attacks)
     it(`refuses ${rule}`, async () => {
-      await expect(
-        reviewThorSwap(JSON.stringify(swapRequest(change)), seeds),
-      ).rejects.toThrow(/Signing blocked|not match any stored seed/);
+      await expect(reviewThorSwap(JSON.stringify(swapRequest(change)), seeds)).rejects.toThrow(
+        /Signing blocked|not match any stored seed/,
+      );
     });
   it("bounds incoming swap size", async () => {
     await expect(reviewThorSwap(" ".repeat(8193), seeds)).rejects.toThrow(/too large/);
@@ -618,7 +686,9 @@ describe("THORChain EVM swap signing", () => {
   it("never signs a request that stopped matching after review", async () => {
     const r = await reviewThorSwap(JSON.stringify(swapRequest()), seeds);
     const tampered = { ...r.request, transaction: { ...r.request.transaction, value: "1" } };
-    await expect(signThorSwap({ ...r, request: tampered }, seeds)).rejects.toThrow(/Signing blocked/);
+    await expect(signThorSwap({ ...r, request: tampered }, seeds)).rejects.toThrow(
+      /Signing blocked/,
+    );
   });
   it("pins the three routers and three fee ceilings", () => {
     expect(Object.keys(THOR_CHAINS)).toEqual(["1", "56", "8453"]);

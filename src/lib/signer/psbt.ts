@@ -98,9 +98,7 @@ function validateDataOutputs(psbt: Psbt, coin: CoinId) {
     );
   }
   if (data.length > 1 || data.some((o) => o.value !== 0n))
-    throw new Error(
-      "Signing blocked: token and swap payments require one zero-value data output.",
-    );
+    throw new Error("Signing blocked: token and swap payments require one zero-value data output.");
 }
 
 function maximumSignedVsize(psbt: Psbt, purposes: number[]): number {

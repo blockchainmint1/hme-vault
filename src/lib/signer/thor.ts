@@ -178,7 +178,8 @@ export function resolveThorAssetField(field: string): AssetForm | null {
 
 /** Native coin of a chain, used to check `quote.from` for native sources. */
 export function nativeAssetForChain(chainId: number): ThorAsset | null {
-  const field = chainId === 1 ? "ETH.ETH" : chainId === 8453 ? "BASE.ETH" : chainId === 56 ? "BSC.BNB" : null;
+  const field =
+    chainId === 1 ? "ETH.ETH" : chainId === 8453 ? "BASE.ETH" : chainId === 56 ? "BSC.BNB" : null;
   return field ? (ASSETS.find((a) => a.field === field) ?? null) : null;
 }
 
@@ -194,7 +195,8 @@ export function tokenForContract(contract: string): ThorTokenInfo | null {
 export function resolveThorSource(chainId: number, from: string): ThorAsset | null {
   const want = from.trim();
   const token = tokenForContract(want);
-  if (token) return token.chainId === chainId ? (ASSETS.find((a) => a.token === token) ?? null) : null;
+  if (token)
+    return token.chainId === chainId ? (ASSETS.find((a) => a.token === token) ?? null) : null;
   const form = FORMS.get(want.toUpperCase());
   if (!form || form.terse || form.utxoOnly) return null;
   const asset = form.asset;
@@ -387,7 +389,8 @@ export async function vaultOwnsAddress(
       for (let i = 0; i < OWN_ADDRESS_GAP; i++) {
         const key = root.derive(`m/44'/60'/0'/0/${i}`);
         if (!key.privateKey) continue;
-        const hex = `0x${Array.from(key.privateKey, (b) => b.toString(16).padStart(2, "0")).join("")}` as const;
+        const hex =
+          `0x${Array.from(key.privateKey, (b) => b.toString(16).padStart(2, "0")).join("")}` as const;
         if (privateKeyToAccount(hex).address.toLowerCase() === want) return true;
       }
       continue;
@@ -395,7 +398,9 @@ export async function vaultOwnsAddress(
     const ct = payout === "BTC" ? 0 : payout === "LTC" ? 2 : 3;
     for (let i = 0; i < OWN_ADDRESS_GAP; i++) {
       const key = root.derive(`m/44'/${ct}'/0'/0/${i}`);
-      const script = key.publicKey ? payments.p2pkh({ pubkey: key.publicKey, network: NETWORKS[payout] }).output : undefined;
+      const script = key.publicKey
+        ? payments.p2pkh({ pubkey: key.publicKey, network: NETWORKS[payout] }).output
+        : undefined;
       if (!script) continue;
       try {
         if (baddress.fromOutputScript(script, NETWORKS[payout]).toLowerCase() === want) return true;

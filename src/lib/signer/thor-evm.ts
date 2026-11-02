@@ -16,13 +16,7 @@ import {
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import type { SignerSeed } from "./psbt";
-import {
-  THOR_CHAINS,
-  format1e8,
-  parseThorMemo,
-  resolveThorSource,
-  type ThorAsset,
-} from "./thor";
+import { THOR_CHAINS, format1e8, parseThorMemo, resolveThorSource, type ThorAsset } from "./thor";
 
 const MAX_UINT256 = (1n << 256n) - 1n;
 const uint = z
@@ -32,7 +26,8 @@ const uint = z
 const address = z.string().refine((s) => {
   try {
     return (
-      getAddress(s) !== "0x0000000000000000000000000000000000000000" && /^0x[0-9a-fA-F]{40}$/.test(s)
+      getAddress(s) !== "0x0000000000000000000000000000000000000000" &&
+      /^0x[0-9a-fA-F]{40}$/.test(s)
     );
   } catch {
     return false;
@@ -276,10 +271,7 @@ function verify(request: ThorSwapRequest) {
   return { chain: chain!, source, memo, fee, expiry, expected };
 }
 
-export async function reviewThorSwap(
-  text: string,
-  seeds: SignerSeed[],
-): Promise<ThorSwapReview> {
+export async function reviewThorSwap(text: string, seeds: SignerSeed[]): Promise<ThorSwapReview> {
   const request = parseSwap(text);
   const { seedName } = await accountFor(request, seeds);
   const { chain, source, memo, fee, expiry } = verify(request);
