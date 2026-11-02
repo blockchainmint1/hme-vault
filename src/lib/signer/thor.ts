@@ -2,9 +2,16 @@
  * THORChain swap safety core: pinned tables, memo grammar and payout-address checks.
  * Nothing here fetches anything; every value the Vault needs is frozen in this file.
  */
-import { address as baddress } from "bitcoinjs-lib";
+import { address as baddress, payments } from "bitcoinjs-lib";
 import { getAddress } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+import { HDKey } from "@scure/bip32";
+import { mnemonicToSeed } from "@scure/bip39";
 import { NETWORKS, type CoinId } from "./networks";
+import type { SignerSeed } from "./psbt";
+
+/** How many first receiving addresses per seed are recognised as "this Vault's own". */
+const OWN_ADDRESS_GAP = 10;
 
 /** THORChain memos are limited to 80 bytes on every supported chain. */
 export const THOR_MEMO_MAX_BYTES = 80;
