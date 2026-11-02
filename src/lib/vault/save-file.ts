@@ -6,7 +6,7 @@ const Documents = registerPlugin<{
     data: string;
     mime: string;
     base64?: boolean;
-  }): Promise<{ name: string }>;
+  }): Promise<{ name: string; bytes?: number }>;
   open(): Promise<{ text?: string }>;
 }>("VaultDocuments");
 
@@ -36,18 +36,24 @@ function download(name: string, blob: Blob) {
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+export type SavedFile = { name: string; bytes: number };
 /** Android lets the owner choose a mounted USB drive or local document folder. */
 export async function saveTextFile(
   name: string,
   text: string,
   type = "text/plain",
-): Promise<string> {
+): Promise<SavedFile> {
   if (isNative()) {
-    await withPicker(() => Documents.save({ name, data: text, mime: type }));
-    return name;
+    const r = await withPicker(() => Documents.save({ name, data: text, mime: type }));
+    return { name: r.name ?? name, bytes: r.bytes ?? 0 };
   }
-  download(name, new Blob([text], { type }));
-  return name;
+  const blob = new Blob([text], { type });
+  download(name, blob);
+  return { name, bytes: blob.size };
+}
+/** Toast text so a zero-byte or truncated save is visible at a glance. */
+export function savedMessage(f: SavedFile): string {
+  return `Saved ${f.bytes.toLocaleString("en-US")} bytes to ${f.name}`;
 }
 export async function saveBinaryFile(name: string, base64: string): Promise<void> {
   if (isNative()) {

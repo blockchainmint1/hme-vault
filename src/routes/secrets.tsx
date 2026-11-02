@@ -29,7 +29,7 @@ import { mergeSecrets, validateSecret, type SecretEntry } from "@/lib/vault/secr
 import { VaultTabs } from "@/components/vault/VaultTabs";
 import { confirmWithBiometric, getBiometricStatus } from "@/lib/native/biometric";
 import { lockTypedText, unlockText } from "@/lib/vault/format";
-import { saveBinaryFile, saveTextFile } from "@/lib/vault/save-file";
+import { saveBinaryFile, saveTextFile, savedMessage } from "@/lib/vault/save-file";
 import { OFFLINE_TRANSFER_PAGE } from "@/lib/vault/transfer-page";
 
 export const Route = createFileRoute("/secrets")({
@@ -430,8 +430,12 @@ function SecretsContent() {
               variant="secondary"
               onClick={() =>
                 void run(async () => {
-                  await saveTextFile("vault-transfer.html", OFFLINE_TRANSFER_PAGE, "text/html");
-                  toast.success("Offline transfer page saved.");
+                  const f = await saveTextFile(
+                    "vault-transfer.html",
+                    OFFLINE_TRANSFER_PAGE,
+                    "text/html",
+                  );
+                  toast.success(`Offline transfer page saved. ${savedMessage(f)}.`);
                 })
               }
             >

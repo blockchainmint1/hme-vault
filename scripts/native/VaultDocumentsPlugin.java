@@ -12,6 +12,7 @@ import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.ActivityCallback;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import java.io.InputStream;
+import java.security.MessageDigest;
 import java.io.FileOutputStream;
 import android.os.ParcelFileDescriptor;
 import java.io.ByteArrayOutputStream;
@@ -34,14 +35,24 @@ public class VaultDocumentsPlugin extends Plugin {
         if (uri == null) { call.reject("No file selected."); return; }
         // Write through a file descriptor and fsync it so the bytes reach a USB drive
         // before the owner unplugs it (USB writes are otherwise held in a cache).
+        String content = call.getString("data", "");
+        byte[] bytes = Boolean.TRUE.equals(call.getBoolean("base64", false)) ? Base64.decode(content, Base64.DEFAULT) : content.getBytes(StandardCharsets.UTF_8);
         try (ParcelFileDescriptor pfd = getContext().getContentResolver().openFileDescriptor(uri, "wt")) {
             if (pfd == null) throw new Exception("Drive unavailable");
-            FileOutputStream out = new FileOutputStream(pfd.getFileDescriptor());
-            String content = call.getString("data", "");
-            byte[] bytes = Boolean.TRUE.equals(call.getBoolean("base64", false)) ? Base64.decode(content, Base64.DEFAULT) : content.getBytes(StandardCharsets.UTF_8);
-            out.write(bytes); out.flush(); out.getFD().sync();
-            JSObject reply = new JSObject(); reply.put("name", call.getString("name")); call.resolve(reply);
-        } catch (Exception e) { call.reject("Could not save the file. Check the drive and try again."); }
+            try (FileOutputStream out = new FileOutputStream(pfd.getFileDescriptor())) {
+                out.write(bytes); out.flush(); out.getFD().sync();
+            }
+        } catch (Exception e) { call.reject("Could not save the file. Check the drive and try again."); return; }
+        // fsync cannot catch a provider that reports success while writing nothing:
+        // read the file back and compare length and SHA-256 before reporting saved.
+        try (InputStream in = getContext().getContentResolver().openInputStream(uri)) {
+            if (in == null) throw new Exception("Drive unavailable");
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            byte[] buffer = new byte[8192]; int n; long total = 0;
+            while ((n = in.read(buffer)) != -1) { total += n; if (total > bytes.length) break; md.update(buffer, 0, n); }
+            if (total != bytes.length || !MessageDigest.isEqual(md.digest(), MessageDigest.getInstance("SHA-256").digest(bytes))) throw new Exception("Mismatch");
+        } catch (Exception e) { call.reject("Saved file does not match; check the drive and try again."); return; }
+        JSObject reply = new JSObject(); reply.put("name", call.getString("name")); reply.put("bytes", bytes.length); call.resolve(reply);
     }
     @PluginMethod public void open(PluginCall call) {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
