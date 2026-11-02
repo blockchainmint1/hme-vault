@@ -97,6 +97,8 @@ export interface ThorAsset {
   field: string;
   label: string;
   payout: ThorPayout;
+  /** Terse memo code for native coins (b/d/l/e/f/s); absent for tokens. */
+  terseCode?: string;
   token?: ThorTokenInfo;
 }
 
@@ -126,7 +128,14 @@ export const CHAIN_PREFIX: Readonly<Record<number, string>> = Object.freeze({
 });
 
 const ASSETS: ThorAsset[] = [
-  ...NATIVES.map((n) => Object.freeze({ field: n.field, label: n.label, payout: n.payout })),
+  ...NATIVES.map((n) =>
+    Object.freeze({
+      field: n.field,
+      label: n.label,
+      payout: n.payout,
+      terseCode: n.terse,
+    }),
+  ),
   ...THOR_TOKENS.map((t) =>
     Object.freeze({
       field: `${CHAIN_PREFIX[t.chainId]}.${t.ticker}-${t.contract.toUpperCase()}`,
