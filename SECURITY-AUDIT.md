@@ -99,7 +99,7 @@ both from dummy seeds. **No swap has ever been broadcast, and swap signing is in
 
 ## Status correction (2026-11-02)
 - APK 0.1.202611021636, linked from the footer, contains THORChain swap signing with all six audit fixes. Earlier handoffs saying no APK carried swap signing are superseded. It is the device-test build, not the release.
-- Routers: matched against live inbound_addresses from two public providers by the agent (HME-Vault-Live-Router-Check-2026-11-02.md); not yet independently re-verified by the auditor. BTC/LTC/DOGE trading was halted at check time.
+- Routers: matched against live inbound_addresses from two public providers by the agent, twice on 2 Nov 2026 (13:59 and 17:03 UTC; HME-Vault-Live-Router-Check-2026-11-02.md and HME-Vault-Live-Router-Check-2-2026-11-02.md); not yet independently re-verified by the auditor. At the second reading BTC/LTC/DOGE/ETH/BSC were all halted with only BASE open, so the funded tests are gated on the halt lifting. That reading also found Vault's pinned LTC dust floor was 10x below THORChain's live threshold and raised it to 100,000 litoshis (fail-closed); BTC stays pinned stricter than the live threshold by design.
 - Funded tests (three tiny swaps incl. a forced refund) pending.
 - File-picker lock grace (closes L2) is not in that APK. Pixel list adds: camera permission prompt and fingerprint prompt hide the page and are not covered by the grace.
 - The two 1,000,000-iteration encryption tests now have explicit 30-second timeouts so CI cannot flake the APK gate.
