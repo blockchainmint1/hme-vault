@@ -395,14 +395,15 @@ describe("THORChain UTXO swap signing", () => {
     const { psbt, seeds } = await swapPayment("BTC", { fee: 5_000n * 400n });
     await expect(reviewPsbt(psbt, seeds, "BTC")).rejects.toThrow(/safety limit/);
   });
-  it("refuses an unsupported swap coin", async () => {
-    const { psbt, seeds } = await swapPayment("BTC");
-    const text = new TextEncoder().encode(UTXO_MEMO);
-    const foreign = HDKey.fromMasterSeed(await mnemonicToSeed(otherWords));
-    // A TXC payment carrying a THORChain memo must still be refused outright.
-    const txc = await swapPayment("TXC", { root: foreign, memo: UTXO_MEMO });
-    await expect(reviewPsbt(txc.psbt, txc.seeds, "TXC")).rejects.toThrow(/doesn't belong|cannot verify/);
-    expect(text.length).toBe(58);
+  it("refuses a THORChain memo on a coin that does not support swaps", async () => {
+    const txc = await swapPayment("TXC", { memo: UTXO_MEMO });
+    await expect(reviewPsbt(txc.psbt, txc.seeds, "TXC")).rejects.toThrow(
+      /does not support THORChain swaps/,
+    );
+    const isk = await swapPayment("ISK", { memo: UTXO_MEMO });
+    await expect(reviewPsbt(isk.psbt, isk.seeds, "ISK")).rejects.toThrow(
+      /does not support THORChain swaps/,
+    );
   });
 });
 
