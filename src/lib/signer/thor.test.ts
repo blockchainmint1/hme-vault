@@ -429,7 +429,7 @@ describe("THORChain EVM swap signing", () => {
     const r = await reviewThorSwap(JSON.stringify(swapRequest()), seeds);
     expect(r.chainName).toBe("Ethereum");
     expect(r.amountLabel).toBe("1 ETH");
-    expect(r.payoutLabel).toBe("at least 0.1 Bitcoin");
+    expect(r.payoutLabel).toBe("expected about 0.1, at least 0.1 Bitcoin");
     expect(r.depositAddress).toBe(INBOUND);
     expect(r.warnings.some((w) => /Compare the THORChain deposit address/.test(w))).toBe(true);
     const signed = await signThorSwap(r, seeds);
