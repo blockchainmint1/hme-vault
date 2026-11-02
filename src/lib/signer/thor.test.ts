@@ -75,7 +75,7 @@ const deposit = (vault: string, asset: string, amount: bigint, memo: string, exp
 const now = () => BigInt(Math.floor(Date.now() / 1000));
 const soon = () => now() + 600n;
 
-function swapRequest(over: Record<string, unknown> = {}) {
+function swapRequest(over: Record<string, unknown> = {}, drop: string[] = []) {
   const expiry = soon();
   const base = {
     format: "hm-thor-swap",
@@ -119,12 +119,17 @@ function swapRequest(over: Record<string, unknown> = {}) {
     quote?: Record<string, unknown>;
     transaction?: Record<string, unknown>;
   };
-  return {
+  const request = {
     ...rest,
     ...overRest,
     quote: { ...baseQuote, ...overQuote },
     transaction: { ...baseTx, ...overTx },
-  };
+  } as Record<string, unknown>;
+  for (const path of drop) {
+    const [section, key] = path.split(".");
+    if (request[section]) delete (request[section] as Record<string, unknown>)[key];
+  }
+  return request;
 }
 
 async function swapPayment(
@@ -435,14 +440,17 @@ describe("THORChain EVM swap signing", () => {
       JSON.stringify(
         swapRequest({
           action: "approval-reset",
-          quote: { from: "ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48" },
+          quote: {
+            from: "ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48",
+            rawIn: "1000000",
+          },
           transaction: { to: USDC_ETH, value: "0", data: approve(ETH_ROUTER, 0n) },
         }),
       ),
       seeds,
     );
     expect(r.actionLabel).toMatch(/Reset USDC allowance to zero/);
-    expect(r.amountLabel).toBe("1000000000 USDC");
+    expect(r.amountLabel).toBe("1 USDC");
     const signed = await signThorSwap(r, seeds);
     const tx = parseTransaction(signed.hex as `0x${string}`);
     expect(tx.to?.toLowerCase()).toBe(USDC_ETH.toLowerCase());
@@ -455,7 +463,10 @@ describe("THORChain EVM swap signing", () => {
       JSON.stringify(
         swapRequest({
           action: "approval",
-          quote: { from: "ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48" },
+          quote: {
+            from: "ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48",
+            rawIn: "1000000",
+          },
           transaction: { to: USDC_ETH, value: "0", data: approve(ETH_ROUTER, 1000000n) },
         }),
       ),
@@ -513,10 +524,13 @@ describe("THORChain EVM swap signing", () => {
   it("signs a BNB Chain deposit", async () => {
     const r = await reviewThorSwap(
       JSON.stringify(
-        swapRequest({
-          quote: { router: BSC_ROUTER, from: "BSC.BNB" },
-          transaction: { chainId: 56, to: BSC_ROUTER, type: "legacy", gasPrice: "1000000000" },
-        }),
+        swapRequest(
+          {
+            quote: { router: BSC_ROUTER, from: "BSC.BNB" },
+            transaction: { chainId: 56, to: BSC_ROUTER, type: "legacy", gasPrice: "1000000000" },
+          },
+          ["transaction.maxFeePerGas", "transaction.maxPriorityFeePerGas"],
+        ),
       ),
       seeds,
     );
