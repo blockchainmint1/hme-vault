@@ -9,6 +9,7 @@ import {
   isThorMemoOutput,
   parseThorMemo,
   utxoSwapProblem,
+  format1e8,
   vaultOwnsAddress,
   type ThorMemo,
 } from "./thor";

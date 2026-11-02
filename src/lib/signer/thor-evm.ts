@@ -263,11 +263,7 @@ function verify(request: ThorSwapRequest) {
     refuse("the quoted payout minimum differs from the swap memo.");
   if (quote.to.trim().toUpperCase() !== memo.asset.field)
     refuse("the quoted payout asset differs from the swap memo.");
-  const slip = slippageProblem(
-    asBigInt(quote.expectedOut),
-    memo.minimumOut,
-    quote.toleranceBps,
-  );
+  const slip = slippageProblem(asBigInt(quote.expectedOut), memo.minimumOut, quote.toleranceBps);
   if (slip) refuse(slip);
 
   const expiry = asBigInt(quote.expiry);
