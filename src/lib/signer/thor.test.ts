@@ -12,7 +12,14 @@ import {
 } from "viem";
 import { NETWORKS, type CoinId } from "./networks";
 import { reviewPsbt, signPsbt } from "./psbt";
-import { THOR_CHAINS, THOR_MEMO_SUFFIX, format1e8, parseThorMemo } from "./thor";
+import {
+  THOR_CHAINS,
+  THOR_MEMO_SUFFIX,
+  format1e8,
+  parseThorMemo,
+  resolveThorAssetField,
+  vaultOwnsAddress,
+} from "./thor";
 import { reviewThorSwap, signThorSwap } from "./thor-evm";
 
 // Dummy mnemonic only. Nothing here touches a real wallet or the network.
@@ -187,7 +194,7 @@ async function swapPayment(
   const memoScript = payments.embed({
     data: [new TextEncoder().encode(opts.memo ?? UTXO_MEMO)],
   }).output!;
-  const depositSats = opts.depositSats ?? 500_000n;
+  const depositSats = opts.depositSats ?? (coin === "DOGE" ? 200_000_000n : 500_000n);
   const fee = opts.fee ?? 10_000n;
   const changeKey = root.derive(opts.changePath ?? path);
   const changeScript = payments.p2pkh({
@@ -422,7 +429,7 @@ describe("THORChain EVM swap signing", () => {
     const r = await reviewThorSwap(JSON.stringify(swapRequest()), seeds);
     expect(r.chainName).toBe("Ethereum");
     expect(r.amountLabel).toBe("1 ETH");
-    expect(r.payoutLabel).toBe("at least 0.1 Bitcoin");
+    expect(r.payoutLabel).toBe("expected about 0.1, at least 0.1 Bitcoin");
     expect(r.depositAddress).toBe(INBOUND);
     expect(r.warnings.some((w) => /Compare the THORChain deposit address/.test(w))).toBe(true);
     const signed = await signThorSwap(r, seeds);
@@ -615,6 +622,10 @@ describe("THORChain EVM swap signing", () => {
       },
     ],
     ["unknown selector", { transaction: { data: "0xdeadbeef" } }],
+    ["expiry under five minutes ahead", { quote: { expiry: Number(now() + 60n) } }],
+    ["slippage tolerance above 3%", { quote: { toleranceBps: 301 } }],
+    ["minimum far below the expected payout", { quote: { expectedOut: "1000000000" } }],
+    ["minimum above the expected payout", { quote: { expectedOut: "9000000" } }],
     ["expiry already passed", { quote: { expiry: Number(now() - 100n) } }],
     ["expiry more than one hour ahead", { quote: { expiry: Number(now() + 7200n) } }],
     [
@@ -703,3 +714,81 @@ describe("THORChain EVM swap signing", () => {
 
 // Keeps the data-output helper referenced so an unused-import lint cannot hide a fixture drift.
 void dataOutput;
+
+describe("audit 2026-11-02 fixes", () => {
+  it("recognises this Vault's native SegWit BTC and LTC Receive addresses as its own", async () => {
+    const root = HDKey.fromMasterSeed(await mnemonicToSeed(words));
+    for (const [coin, ct] of [
+      ["BTC", 0],
+      ["LTC", 2],
+    ] as const) {
+      const pubkey = root.derive(`m/84'/${ct}'/0'/0/0`).publicKey!;
+      const addr = payments.p2wpkh({ pubkey, network: NETWORKS[coin] }).address!;
+      expect(addr.startsWith(coin === "BTC" ? "bc1q" : "ltc1q")).toBe(true);
+      expect(await vaultOwnsAddress(seeds, coin, addr, new Map())).toBe(true);
+    }
+    // BIP-84 vector for this dummy mnemonic.
+    expect(
+      await vaultOwnsAddress(seeds, "BTC", "bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu", new Map()),
+    ).toBe(true);
+  });
+  it("warns on EVM swaps that pay out to an address this Vault does not control", async () => {
+    const r = await reviewThorSwap(JSON.stringify(swapRequest()), seeds);
+    expect(r.warnings.some((w) => /does not control/.test(w))).toBe(true);
+    expect(r.payoutLabel).toBe("expected about 0.1, at least 0.1 Bitcoin");
+  });
+  for (const [coin, dust] of [
+    ["BTC", 10_000n],
+    ["LTC", 10_000n],
+    ["DOGE", 100_000_000n],
+  ] as const) {
+    it(`refuses a ${coin} deposit at its dust limit and accepts one just above`, async () => {
+      const at = await swapPayment(coin, { depositSats: dust });
+      await expect(reviewPsbt(at.psbt, at.seeds, coin)).rejects.toThrow(/dust limit/);
+      const above = await swapPayment(coin, { depositSats: dust + 1n });
+      await expect(reviewPsbt(above.psbt, above.seeds, coin)).resolves.toBeTruthy();
+    });
+  }
+  it("shows the UTXO minimum with an expected-amount warning", async () => {
+    const { psbt, seeds: s } = await swapPayment("BTC");
+    const { review } = await reviewPsbt(psbt, s, "BTC");
+    expect(review.warnings.some((w) => /cannot see the expected amount/.test(w))).toBe(true);
+  });
+  it("accepts a 3% tolerance exactly at its floor", async () => {
+    const r = swapRequest({ quote: { expectedOut: "10309278", toleranceBps: 300 } });
+    await expect(reviewThorSwap(JSON.stringify(r), seeds)).resolves.toBeTruthy();
+  });
+  it("accepts a five-minute expiry", async () => {
+    const expiry = now() + 310n;
+    const r = swapRequest({
+      quote: { expiry: Number(expiry) },
+      transaction: { data: deposit(INBOUND, ZERO, 1000000000000000000n, EVM_MEMO, expiry) },
+    });
+    await expect(reviewThorSwap(JSON.stringify(r), seeds)).resolves.toBeTruthy();
+  });
+  it("resolves short contract-suffix names only when they match a pinned contract", () => {
+    expect(resolveThorAssetField("ETH.USDC-EB48")?.asset.token?.contract).toBe(USDC_ETH);
+    expect(resolveThorAssetField("ETH.USDC-EB48")?.utxoOnly).toBe(true);
+    expect(resolveThorAssetField("ETH.USDC-EB49")).toBeNull();
+    expect(resolveThorAssetField("ETH.USDT-EB48")).toBeNull();
+    expect(resolveThorAssetField("BSC.USDC-EB48")).toBeNull();
+    expect(resolveThorAssetField("ETH.USDC-EB4")).toBeNull();
+    expect(() =>
+      parseThorMemo("=:ETH.USDC-EB48:0x1111111111111111111111111111111111111111:100/1/1", {
+        fullForms: true,
+      }),
+    ).toThrow(/in full/);
+  });
+  it("labels the Base fee as excluding the Base data fee", async () => {
+    const r = await reviewThorSwap(
+      JSON.stringify(
+        swapRequest({
+          quote: { router: BASE_ROUTER, from: "BASE.ETH" },
+          transaction: { chainId: 8453, to: BASE_ROUTER, maxFeePerGas: "1000000000" },
+        }),
+      ),
+      seeds,
+    );
+    expect(r.feeLabel).toMatch(/plus a small Base data fee not shown here/);
+  });
+});

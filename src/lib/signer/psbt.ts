@@ -9,6 +9,7 @@ import {
   isThorMemoOutput,
   parseThorMemo,
   utxoSwapProblem,
+  format1e8,
   vaultOwnsAddress,
   type ThorMemo,
 } from "./thor";
@@ -328,6 +329,9 @@ export async function reviewPsbt(
         warnings.push(
           `THORChain resolves "${memo.field}" by name; this Vault cannot verify offline which contract that pool is.`,
         );
+      warnings.push(
+        `This payment states only the minimum payout (at least ${format1e8(memo.minimumOut)} ${memo.asset.label}); Vault cannot see the expected amount offline. Check the price in your online wallet before signing.`,
+      );
       if (!(await vaultOwnsAddress(seeds, memo.asset.payout, memo.destination, roots)))
         warnings.push("The payout goes to an address this Vault does not control.");
       warnings.push("If the swap fails, your coins return to the refund address shown above.");
