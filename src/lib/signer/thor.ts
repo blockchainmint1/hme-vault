@@ -349,3 +349,45 @@ export function utxoSwapProblem(coin: CoinId, memo: ThorMemo, shape: UtxoSwapSha
     return "a swap must pay out a different asset than the one it spends.";
   return null;
 }
+
+/**
+ * True when `address` is one of this Vault's own first receiving addresses on the payout chain.
+ * Used only for a disclosure warning; a false result never blocks signing.
+ */
+export async function vaultOwnsAddress(
+  seeds: SignerSeed[],
+  payout: ThorPayout,
+  address: string,
+  roots: Map<string, HDKey>,
+): Promise<boolean> {
+  const want = address.trim().toLowerCase();
+  if (!want) return false;
+  for (const s of seeds) {
+    let root = roots.get(s.id);
+    if (!root) {
+      root = HDKey.fromMasterSeed(await mnemonicToSeed(s.words, s.passphrase ?? ""));
+      roots.set(s.id, root);
+    }
+    if (payout === "EVM") {
+      for (let i = 0; i < OWN_ADDRESS_GAP; i++) {
+        const key = root.derive(`m/44'/60'/0'/0/${i}`);
+        if (!key.privateKey) continue;
+        const hex = `0x${Array.from(key.privateKey, (b) => b.toString(16).padStart(2, "0")).join("")}` as const;
+        if (privateKeyToAccount(hex).address.toLowerCase() === want) return true;
+      }
+      continue;
+    }
+    const ct = payout === "BTC" ? 0 : payout === "LTC" ? 2 : 3;
+    for (let i = 0; i < OWN_ADDRESS_GAP; i++) {
+      const key = root.derive(`m/44'/${ct}'/0'/0/${i}`);
+      const script = key.publicKey ? payments.p2pkh({ pubkey: key.publicKey, network: NETWORKS[payout] }).output : undefined;
+      if (!script) continue;
+      try {
+        if (baddress.fromOutputScript(script, NETWORKS[payout]).toLowerCase() === want) return true;
+      } catch {
+        /* address form not usable on this coin */
+      }
+    }
+  }
+  return false;
+}
