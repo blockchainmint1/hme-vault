@@ -68,9 +68,22 @@ export function TransferInput({
             try {
               const text = await openBackupFile();
               if (text !== null) {
-                if (!text.trim().startsWith("HMVAULT1."))
-                  throw new Error("Choose an encrypted HMVAULT1 backup.");
-                setPendingCode(text.trim());
+                // Tolerate a byte-order mark, line wrapping or extra text added by
+                // other apps; take the first HMVAULT1 code found in the file.
+                const clean = text.replace(/^\uFEFF/, "");
+                const isPage = /<html|<!doctype/i.test(clean);
+                const match = isPage ? null : clean.match(/HMVAULT1\.[A-Za-z0-9_\-.=\s]+/);
+                if (!match) {
+                  if (isPage)
+                    throw new Error(
+                      "That file is the offline unlocker page, not a backup. Choose the seed-vault-backup-….txt file.",
+                    );
+                  if (!clean.trim()) throw new Error("That file is empty.");
+                  throw new Error(
+                    "That file isn't a Vault backup. Choose the seed-vault-backup-….txt file.",
+                  );
+                }
+                setPendingCode(match[0].replace(/\s+/g, ""));
               }
             } catch (e) {
               setErr((e as Error).message);
