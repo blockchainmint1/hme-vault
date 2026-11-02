@@ -377,3 +377,15 @@ describe("backup import hardening", () => {
     expect(p.seeds[0].name).not.toContain("\u202e");
   });
 });
+
+describe("shouldLockOnHide", () => {
+  it("locks immediately when no Vault file picker is open", () => {
+    expect(shouldLockOnHide(null, 5)).toBe(true);
+  });
+  it("stays unlocked while Vault's own file picker is open under 2 minutes", () => {
+    expect(shouldLockOnHide(1_000, 1_000 + 119_999)).toBe(false);
+  });
+  it("locks once the picker has been open 2 minutes", () => {
+    expect(shouldLockOnHide(1_000, 1_000 + 120_000)).toBe(true);
+  });
+});
