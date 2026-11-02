@@ -245,6 +245,48 @@ function SignPage() {
     );
   }
 
+  if (thor)
+    return (
+      <Unlocked title="Check this swap" back>
+        <div className="space-y-3">
+          <ThorSwapPaymentReview review={thor} />
+          <form
+            className="space-y-2"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (!checkPassword(pw)) {
+                setErr("Wrong password.");
+                setPw("");
+                return;
+              }
+              await signThorNow();
+            }}
+          >
+            {fpButton(signThorNow)}
+            <Label htmlFor="tpw">
+              {bioOn ? "Or type your Vault password" : "Vault password to sign"}
+            </Label>
+            <CredentialInput
+              id="tpw"
+              type="password"
+              value={pw}
+              onChange={(e) => setPw(e.target.value)}
+            />
+            {err && <p className="text-sm text-destructive">{err}</p>}
+            <div className="flex gap-2">
+              <Button type="button" variant="ghost" onClick={reset}>
+                Cancel
+              </Button>
+              <Button className="flex-1" type="submit" disabled={!pw || busy}>
+                <PenLine className="mr-1.5 h-4 w-4" />
+                {busy ? "Signing…" : "Sign"}
+              </Button>
+            </div>
+          </form>
+        </div>
+      </Unlocked>
+    );
+
   if (evm)
     return (
       <Unlocked title="Check this payment" back>
@@ -321,6 +363,23 @@ function SignPage() {
                       ))}
                     </div>
                   )}
+                </div>
+              )}
+              {r.swap && (
+                <div className="rounded-md border-2 border-primary p-3 space-y-1">
+                  <p className="text-xs text-muted-foreground">THORChain swap</p>
+                  <p className="text-lg font-semibold">
+                    Swap {formatCoins(r.sendSats)} {r.coin} for at least{" "}
+                    {format1e8(r.swap.minimumOut)} {r.swap.assetLabel}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Payout address</p>
+                  <p className="break-all font-mono text-sm">{r.swap.destination}</p>
+                  <p className="text-xs text-muted-foreground">
+                    THORChain deposit address (compare with your online wallet)
+                  </p>
+                  <p className="break-all font-mono text-sm">{r.swap.depositAddress}</p>
+                  <p className="text-xs text-muted-foreground">Refunds return here</p>
+                  <p className="break-all font-mono text-sm">{r.swap.refundAddress}</p>
                 </div>
               )}
               {r.outputs
