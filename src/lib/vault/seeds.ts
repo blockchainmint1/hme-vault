@@ -179,6 +179,15 @@ export function shouldAutoLock(lastActivity: number, now: number): boolean {
   return now - lastActivity >= IDLE_LOCK_MS;
 }
 
+/**
+ * Backgrounding locks immediately, except while a file picker Vault itself
+ * opened (open/save backup) is showing, and only within the idle limit.
+ * `pickerOpenedAt` is null when no Vault-launched picker is open.
+ */
+export function shouldLockOnHide(pickerOpenedAt: number | null, now: number): boolean {
+  return pickerOpenedAt === null || now - pickerOpenedAt >= IDLE_LOCK_MS;
+}
+
 export interface SeedKeys {
   fingerprint: string;
   txcXpub: string;

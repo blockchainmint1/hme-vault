@@ -240,11 +240,18 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     setPendingCode("");
   }, []);
 
-  // Auto-lock: 2 minutes idle, or as soon as the app is hidden/backgrounded.
+  // Auto-lock: 2 minutes idle, or as soon as the app is hidden/backgrounded —
+  // except while Vault's own file picker is open (still bounded by the idle limit,
+  // re-checked the moment the app returns).
   useEffect(() => {
     if (status !== "unlocked") return;
     const touch = () => (lastActive.current = Date.now());
-    const onHide = () => document.visibilityState === "hidden" && lock();
+    const onHide = () => {
+      const now = Date.now();
+      if (document.visibilityState === "hidden") {
+        if (shouldLockOnHide(systemPickerOpenedAt(), now)) lock();
+      } else if (shouldAutoLock(lastActive.current, now)) lock();
+    };
     const t = setInterval(() => shouldAutoLock(lastActive.current, Date.now()) && lock(), 5_000);
     const evs = ["pointerdown", "keydown", "scroll", "touchstart"] as const;
     evs.forEach((e) => window.addEventListener(e, touch, { passive: true }));
