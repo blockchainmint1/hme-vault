@@ -20,7 +20,7 @@ describe("seed vault", () => {
   it("defaults to 1,000,000 iterations", async () => {
     const v = await lockSeed(SEED, "Cobalt-Willow-Harbor-29");
     expect(v.split(".")[1]).toBe("1000000");
-  });
+  }, 30_000);
   it("never writes an iteration count the offline reader refuses", async () => {
     await expect(lockSeed(SEED, "Cobalt-Willow-Harbor-29", 999)).rejects.toThrow();
     await expect(lockSeed(SEED, "Cobalt-Willow-Harbor-29", 10_000_001)).rejects.toThrow();

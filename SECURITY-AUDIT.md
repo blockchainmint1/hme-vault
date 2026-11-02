@@ -96,3 +96,10 @@ both from dummy seeds. **No swap has ever been broadcast, and swap signing is in
 - THORChain swaps: independent audit of the new signing code, HME Wallet switching to `/1/1` memos
   without affiliate tags, and three tiny funded tests (BTC→ETH, an ERC-20 deposit after an allowance
   reset, and a refused streaming-memo payment) before any real funds.
+
+## Status correction (2026-11-02)
+- APK 0.1.202611021636, linked from the footer, contains THORChain swap signing with all six audit fixes. Earlier handoffs saying no APK carried swap signing are superseded. It is the device-test build, not the release.
+- Routers: matched against live inbound_addresses from two public providers by the agent (HME-Vault-Live-Router-Check-2026-11-02.md); not yet independently re-verified by the auditor. BTC/LTC/DOGE trading was halted at check time.
+- Funded tests (three tiny swaps incl. a forced refund) pending.
+- File-picker lock grace (closes L2) is not in that APK. Pixel list adds: camera permission prompt and fingerprint prompt hide the page and are not covered by the grace.
+- The two 1,000,000-iteration encryption tests now have explicit 30-second timeouts so CI cannot flake the APK gate.

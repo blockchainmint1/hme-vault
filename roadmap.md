@@ -2,7 +2,7 @@
 
 - [x] Evaluate THORChain spec v2; owner decided /1/1 only, owner-compared deposit address, short USDC/USDT payouts allowed from UTXO, EVM fee caps 0.02 ETH / 0.002 Base / 0.02 BNB.
 - [x] Build THORChain swap signing per spec v2 + owner decisions: `/1/1` only, no affiliate tags, pinned routers/tokens, rebuilt-and-compared EVM calldata, UTXO deposit-first/change-to-input-0 shape, EVM fee caps 0.02 ETH / 0.002 Base / 0.02 BNB; 307 tests pass and both swap paths were reviewed and signed through the real UI with a fake camera (dummy seeds, nothing broadcast).
-- [ ] Release THORChain swap signing: independent audit of `thor.ts`/`thor-evm.ts`, HME Wallet switching its memos to `/1/1` with no affiliate tag, and three tiny funded tests (BTC→ETH, ERC-20 deposit after allowance reset, refused streaming-memo payment) before real funds; swap code is in no APK yet.
+- [ ] Release THORChain swap signing: independent audit of `thor.ts`/`thor-evm.ts`, HME Wallet switching its memos to `/1/1` with no affiliate tag, and three tiny funded tests (BTC→ETH, ERC-20 deposit after allowance reset, refused streaming-memo payment) before real funds. Correction 2026-11-02: APK 0.1.202611021636 (linked in the footer) already contains swap signing with all six audit fixes; treat it as the device-test build, not the release. Live routers matched on 2026-11-02 via two public THORNode providers (see HME-Vault-Live-Router-Check-2026-11-02.md); auditor has not independently re-verified. Funded tests pending.
 
 - [x] Consider HME Wallet's 2026-10-28 THORChain request against both source snapshots and official protocol guidance; provide a coordination/auditor response without enabling swaps. Implementation waits on owner approval and agreement on memo semantics, dynamic inbound trust, token identity, expiry and the online approval/broadcast sequence.
 - [x] Cap the scanner's per-part dot grid at 120 parts and show a progress bar plus count above that (auditor performance fix); 237 tests pass, live fake-camera check of a frame declaring 1/13108 and one declaring 1/4. Independent review of this display-only change remains required before release.
@@ -100,3 +100,5 @@
 - [x] M1 declined by owner design; documented
 - [x] Pre-unlock offline checklist (airplane, Wi-Fi, mobile data, Bluetooth, NFC, SIM/eSIM, USB debugging, USB-to-computer; warn + override + per-row ignore; zero network permissions, never fails open)
 - [ ] Build new APK and phone-test (needs Bobby / GitHub run); update `src/lib/release.ts` with the new APK SHA-256
+
+- [ ] Pixel hide-lock checks: file picker (open/save backup) keeps Vault unlocked under 2 min; camera permission prompt and fingerprint prompt — note whether they lock Vault (not covered by the picker grace). Needs a new APK containing the picker fix (not in 0.1.202611021636).

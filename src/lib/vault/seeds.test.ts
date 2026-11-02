@@ -106,7 +106,7 @@ describe("vault rules", () => {
     expect(restored.secrets.map((s) => s.type)).toEqual(["note", "file", "totp"]);
     expect(restored.secrets[1].content).toBe("AAECAw==");
     await expect(unlockText(code, "different key")).rejects.toThrow("Wrong password");
-  });
+  }, 30_000);
   it("device copying adds missing entries, skips duplicates and never deletes receiver entries", () => {
     const note = {
       id: "note",
