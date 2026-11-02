@@ -192,6 +192,36 @@ function refuse(message: string): never {
   throw new Error(`Signing blocked: ${message}`);
 }
 
+/** Read an OP_RETURN payload as text, or null when it isn't a plain single-push byte string. */
+export function decodeThorMemoOutput(script: Uint8Array): string | null {
+  if (script[0] !== 0x6a) return null;
+  let payload: Uint8Array;
+  if (script[1] === 0x4c) {
+    if (script.length !== 3 + script[2]) return null;
+    payload = script.subarray(3);
+  } else if (script[1] <= 75) {
+    if (script.length !== 2 + script[1]) return null;
+    payload = script.subarray(2);
+  } else return null;
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(payload);
+  } catch {
+    return null;
+  }
+}
+
+/** True when the output carries a memo this Vault would accept as a swap instruction. */
+export function isThorMemoOutput(script: Uint8Array): boolean {
+  const text = decodeThorMemoOutput(script);
+  if (!text) return false;
+  try {
+    parseThorMemo(text);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** A payout destination must be a real address on the payout asset's own chain. */
 export function isValidThorDestination(payout: ThorPayout, destination: string): boolean {
   const dest = destination.trim();
