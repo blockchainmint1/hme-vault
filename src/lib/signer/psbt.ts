@@ -4,6 +4,14 @@ import { HDKey } from "@scure/bip32";
 import { mnemonicToSeed } from "@scure/bip39";
 import { NETWORKS, coinFromCoinType, type CoinId } from "./networks";
 import { decodeOmniSendToMany } from "./omni";
+import {
+  decodeThorMemoOutput,
+  isThorMemoOutput,
+  parseThorMemo,
+  utxoSwapProblem,
+  vaultOwnsAddress,
+  type ThorMemo,
+} from "./thor";
 
 export interface SignerSeed {
   id: string;
@@ -25,6 +33,21 @@ export interface TokenSend {
   to: string | null;
   recipients?: { vout: number; address: string; amount: string }[];
 }
+/** A verified THORChain swap read from a UTXO payment (BTC, LTC or DOGE source). */
+export interface SwapSend {
+  /** Payout asset name, e.g. "Bitcoin" or "USDC on Ethereum". */
+  assetLabel: string;
+  /** Minimum payout in 1e8 units of the payout asset, exactly as the memo states it. */
+  minimumOut: bigint;
+  /** Full payout address on the payout asset's own chain. */
+  destination: string;
+  /** THORChain deposit address (output 0); the owner compares this with the online wallet. */
+  depositAddress: string;
+  /** Where a failed swap returns: the address of input 0. */
+  refundAddress: string;
+  /** True when the memo used a terse code or a short token name. */
+  shorthand: boolean;
+}
 export interface Review {
   coin: CoinId;
   seedName: string;
@@ -36,6 +59,7 @@ export interface Review {
   maximumVsize: number;
   outputs: ReviewOutput[];
   token: TokenSend | null;
+  swap: SwapSend | null;
   warnings: string[];
 }
 const hex = (b: Uint8Array) => Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
@@ -65,16 +89,17 @@ function validateDataOutputs(psbt: Psbt, coin: CoinId) {
     data.some(
       (o) =>
         !((coin === "TXC" || coin === "ISK") && decodeOmniSimpleSend(o.script)) &&
-        !(coin === "TXC" && decodeOmniSendToMany(o.script)),
+        !(coin === "TXC" && decodeOmniSendToMany(o.script)) &&
+        !isThorMemoOutput(o.script),
     )
   ) {
     throw new Error(
-      "Signing blocked: Vault cannot verify these swap or data instructions. THORChain swaps are not supported yet. Nothing was returned for broadcasting.",
+      "Signing blocked: Vault cannot verify these data or swap instructions. Only Omni token payments and THORChain single-trade swaps are supported. Nothing was returned for broadcasting.",
     );
   }
   if (data.length > 1 || data.some((o) => o.value !== 0n))
     throw new Error(
-      "Signing blocked: token payments require one zero-value supported Omni data output.",
+      "Signing blocked: token and swap payments require one zero-value data output.",
     );
 }
 
