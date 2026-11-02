@@ -19,7 +19,7 @@ The user selects TXC, ISK, BTC, LTC or DOGE before scanning. PSBT does **not** c
 - Only unsigned inputs and SIGHASH_ALL are accepted. No multisig, Taproot, MWEB, Dogecoin segwit or partially signed PSBTs in this release.
 - Change should carry matching output bip32Derivation; otherwise it is shown as a payment, never silently hidden.
 - All outputs, change and known input values determine the displayed fee. Input values for segwit are supplied by the online wallet; this phone cannot query the chain.
-- TXC/ISK Omni Simple Send property 39 displays TSD amounts; unknown Simple Send properties display raw units. TXC also supports the strictly bounded TSD Send To Many contract below. Only one zero-value supported Omni data output is accepted. All other data outputs, including THORChain swap memos, are blocked, not merely warned about.
+- TXC/ISK Omni Simple Send property 39 displays TSD amounts; unknown Simple Send properties display raw units. TXC also supports the strictly bounded TSD Send To Many contract below. Only one zero-value supported data output is accepted: either one Omni packet or one validated THORChain swap memo. All other data outputs are blocked, not merely warned about.
 - The existing conservative fee cap is explicitly 5,000 base units/vB on all Bitcoin-family networks (not 5,000 coins). Review checks a lower bound on fee rate using the maximum supported signed size; finalization checks the exact rate. No QR field or online quote can raise this cap. This is a safety ceiling, not a recommended network fee, and can reject legitimate DOGE fees.
 - Signing requires the same PSBT bytes and keys that passed review and signs a private clone. Failed signing never leaves the reviewed PSBT partially signed. No signed QR is returned on rejection.
 - Mainnet networks only. BTC/LTC/DOGE tests cover a signed raw transaction for every supported address purpose; real chain broadcast/payment tests still require the online wallet.
@@ -60,6 +60,36 @@ Example native transfer (test addresses; never use these as live payment details
 - Chain ID is signed, including custom EVM IDs (so ZCU can use its actual ID without an online lookup). Known Ethereum, Optimism, BNB, Polygon, Base, Arbitrum, Avalanche and Sepolia show their local names/18-decimal native currency. Unlisted chains show the ID plus **raw native base units**, not guessed decimals or symbols.
 - Gas fee shown is `gas * gasPrice` or `gas * maxFeePerGas`; it is a gas ceiling, not a guarantee of total fees. L2 data fees and other chain-specific charges may apply. Vault cannot check balance, nonce, gas sufficiency or contract behavior offline.
 - Returned EVM signed hex includes `0x`; Bitcoin-family signed hex does not. The online wallet knows the selected network and broadcasts there. Displayed EVM transaction ID is Keccak-256 of the signed bytes.
+
+## THORChain swaps — November 2, 2026
+
+Vault now signs THORChain swaps offline for **BTC, LTC and DOGE sources (PSBT)** and for **Ethereum, Base and BNB Chain sources (EVM JSON)**. Nothing is fetched: every router, token address and decimal count the Vault needs is frozen in `src/lib/signer/thor.ts`, and any value outside those tables is refused.
+
+**Owner decisions this build enforces:** one trade only — the memo must end `/1/1`, and streaming memos such as `/1/0` are refused; **no affiliate or aggregator tag is ever accepted**; the owner compares the THORChain deposit address against the online wallet by eye; short payout names (`ETH.USDC`) are allowed from UTXO sources with an explicit warning; maximum network fee per swap is **0.02 ETH on Ethereum, 0.002 ETH on Base, 0.02 BNB on BNB Chain**.
+
+### Memo grammar
+
+`<action>:<asset>:<destination>:<minimum>/1/1` — exactly four colon-separated fields, at most 80 bytes, printable ASCII only. Actions `=`, `SWAP`, `s`. The minimum must be a positive whole number in 1e8 units of the payout asset. A fifth field of any kind (affiliate, aggregator, streaming count) is refused with a message naming the reason. Payout assets are the pinned set: `BTC.BTC`, `LTC.LTC`, `DOGE.DOGE`, `ETH.ETH`, `BASE.ETH`, `BSC.BNB`, and the five pinned ERC-20 pools below. The destination must be a valid address on the payout asset's own chain (BTC/LTC/DOGE through their network parameters, EVM through checksummed `0x` form), so a memo can never pay out to a chain it does not belong to.
+
+Pinned routers: Ethereum `1` → `0xD37BbE5744D730a1d98d8DC97c42F0Ca46aD7146`; Base `8453` → `0x00dc6100103BC402d490aEE3F9a5560cBd91f1d4`; BNB Chain `56` → `0xb30ec53f98ff5947ede720d32ac2da7e52a5f56b`. Pinned tokens: Ethereum USDC `0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48` (6), Ethereum USDT `0xdAC17F958D2ee523a2206206994597C13D831ec7` (6), Base USDC `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` (6), BNB USDC `0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d` (18), BNB USDT `0x55d398326f99059fF775485246999027B3197955` (18). Terse single-letter codes (`b`, `l`, `d`, `e`, `f`, `s`) and short token names are accepted only as a UTXO-source memo field, never as an EVM source.
+
+### UTXO sources (BTC, LTC, DOGE)
+
+The payment must have the swap memo as the **last** output, a positive **first** output (the THORChain deposit), and at most one change output between them. Change must be verifiable as the owner's own **and** must pay the address of input 0, because that is where THORChain refunds. The memo asset must differ from the coin being spent. Every pre-existing rule still applies unchanged: input fingerprint/path/script verification, SIGHASH_ALL only, unsigned inputs only, the frozen per-coin fee cap checked before approval and again after finalization, and signing bound to the reviewed bytes and keys.
+
+Review shows the amount leaving, the payout asset and minimum, the payout address, the deposit address and the refund address, and states plainly that the deposit address cannot be verified offline. It also warns when the payout address is not one this Vault controls.
+
+### EVM sources (`hm-thor-swap` v1)
+
+A strict JSON request of at most 8,192 characters with `format: "hm-thor-swap"`, `v: 1`, the seed fingerprint and full EVM path, `action` of `evm-deposit`, `approval` or `approval-reset`, a `quote` and a `transaction`. Unknown fields, unknown chains, unpinned routers and unpinned source assets are refused.
+
+**The supplied calldata is never trusted.** Vault rebuilds the call from the quote — `depositWithExpiry(vault, asset, amount, memo, expiry)` to the pinned router for a deposit, or `approve(router, amount)` / `approve(router, 0)` on the pinned token contract for an allowance — and refuses to display or sign unless the result matches the request's `to`, `value` and `data` byte for byte. The quote must also agree with the memo on payout address, payout minimum and payout asset, and the expiry must be in the future and no more than one hour ahead. Sender, fingerprint and path must match a stored seed.
+
+### What Vault still cannot verify
+
+A swap payout minimum is only required to be positive — Vault has no pinned table of THORChain's own minimum payouts, so an unreasonably small minimum is shown, not blocked. The deposit (inbound) address is fresh from a live pool and cannot be checked offline; the owner's eye is the control. Pool state, balances, halted chains and eventual delivery are all outside the Vault. `quote.rawIn`, `amountIn` and `expectedOut` are checked as well-formed quantities and against the rebuilt calldata, not against a live price.
+
+**Not released.** Swap signing is in the web preview only: it is not in any APK, and no swap has been broadcast. Before real funds: independent audit of this code, HME Wallet switching its memos to `/1/1` (and dropping affiliate tags), and three tiny funded tests — one BTC→ETH, one ERC-20 deposit with an allowance reset first, and one refused streaming-memo payment.
 
 ## QR transport
 
@@ -162,6 +192,6 @@ BCH reference addresses above use legacy Base58Check version 0 solely for hash16
 
 **Acceptance before release:** verify each of the eleven requested network entries with Nectar.Pay, including first/next sale addresses (Solana is fixed), passphrase handling, real-phone QR collection and existing HME Wallet compatibility. Receiving-key export alone does not mean Vault can sign BCH, DASH, TRON or Solana transactions; none is currently supported. ZCU spending uses the existing chain-bound EVM intent, with the actual chain ID and readable offline review. No internet, balances, broadcasting or online merchant features are added to Vault. Independent audit and the gated APK workflow remain required.
 
-THORChain swaps remain unsupported in Vault until a strict, readable swap-intent review can validate the memo, exact destination asset/network, recipient, minimum output and refund ownership against the transaction. HME Wallet also needs a dedicated THORChain builder (deposit output first, documented VIN0 change/refund handling), required expiry/fresh inbound checks before broadcast, and end-to-end small-payment/refund testing. An offline phone cannot independently verify a live quote, vault address, halted chain or eventual delivery. Do not fix the current failure by bypassing fee checks or treating the memo as an ordinary transfer.
+THORChain swap signing now exists in Vault and enforces the memo, payout asset and address, minimum, refund ownership and rebuilt-calldata checks above. The online wallet still owns everything an offline phone cannot see: it must build the swap with the deposit output first and change back to the first input, must use a single-trade `/1/1` memo with no affiliate tag, must supply a fresh expiry and a live inbound address, and must broadcast and monitor delivery. HME Wallet's current builder emits `/1/0` memos with an affiliate tag and must be changed before its swap QRs can be signed here. An offline phone cannot independently verify a live quote, vault address, halted chain or eventual delivery. Do not fix a failed swap by bypassing fee checks or treating the memo as an ordinary transfer.
 
 Online-wallet implementation, device QR signing/return tests, actual small payment broadcasts on each chain, and independent security review remain required. Unit/browser tests use dummy seeds and do not establish production safety.
