@@ -11,7 +11,7 @@ import { TransferInput } from "@/components/vault/TransferInput";
 import { Unlocked } from "@/components/vault/Unlocked";
 import { useVault } from "@/lib/vault/vault-context";
 import { getBiometricStatus, unlockWithBiometric } from "@/lib/native/biometric";
-import { saveTextFile } from "@/lib/vault/save-file";
+import { saveTextFile, savedMessage } from "@/lib/vault/save-file";
 import { STANDALONE_UNLOCKER } from "@/lib/vault/standalone";
 
 export const Route = createFileRoute("/backup")({
@@ -77,8 +77,12 @@ function BackupContent() {
           variant="secondary"
           onClick={async () => {
             try {
-              await saveTextFile("seed-vault-unlocker.html", STANDALONE_UNLOCKER, "text/html");
-              toast.success("Offline unlocker saved.");
+              const f = await saveTextFile(
+                "seed-vault-unlocker.html",
+                STANDALONE_UNLOCKER,
+                "text/html",
+              );
+              toast.success(`Offline unlocker saved. ${savedMessage(f)}.`);
             } catch (e) {
               toast.error((e as Error).message);
             }
@@ -112,11 +116,11 @@ function ExportPanel({ mode }: { mode: "file" | "send" }) {
       if (!alive.current) return;
       if (mode === "send") setCode(encrypted);
       else {
-        await saveTextFile(
+        const f = await saveTextFile(
           `seed-vault-backup-${new Date().toISOString().replace(/[:.]/g, "-")}.txt`,
           encrypted + "\n",
         );
-        toast.success("Encrypted backup saved.");
+        toast.success(`Encrypted backup saved. ${savedMessage(f)}.`);
       }
     } catch (e) {
       if (alive.current) setErr((e as Error).message);
