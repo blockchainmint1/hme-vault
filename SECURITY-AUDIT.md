@@ -58,9 +58,41 @@ nothing new is disclosed (part numbers already appear in every frame header).
 Verified in a live browser with a fake camera feeding a frame declaring 1/13108
 (bar, zero dot elements) and one declaring 1/4 (four dots, missing list).
 
+## Follow-up on THORChain swap signing (2026-11-02)
+
+Swap signing was added for BTC/LTC/DOGE sources (PSBT) and Ethereum/Base/BNB sources (a strict
+`hm-thor-swap` JSON intent). Every value the phone cannot fetch is frozen in `src/lib/signer/thor.ts`
+— routers, token contracts, decimals, chain prefixes — and anything outside those tables is refused.
+Owner decisions enforced in code: single-trade `/1/1` memos only (streaming `/1/0` refused), no
+affiliate or aggregator tag under any circumstance, payout address validated against the payout
+asset's own chain, EVM maximum-fee ceilings of 0.02 ETH / 0.002 ETH Base / 0.02 BNB, and a
+rebuild-and-compare of the swap calldata so a hostile request can never present opaque bytes.
+
+UTXO swaps keep every existing PSBT guarantee (input fingerprint/path/script proof, SIGHASH_ALL,
+unsigned inputs, the frozen fee cap checked before approval and after finalization, approval bound
+to the reviewed bytes and keys) and add the shape rules: memo last, deposit first and positive, at
+most one change output, and change that pays the address of input 0 — the address refunds return to.
+EVM swaps rebuild `depositWithExpiry`/`approve` locally and refuse unless `to`, `value` and `data`
+match byte for byte, the quote agrees with the memo on address, minimum and asset, and the expiry is
+in the future and within an hour.
+
+Two disclosure warnings are shown rather than enforced, by owner decision: the THORChain deposit
+address must be compared with the online wallet by eye, and a payout address this Vault does not
+control is flagged but not blocked. What is not yet enforced: there is no pinned table of THORChain's
+own minimum payouts, so a memo minimum only has to be positive.
+
+307 tests pass, including 70 new swap tests covering memo grammar, pinned tables, payout-address
+validation, UTXO shape and refund ownership, calldata rebuild mismatches, fee ceilings and expiry.
+Both swap paths were driven through the real UI in a browser with a fake camera: an EVM deposit was
+reviewed and signed (txid `0x16b75cb06a1df10a13043f5a4517242b8df4fb67b64e8029b7daf81a72ab3bf5`) and
+a BTC swap was reviewed and signed (txid `0b18453fae3ca63d4fee2918f9e37f4ba884cc6baad5b8f919eccc22a6d1d2e6`),
+both from dummy seeds. **No swap has ever been broadcast, and swap signing is in no APK.**
+
 ## Still open
 
 - Device testing of the new APK (fingerprint, USB, blocked network, legacy cleanup on an old phone, checklist rows on the Pixel).
 - Wrapping the stored blob with an Android Keystore key; tamper-proof native lockout clock.
 - Removing `'unsafe-inline'` from the web demo's CSP.
-- THORChain swaps remain blocked until a readable swap-intent review exists.
+- THORChain swaps: independent audit of the new signing code, HME Wallet switching to `/1/1` memos
+  without affiliate tags, and three tiny funded tests (BTC→ETH, an ERC-20 deposit after an allowance
+  reset, and a refused streaming-memo payment) before any real funds.

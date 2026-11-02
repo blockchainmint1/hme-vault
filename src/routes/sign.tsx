@@ -13,8 +13,11 @@ import { Unlocked } from "@/components/vault/Unlocked";
 import { useVault } from "@/lib/vault/vault-context";
 import { formatCoins, parsePsbt, reviewPsbt, signPsbt, type Review } from "@/lib/signer/psbt";
 import { reviewEvm, signEvm, type EvmReview } from "@/lib/signer/evm";
+import { reviewThorSwap, signThorSwap, type ThorSwapReview } from "@/lib/signer/thor-evm";
+import { format1e8 } from "@/lib/signer/thor";
 import { COIN_IDS, type CoinId } from "@/lib/signer/networks";
 import { EvmPaymentReview } from "@/components/vault/EvmPaymentReview";
+import { ThorSwapPaymentReview } from "@/components/vault/ThorSwapPaymentReview";
 import {
   Select,
   SelectContent,
@@ -61,6 +64,7 @@ function SignPage() {
 
   const [network, setNetwork] = useState<CoinId | "EVM">("TXC");
   const [evm, setEvm] = useState<EvmReview | null>(null);
+  const [thor, setThor] = useState<ThorSwapReview | null>(null);
   const generation = useRef(0);
   const [bioOn, setBioOn] = useState(false);
   useEffect(() => {
@@ -101,6 +105,22 @@ function SignPage() {
     }
   }
 
+  async function signThorNow() {
+    if (!thor) return;
+    setPw("");
+    setBusy(true);
+    setErr("");
+    const run = generation.current;
+    try {
+      const result = await signThorSwap(thor, seeds);
+      if (run === generation.current && active.current) setSigned(result);
+    } catch (x) {
+      if (run === generation.current && active.current) setErr((x as Error).message);
+    } finally {
+      if (run === generation.current) setBusy(false);
+    }
+  }
+
   function signPsbtNow() {
     if (!state || !active.current) return;
     setPw("");
@@ -132,6 +152,7 @@ function SignPage() {
       generation.current++;
       setState(null);
       setEvm(null);
+      setThor(null);
       setSigned(null);
       setPw("");
       setScan(false);
@@ -146,12 +167,18 @@ function SignPage() {
     setBusy(true);
     setState(null);
     setEvm(null);
+    setThor(null);
     setSigned(null);
     const run = ++generation.current;
     try {
       if (network === "EVM") {
-        const review = await reviewEvm(text, seeds);
-        if (run === generation.current && active.current) setEvm(review);
+        if (text.includes('"hm-thor-swap"')) {
+          const review = await reviewThorSwap(text, seeds);
+          if (run === generation.current && active.current) setThor(review);
+        } else {
+          const review = await reviewEvm(text, seeds);
+          if (run === generation.current && active.current) setEvm(review);
+        }
       } else {
         const psbt = parsePsbt(text, network);
         const { review, keys } = await reviewPsbt(psbt, seeds, network);
@@ -187,12 +214,13 @@ function SignPage() {
     setBusy(false);
     setState(null);
     setEvm(null);
+    setThor(null);
     setSigned(null);
     setPw("");
     setErr("");
   }
 
-  if (signed && (state || evm)) {
+  if (signed && (state || evm || thor)) {
     return (
       <Unlocked title="Signed" back>
         <Card>
@@ -212,6 +240,48 @@ function SignPage() {
       </Unlocked>
     );
   }
+
+  if (thor)
+    return (
+      <Unlocked title="Check this swap" back>
+        <div className="space-y-3">
+          <ThorSwapPaymentReview review={thor} />
+          <form
+            className="space-y-2"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (!checkPassword(pw)) {
+                setErr("Wrong password.");
+                setPw("");
+                return;
+              }
+              await signThorNow();
+            }}
+          >
+            {fpButton(signThorNow)}
+            <Label htmlFor="tpw">
+              {bioOn ? "Or type your Vault password" : "Vault password to sign"}
+            </Label>
+            <CredentialInput
+              id="tpw"
+              type="password"
+              value={pw}
+              onChange={(e) => setPw(e.target.value)}
+            />
+            {err && <p className="text-sm text-destructive">{err}</p>}
+            <div className="flex gap-2">
+              <Button type="button" variant="ghost" onClick={reset}>
+                Cancel
+              </Button>
+              <Button className="flex-1" type="submit" disabled={!pw || busy}>
+                <PenLine className="mr-1.5 h-4 w-4" />
+                {busy ? "Signing…" : "Sign"}
+              </Button>
+            </div>
+          </form>
+        </div>
+      </Unlocked>
+    );
 
   if (evm)
     return (
@@ -289,6 +359,23 @@ function SignPage() {
                       ))}
                     </div>
                   )}
+                </div>
+              )}
+              {r.swap && (
+                <div className="rounded-md border-2 border-primary p-3 space-y-1">
+                  <p className="text-xs text-muted-foreground">THORChain swap</p>
+                  <p className="text-lg font-semibold">
+                    Swap {formatCoins(r.sendSats)} {r.coin} for at least{" "}
+                    {format1e8(r.swap.minimumOut)} {r.swap.assetLabel}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Payout address</p>
+                  <p className="break-all font-mono text-sm">{r.swap.destination}</p>
+                  <p className="text-xs text-muted-foreground">
+                    THORChain deposit address (compare with your online wallet)
+                  </p>
+                  <p className="break-all font-mono text-sm">{r.swap.depositAddress}</p>
+                  <p className="text-xs text-muted-foreground">Refunds return here</p>
+                  <p className="break-all font-mono text-sm">{r.swap.refundAddress}</p>
                 </div>
               )}
               {r.outputs

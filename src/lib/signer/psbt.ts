@@ -4,6 +4,14 @@ import { HDKey } from "@scure/bip32";
 import { mnemonicToSeed } from "@scure/bip39";
 import { NETWORKS, coinFromCoinType, type CoinId } from "./networks";
 import { decodeOmniSendToMany } from "./omni";
+import {
+  decodeThorMemoOutput,
+  isThorMemoOutput,
+  parseThorMemo,
+  utxoSwapProblem,
+  vaultOwnsAddress,
+  type ThorMemo,
+} from "./thor";
 
 export interface SignerSeed {
   id: string;
@@ -25,6 +33,21 @@ export interface TokenSend {
   to: string | null;
   recipients?: { vout: number; address: string; amount: string }[];
 }
+/** A verified THORChain swap read from a UTXO payment (BTC, LTC or DOGE source). */
+export interface SwapSend {
+  /** Payout asset name, e.g. "Bitcoin" or "USDC on Ethereum". */
+  assetLabel: string;
+  /** Minimum payout in 1e8 units of the payout asset, exactly as the memo states it. */
+  minimumOut: bigint;
+  /** Full payout address on the payout asset's own chain. */
+  destination: string;
+  /** THORChain deposit address (output 0); the owner compares this with the online wallet. */
+  depositAddress: string;
+  /** Where a failed swap returns: the address of input 0. */
+  refundAddress: string;
+  /** True when the memo used a terse code or a short token name. */
+  shorthand: boolean;
+}
 export interface Review {
   coin: CoinId;
   seedName: string;
@@ -36,6 +59,7 @@ export interface Review {
   maximumVsize: number;
   outputs: ReviewOutput[];
   token: TokenSend | null;
+  swap: SwapSend | null;
   warnings: string[];
 }
 const hex = (b: Uint8Array) => Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
@@ -65,17 +89,16 @@ function validateDataOutputs(psbt: Psbt, coin: CoinId) {
     data.some(
       (o) =>
         !((coin === "TXC" || coin === "ISK") && decodeOmniSimpleSend(o.script)) &&
-        !(coin === "TXC" && decodeOmniSendToMany(o.script)),
+        !(coin === "TXC" && decodeOmniSendToMany(o.script)) &&
+        !isThorMemoOutput(o.script),
     )
   ) {
     throw new Error(
-      "Signing blocked: Vault cannot verify these swap or data instructions. THORChain swaps are not supported yet. Nothing was returned for broadcasting.",
+      "Signing blocked: Vault cannot verify these data or swap instructions. Only Omni token payments and THORChain single-trade swaps are supported. Nothing was returned for broadcasting.",
     );
   }
   if (data.length > 1 || data.some((o) => o.value !== 0n))
-    throw new Error(
-      "Signing blocked: token payments require one zero-value supported Omni data output.",
-    );
+    throw new Error("Signing blocked: token and swap payments require one zero-value data output.");
 }
 
 function maximumSignedVsize(psbt: Psbt, purposes: number[]): number {
@@ -205,6 +228,8 @@ export async function reviewPsbt(
   const purposes: number[] = [];
   const names = new Set<string>();
   let inputsSats = 0n;
+  let firstInputHex = "";
+  let firstInputAddress = "";
   for (let i = 0; i < psbt.inputCount; i++) {
     const inp = psbt.data.inputs[i];
     if (inp.sighashType !== undefined && inp.sighashType !== Transaction.SIGHASH_ALL)
@@ -226,6 +251,10 @@ export async function reviewPsbt(
     const actual = prev ?? inp.witnessUtxo;
     if (!expected || !actual || hex(expected) !== hex(actual.script))
       throw new Error(`Input ${i + 1} isn't an address from your seed.`);
+    if (i === 0) {
+      firstInputHex = hex(expected);
+      firstInputAddress = baddress.fromOutputScript(expected, NETWORKS[selected]);
+    }
     if (
       !prev &&
       !warnings.includes(
@@ -263,6 +292,46 @@ export async function reviewPsbt(
     if (isChange) changeSats += o.value;
     else sendSats += o.value;
     outputs.push({ address: addr, sats: o.value, isChange, isData });
+  }
+  let swap: SwapSend | null = null;
+  const dataVout = outputs.findIndex((o) => o.isData);
+  if (dataVout >= 0) {
+    const memoText = decodeThorMemoOutput(psbt.txOutputs[dataVout].script);
+    let memo: ThorMemo | null = null;
+    if (memoText) {
+      try {
+        memo = parseThorMemo(memoText);
+      } catch {
+        memo = null; // An Omni or other already-accepted data output, not a swap.
+      }
+    }
+    if (memo) {
+      const problem = utxoSwapProblem(selected, memo, {
+        outputs,
+        dataVout,
+        changePaysFirstInput:
+          outputs.length !== 3 || hex(psbt.txOutputs[1].script) === firstInputHex,
+      });
+      if (problem) throw new Error(`Signing blocked: ${problem}`);
+      swap = {
+        assetLabel: memo.asset.label,
+        minimumOut: memo.minimumOut,
+        destination: memo.destination,
+        depositAddress: outputs[0].address,
+        refundAddress: firstInputAddress,
+        shorthand: memo.shorthand,
+      };
+      warnings.push(
+        "Compare the THORChain deposit address with the address shown in your online wallet. This offline phone cannot verify it.",
+      );
+      if (memo.shorthand)
+        warnings.push(
+          `THORChain resolves "${memo.field}" by name; this Vault cannot verify offline which contract that pool is.`,
+        );
+      if (!(await vaultOwnsAddress(seeds, memo.asset.payout, memo.destination, roots)))
+        warnings.push("The payout goes to an address this Vault does not control.");
+      warnings.push("If the swap fails, your coins return to the refund address shown above.");
+    }
   }
   const feeSats = inputsSats - sendSats - changeSats;
   if (feeSats < 0n) throw new Error("This payment spends more than its inputs hold.");
@@ -336,6 +405,7 @@ export async function reviewPsbt(
       maximumVsize,
       outputs,
       token,
+      swap,
       warnings,
     },
     keys,
