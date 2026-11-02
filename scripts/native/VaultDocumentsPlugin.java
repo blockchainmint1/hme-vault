@@ -12,7 +12,8 @@ import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.ActivityCallback;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.FileOutputStream;
+import android.os.ParcelFileDescriptor;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 
@@ -31,11 +32,14 @@ public class VaultDocumentsPlugin extends Plugin {
         if (result.getResultCode() != Activity.RESULT_OK || result.getData() == null) { call.reject("Save cancelled."); return; }
         Uri uri = result.getData().getData();
         if (uri == null) { call.reject("No file selected."); return; }
-        try (OutputStream out = getContext().getContentResolver().openOutputStream(uri, "wt")) {
-            if (out == null) throw new Exception("Drive unavailable");
+        // Write through a file descriptor and fsync it so the bytes reach a USB drive
+        // before the owner unplugs it (USB writes are otherwise held in a cache).
+        try (ParcelFileDescriptor pfd = getContext().getContentResolver().openFileDescriptor(uri, "wt")) {
+            if (pfd == null) throw new Exception("Drive unavailable");
+            FileOutputStream out = new FileOutputStream(pfd.getFileDescriptor());
             String content = call.getString("data", "");
             byte[] bytes = Boolean.TRUE.equals(call.getBoolean("base64", false)) ? Base64.decode(content, Base64.DEFAULT) : content.getBytes(StandardCharsets.UTF_8);
-            out.write(bytes); out.flush();
+            out.write(bytes); out.flush(); out.getFD().sync();
             JSObject reply = new JSObject(); reply.put("name", call.getString("name")); call.resolve(reply);
         } catch (Exception e) { call.reject("Could not save the file. Check the drive and try again."); }
     }
