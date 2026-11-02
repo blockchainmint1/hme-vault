@@ -118,11 +118,18 @@ const NATIVES: readonly { field: string; label: string; payout: ThorPayout; ters
     { field: "BSC.BNB", label: "BNB on BNB Chain", payout: "EVM", terse: "s" },
   ]);
 
+/** Chain prefix used in every THORChain memo asset field for an EVM chain. */
+export const CHAIN_PREFIX: Readonly<Record<number, string>> = Object.freeze({
+  1: "ETH",
+  8453: "BASE",
+  56: "BSC",
+});
+
 const ASSETS: ThorAsset[] = [
   ...NATIVES.map((n) => Object.freeze({ field: n.field, label: n.label, payout: n.payout })),
   ...THOR_TOKENS.map((t) =>
     Object.freeze({
-      field: `${t.ticker === "USDC" ? "" : ""}`,
+      field: `${CHAIN_PREFIX[t.chainId]}.${t.ticker}-${t.contract.toUpperCase()}`,
       label: t.label,
       payout: "EVM" as ThorPayout,
       token: t,
