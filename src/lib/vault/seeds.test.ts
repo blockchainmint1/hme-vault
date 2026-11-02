@@ -9,6 +9,7 @@ import {
   mergeVaultBackup,
   parsePayload,
   shouldAutoLock,
+  shouldLockOnHide,
   TXC_ADDRESS_PATH,
   SOLANA_PATH,
   type SeedEntry,

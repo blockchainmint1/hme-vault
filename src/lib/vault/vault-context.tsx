@@ -20,11 +20,13 @@ import {
   lockoutMs,
   parsePayload,
   shouldAutoLock,
+  shouldLockOnHide,
   type SeedEntry,
 } from "./seeds";
 import { MAX_VAULT_CHARS, type SecretEntry } from "./secrets";
 import { setCoinExtraRequired } from "./coin-unlock";
 import { disableBiometric } from "../native/biometric";
+import { systemPickerOpenedAt } from "./save-file";
 
 const VAULT_KEY = "hmsv.vault.v1";
 const FAILS_KEY = "hmsv.fails.v1";
