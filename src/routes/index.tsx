@@ -208,7 +208,6 @@ function UnlockForm() {
               scanLabel="Scan coin to unlock"
               id="upw"
               type="password"
-              autoFocus
               value={pw}
               onChange={(e) => setPw(e.target.value)}
             />
