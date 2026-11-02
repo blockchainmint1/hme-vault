@@ -187,6 +187,21 @@ export function tokenForContract(contract: string): ThorTokenInfo | null {
   return THOR_TOKENS.find((t) => t.contract.toLowerCase() === want) ?? null;
 }
 
+/**
+ * The asset a swap spends: the chain's own native coin or a pinned token on that chain.
+ * Terse codes and short token names are never accepted as a source, so the contract is always known.
+ */
+export function resolveThorSource(chainId: number, from: string): ThorAsset | null {
+  const want = from.trim();
+  const token = tokenForContract(want);
+  if (token) return token.chainId === chainId ? (ASSETS.find((a) => a.token === token) ?? null) : null;
+  const form = FORMS.get(want.toUpperCase());
+  if (!form || form.terse || form.utxoOnly) return null;
+  const asset = form.asset;
+  if (asset.token) return asset.token.chainId === chainId ? asset : null;
+  return nativeAssetForChain(chainId)?.field === asset.field ? asset : null;
+}
+
 /** THORChain always expresses payout minimums in 1e8 units of the payout asset. */
 export function format1e8(v: bigint): string {
   const neg = v < 0n,

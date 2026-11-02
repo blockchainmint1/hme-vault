@@ -17,12 +17,10 @@ import {
 import { privateKeyToAccount } from "viem/accounts";
 import type { SignerSeed } from "./psbt";
 import {
-  CHAIN_PREFIX,
   THOR_CHAINS,
   format1e8,
-  nativeAssetForChain,
   parseThorMemo,
-  tokenForContract,
+  resolveThorSource,
   type ThorAsset,
 } from "./thor";
 
@@ -225,26 +223,8 @@ function verify(request: ThorSwapRequest) {
     refuse("a swap deposit must pay the pinned router.");
 
   // The source asset must be that chain's native coin or a pinned token on that chain.
-  const native = nativeAssetForChain(tx.chainId)!;
-  const namedToken = tokenForContract(quote.from);
-  let source: ThorAsset;
-  if (namedToken) {
-    if (namedToken.chainId !== tx.chainId)
-      refuse(`${namedToken.label} does not exist on ${chain!.name}.`);
-    source = {
-      field: `${CHAIN_PREFIX[tx.chainId]}.${namedToken.ticker}-${namedToken.contract.toUpperCase()}`,
-      label: namedToken.label,
-      payout: "EVM",
-      token: namedToken,
-    };
-  } else if (
-    quote.from.trim().toUpperCase() === native.field ||
-    quote.from.trim().toUpperCase() === native.terseCode
-  ) {
-    source = native;
-  } else {
-    refuse(`"${quote.from}" is not a supported ${chain!.name} swap source.`);
-  }
+  const source = resolveThorSource(tx.chainId, quote.from);
+  if (!source) refuse(`"${quote.from}" is not a supported ${chain!.name} swap source.`);
 
   if (tx.type === "legacy") {
     if (
@@ -273,7 +253,7 @@ function verify(request: ThorSwapRequest) {
     );
 
   const memo = parseThorMemo(quote.memo, { fullForms: true });
-  if (getAddress(quote.destination) !== getAddress(memo.destination))
+  if (quote.destination.trim().toLowerCase() !== memo.destination.toLowerCase())
     refuse("the quoted payout address differs from the swap memo.");
   if (asBigInt(quote.minimumOut) !== memo.minimumOut)
     refuse("the quoted payout minimum differs from the swap memo.");
