@@ -8,6 +8,7 @@ import {
   parseTransaction,
   recoverTransactionAddress,
   type TransactionSerializable,
+  type TransactionSerialized,
 } from "viem";
 import { NETWORKS, type CoinId } from "./networks";
 import { reviewPsbt, signPsbt } from "./psbt";
@@ -63,9 +64,15 @@ const DEPOSIT_ABI = [
     outputs: [],
   },
 ] as const;
-const approve = (spender: string, amount: bigint) =>
+const approve = (spender: `0x${string}`, amount: bigint) =>
   encodeFunctionData({ abi: APPROVE_ABI, functionName: "approve", args: [spender, amount] });
-const deposit = (vault: string, asset: string, amount: bigint, memo: string, expiry: bigint) =>
+const deposit = (
+  vault: `0x${string}`,
+  asset: `0x${string}`,
+  amount: bigint,
+  memo: string,
+  expiry: bigint,
+) =>
   encodeFunctionData({
     abi: DEPOSIT_ABI,
     functionName: "depositWithExpiry",
@@ -210,9 +217,11 @@ async function swapPayment(
   if (opts.secondMemo) outputs.push({ script: memoScript, value: 0n });
   for (const o of outputs)
     psbt.addOutput(
-      o.bip32Derivation
-        ? { script: o.script, value: o.value, bip32Derivation: o.bip32Derivation }
-        : { script: o.script, value: o.value },
+      (
+        o.bip32Derivation
+          ? { script: o.script, value: o.value, bip32Derivation: o.bip32Derivation }
+          : { script: o.script, value: o.value }
+      ) as Parameters<Psbt["addOutput"]>[0],
     );
   return { psbt, key, seeds, fpHex };
 }
@@ -430,7 +439,7 @@ describe("THORChain EVM swap signing", () => {
     expect(
       (
         await recoverTransactionAddress({
-          serializedTransaction: signed.hex as TransactionSerializable,
+          serializedTransaction: signed.hex as TransactionSerialized,
         })
       ).toLowerCase(),
     ).toBe(EVM_FROM);
