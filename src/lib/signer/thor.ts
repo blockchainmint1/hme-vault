@@ -22,11 +22,13 @@ export const MEMO_ACTIONS = ["=", "SWAP", "s"] as const;
 
 /**
  * THORChain ignores (and never refunds) deposits at or below its dust threshold.
- * Pinned from THORChain's published inbound dust thresholds, in each coin's base units.
+ * Pinned from THORChain's published inbound dust thresholds, in each coin's base units,
+ * re-read from two independent public THORNodes on 2 Nov 2026 (BTC 1,000 / LTC 100,000 /
+ * DOGE 100,000,000). BTC is deliberately pinned stricter (10,000) than the live threshold.
  */
 export const THOR_DUST: Readonly<Partial<Record<CoinId, bigint>>> = Object.freeze({
   BTC: 10_000n,
-  LTC: 10_000n,
+  LTC: 100_000n,
   DOGE: 100_000_000n,
 });
 

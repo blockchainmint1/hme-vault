@@ -739,7 +739,7 @@ describe("audit 2026-11-02 fixes", () => {
   });
   for (const [coin, dust] of [
     ["BTC", 10_000n],
-    ["LTC", 10_000n],
+    ["LTC", 100_000n],
     ["DOGE", 100_000_000n],
   ] as const) {
     it(`refuses a ${coin} deposit at its dust limit and accepts one just above`, async () => {
