@@ -230,6 +230,8 @@ export async function reviewPsbt(
   const purposes: number[] = [];
   const names = new Set<string>();
   let inputsSats = 0n;
+  let firstInputHex = "";
+  let firstInputAddress = "";
   for (let i = 0; i < psbt.inputCount; i++) {
     const inp = psbt.data.inputs[i];
     if (inp.sighashType !== undefined && inp.sighashType !== Transaction.SIGHASH_ALL)
@@ -251,6 +253,10 @@ export async function reviewPsbt(
     const actual = prev ?? inp.witnessUtxo;
     if (!expected || !actual || hex(expected) !== hex(actual.script))
       throw new Error(`Input ${i + 1} isn't an address from your seed.`);
+    if (i === 0) {
+      firstInputHex = hex(expected);
+      firstInputAddress = baddress.fromOutputScript(expected, NETWORKS[selected]);
+    }
     if (
       !prev &&
       !warnings.includes(
@@ -288,6 +294,46 @@ export async function reviewPsbt(
     if (isChange) changeSats += o.value;
     else sendSats += o.value;
     outputs.push({ address: addr, sats: o.value, isChange, isData });
+  }
+  let swap: SwapSend | null = null;
+  const dataVout = outputs.findIndex((o) => o.isData);
+  if (dataVout >= 0) {
+    const memoText = decodeThorMemoOutput(psbt.txOutputs[dataVout].script);
+    let memo: ThorMemo | null = null;
+    if (memoText) {
+      try {
+        memo = parseThorMemo(memoText);
+      } catch {
+        memo = null; // An Omni or other already-accepted data output, not a swap.
+      }
+    }
+    if (memo) {
+      const problem = utxoSwapProblem(selected, memo, {
+        outputs,
+        dataVout,
+        changePaysFirstInput:
+          outputs.length !== 3 || hex(psbt.txOutputs[1].script) === firstInputHex,
+      });
+      if (problem) throw new Error(`Signing blocked: ${problem}`);
+      swap = {
+        assetLabel: memo.asset.label,
+        minimumOut: memo.minimumOut,
+        destination: memo.destination,
+        depositAddress: outputs[0].address,
+        refundAddress: firstInputAddress,
+        shorthand: memo.shorthand,
+      };
+      warnings.push(
+        "Compare the THORChain deposit address with the address shown in your online wallet. This offline phone cannot verify it.",
+      );
+      if (memo.shorthand)
+        warnings.push(
+          `THORChain resolves "${memo.field}" by name; this Vault cannot verify offline which contract that pool is.`,
+        );
+      if (!(await vaultOwnsAddress(seeds, memo.asset.payout, memo.destination, roots)))
+        warnings.push("The payout goes to an address this Vault does not control.");
+      warnings.push("If the swap fails, your coins return to the refund address shown above.");
+    }
   }
   const feeSats = inputsSats - sendSats - changeSats;
   if (feeSats < 0n) throw new Error("This payment spends more than its inputs hold.");
@@ -361,6 +407,7 @@ export async function reviewPsbt(
       maximumVsize,
       outputs,
       token,
+      swap,
       warnings,
     },
     keys,
