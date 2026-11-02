@@ -10,6 +10,22 @@ const Documents = registerPlugin<{
   open(): Promise<{ text?: string }>;
 }>("VaultDocuments");
 
+// When Vault opens the system file picker, Android backgrounds the app.
+// The Vault provider reads this so that picker doesn't trigger the
+// lock-on-hide (the idle limit still applies; see shouldLockOnHide).
+let pickerOpenedAt: number | null = null;
+export function systemPickerOpenedAt(): number | null {
+  return pickerOpenedAt;
+}
+async function withPicker<T>(fn: () => Promise<T>): Promise<T> {
+  pickerOpenedAt = Date.now();
+  try {
+    return await fn();
+  } finally {
+    pickerOpenedAt = null;
+  }
+}
+
 function download(name: string, blob: Blob) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -27,7 +43,7 @@ export async function saveTextFile(
   type = "text/plain",
 ): Promise<string> {
   if (isNative()) {
-    await Documents.save({ name, data: text, mime: type });
+    await withPicker(() => Documents.save({ name, data: text, mime: type }));
     return name;
   }
   download(name, new Blob([text], { type }));
@@ -35,7 +51,9 @@ export async function saveTextFile(
 }
 export async function saveBinaryFile(name: string, base64: string): Promise<void> {
   if (isNative()) {
-    await Documents.save({ name, data: base64, mime: "application/octet-stream", base64: true });
+    await withPicker(() =>
+      Documents.save({ name, data: base64, mime: "application/octet-stream", base64: true }),
+    );
     return;
   }
   const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
@@ -43,24 +61,27 @@ export async function saveBinaryFile(name: string, base64: string): Promise<void
 }
 export async function openBackupFile(): Promise<string | null> {
   if (isNative()) {
-    const result = await Documents.open();
+    const result = await withPicker(() => Documents.open());
     return result.text ?? null;
   }
-  return new Promise((resolve, reject) => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = ".txt,text/plain";
-    input.oncancel = () => resolve(null);
-    input.onchange = async () => {
-      try {
-        const file = input.files?.[0];
-        if (!file) return resolve(null);
-        if (file.size > 3 * 1024 * 1024) throw new Error("Backup must be under 3 MB.");
-        resolve(await file.text());
-      } catch (e) {
-        reject(e);
-      }
-    };
-    input.click();
-  });
+  return withPicker(
+    () =>
+      new Promise<string | null>((resolve, reject) => {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = ".txt,text/plain";
+        input.oncancel = () => resolve(null);
+        input.onchange = async () => {
+          try {
+            const file = input.files?.[0];
+            if (!file) return resolve(null);
+            if (file.size > 3 * 1024 * 1024) throw new Error("Backup must be under 3 MB.");
+            resolve(await file.text());
+          } catch (e) {
+            reject(e);
+          }
+        };
+        input.click();
+      }),
+  );
 }
