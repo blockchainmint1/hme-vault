@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Eye, Trash2 } from "lucide-react";
+import { Eye, Fingerprint, Share2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,11 +11,15 @@ import { AnimatedQr } from "@/components/vault/AnimatedQr";
 import { PAIRING_PART_SIZE } from "@/lib/signer/qr-parts";
 import { Unlocked } from "@/components/vault/Unlocked";
 import { useVault } from "@/lib/vault/vault-context";
+import { lockTypedText } from "@/lib/vault/format";
+import { assessPassword } from "@/lib/security/password-strength";
+import { confirmWithBiometric, getBiometricStatus } from "@/lib/native/biometric";
 import {
   deriveKeys,
   pairingPayload,
   nectarPairingPayload,
   REVEAL_HIDE_MS,
+  singleSeedTransferPayload,
   TXC_ACCOUNT_PATH,
   TXC_ADDRESS_PATH,
   EVM_PATH,
@@ -51,6 +55,33 @@ function SeedPage() {
   const [delPw, setDelPw] = useState("");
   const [delName, setDelName] = useState("");
   const [name, setName] = useState(seed?.name ?? "");
+  const [share, setShare] = useState<"off" | "confirm" | "password">("off");
+  const [shareCred, setShareCred] = useState("");
+  const [sharePw, setSharePw] = useState("");
+  const [sharePw2, setSharePw2] = useState("");
+  const [shareCode, setShareCode] = useState("");
+  const [shareErr, setShareErr] = useState("");
+  const [shareBusy, setShareBusy] = useState(false);
+  const [bio, setBio] = useState(false);
+
+  useEffect(() => {
+    getBiometricStatus().then((s) => setBio(s.enabled));
+  }, []);
+
+  function stopShare() {
+    setShare("off");
+    setShareCred("");
+    setSharePw("");
+    setSharePw2("");
+    setShareCode("");
+    setShareErr("");
+  }
+
+  useEffect(() => {
+    if (!shareCode) return;
+    const t = setTimeout(stopShare, REVEAL_HIDE_MS);
+    return () => clearTimeout(t);
+  }, [shareCode]);
 
   useEffect(() => {
     if (!reveal) return;
@@ -133,6 +164,142 @@ function SeedPage() {
                   Hide now
                 </Button>
               </>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Share this seed</CardTitle>
+            <CardDescription>
+              Show encrypted QR codes another Vault can scan to add just this seed. Anyone with the
+              codes and the transfer password can spend from it.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {share === "off" && (
+              <Button variant="outline" onClick={() => setShare("confirm")}>
+                <Share2 className="h-4 w-4 mr-1.5" />
+                Share this seed
+              </Button>
+            )}
+            {share === "confirm" && (
+              <form
+                className="space-y-2"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (checkPassword(shareCred)) {
+                    setShare("password");
+                    setShareErr("");
+                  } else setShareErr("Wrong password.");
+                  setShareCred("");
+                }}
+              >
+                <Label htmlFor="spw">Vault password or hidden coin QR to share</Label>
+                <CredentialInput
+                  id="spw"
+                  type="password"
+                  value={shareCred}
+                  onChange={(e) => setShareCred(e.target.value)}
+                />
+                {shareErr && <p className="text-sm text-destructive">{shareErr}</p>}
+                <div className="flex flex-wrap gap-2">
+                  <Button type="submit" disabled={!shareCred}>
+                    Continue
+                  </Button>
+                  {bio && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={async () => {
+                        if (await confirmWithBiometric("Share this seed", checkPassword)) {
+                          setShare("password");
+                          setShareErr("");
+                        }
+                      }}
+                    >
+                      <Fingerprint className="h-4 w-4 mr-1.5" />
+                      Use fingerprint
+                    </Button>
+                  )}
+                  <Button type="button" variant="ghost" onClick={stopShare}>
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            )}
+            {share === "password" && !shareCode && (
+              <form
+                className="space-y-2"
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  setShareErr("");
+                  if (sharePw !== sharePw2) return setShareErr("Passwords don't match.");
+                  const v = assessPassword(sharePw);
+                  if (!v.ok) return setShareErr(v.message);
+                  if (checkPassword(sharePw))
+                    return setShareErr(
+                      "Use a different transfer password than your Vault password.",
+                    );
+                  setShareBusy(true);
+                  try {
+                    setShareCode(
+                      await lockTypedText(JSON.stringify(singleSeedTransferPayload(seed)), sharePw),
+                    );
+                    setSharePw("");
+                    setSharePw2("");
+                  } catch (x) {
+                    setShareErr((x as Error).message);
+                  } finally {
+                    setShareBusy(false);
+                  }
+                }}
+              >
+                <Label htmlFor="tpw">New one-time transfer password</Label>
+                <Input
+                  id="tpw"
+                  type="password"
+                  value={sharePw}
+                  onChange={(e) => setSharePw(e.target.value)}
+                />
+                <Label htmlFor="tpw2">Transfer password again</Label>
+                <Input
+                  id="tpw2"
+                  type="password"
+                  value={sharePw2}
+                  onChange={(e) => setSharePw2(e.target.value)}
+                />
+                {shareErr && <p className="text-sm text-destructive">{shareErr}</p>}
+                <div className="flex flex-wrap gap-2">
+                  <Button type="submit" disabled={shareBusy || !sharePw}>
+                    {shareBusy ? "Encrypting…" : "Make encrypted QR codes"}
+                  </Button>
+                  <Button type="button" variant="ghost" onClick={stopShare}>
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            )}
+            {shareCode && (
+              <div className="flex flex-col items-center gap-2">
+                <AnimatedQr
+                  value={shareCode}
+                  size={280}
+                  frameSize={PAIRING_PART_SIZE}
+                  intervalMs={1000}
+                />
+                <p className="text-center text-xs text-muted-foreground">
+                  On the other phone: Backup → Receive, scan every code, then type the transfer
+                  password. Only this seed is added; nothing there is replaced.
+                </p>
+                <p className="text-center text-xs text-destructive">
+                  Tell them the password a different way (a phone call), never on this screen. Hides
+                  in 60 seconds.
+                </p>
+                <Button variant="secondary" onClick={stopShare}>
+                  Stop sharing
+                </Button>
+              </div>
             )}
           </CardContent>
         </Card>
