@@ -58,3 +58,32 @@ describe("single-seed transfer", () => {
     expect(mergeSeeds(once.seeds, parsed.seeds).added).toBe(0);
   });
 });
+
+describe("give-a-copy extras", () => {
+  it("never puts the shared date in the copy, and renames only the copy", async () => {
+    const { singleSeedTransferPayload: p } = await import("./seeds");
+    const s = { ...makeEntry("Mine"), sharedAt: 123 };
+    const copy = p(s, "  Theirs ")!.seeds[0];
+    expect(copy.name).toBe("Theirs");
+    expect(copy).not.toHaveProperty("sharedAt");
+    expect(p(s, "")!.seeds[0].name).toBe("Mine");
+  });
+  it("records the shared date for only that seed and keeps it through the locked vault", async () => {
+    const { markSeedShared } = await import("./seeds");
+    const a = makeEntry("A");
+    const b = makeEntry("B");
+    const out = markSeedShared([a, b], a.id, 1762776000000);
+    expect(out[0].sharedAt).toBe(1762776000000);
+    expect(out[1].sharedAt).toBeUndefined();
+    const back = parsePayload(JSON.stringify({ v: 1, kind: "hm-seed-vault", seeds: out }));
+    expect(back.seeds[0].sharedAt).toBe(1762776000000);
+  });
+  it("generates six wordlist words that pass the strength check", async () => {
+    const { generateTransferPassphrase } = await import("./seeds");
+    const { assessPassword } = await import("../security/password-strength");
+    const g = generateTransferPassphrase();
+    expect(g.split(" ")).toHaveLength(6);
+    for (const w of g.split(" ")) expect(wordlist).toContain(w);
+    expect(assessPassword(g).ok).toBe(true);
+  });
+});
