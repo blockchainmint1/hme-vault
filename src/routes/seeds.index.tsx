@@ -56,6 +56,7 @@ function SeedsPage() {
                   <p className="font-medium truncate">{s.name}</p>
                   <p className="text-xs text-muted-foreground font-mono">
                     {s.words.split(" ").length} words · {s.fingerprint}
+                    {s.sharedAt ? " · copy given" : ""}
                     {s.passphrase ? " · + passphrase" : ""}
                   </p>
                 </div>

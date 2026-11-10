@@ -19,6 +19,8 @@ import {
   pairingPayload,
   nectarPairingPayload,
   REVEAL_HIDE_MS,
+  generateTransferPassphrase,
+  markSeedShared,
   singleSeedTransferPayload,
   TXC_ACCOUNT_PATH,
   TXC_ADDRESS_PATH,
@@ -62,6 +64,9 @@ function SeedPage() {
   const [shareCode, setShareCode] = useState("");
   const [shareErr, setShareErr] = useState("");
   const [shareBusy, setShareBusy] = useState(false);
+  const [shareName, setShareName] = useState("");
+  const [shareConfirmName, setShareConfirmName] = useState("");
+  const [shareGen, setShareGen] = useState("");
   const [bio, setBio] = useState(false);
 
   useEffect(() => {
@@ -75,6 +80,9 @@ function SeedPage() {
     setSharePw2("");
     setShareCode("");
     setShareErr("");
+    setShareName("");
+    setShareConfirmName("");
+    setShareGen("");
   }
 
   useEffect(() => {
@@ -170,17 +178,22 @@ function SeedPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Share this seed</CardTitle>
+            <CardTitle className="text-base">Give a copy of this seed</CardTitle>
             <CardDescription>
-              Show encrypted QR codes another Vault can scan to add just this seed. Anyone with the
-              codes and the transfer password can spend from it.
+              After this, you and they can both spend from it. You cannot undo it. Another Vault
+              scans encrypted QR codes and adds just this seed.
             </CardDescription>
+            {seed.sharedAt && (
+              <p className="text-sm font-medium text-destructive">
+                Copy given on {new Date(seed.sharedAt).toLocaleDateString()}
+              </p>
+            )}
           </CardHeader>
           <CardContent className="space-y-3">
             {share === "off" && (
               <Button variant="outline" onClick={() => setShare("confirm")}>
                 <Share2 className="h-4 w-4 mr-1.5" />
-                Share this seed
+                Give a copy of this seed
               </Button>
             )}
             {share === "confirm" && (
@@ -188,14 +201,22 @@ function SeedPage() {
                 className="space-y-2"
                 onSubmit={(e) => {
                   e.preventDefault();
-                  if (checkPassword(shareCred)) {
+                  if (shareConfirmName !== seed.name) setShareErr("Type the seed name exactly.");
+                  else if (checkPassword(shareCred)) {
                     setShare("password");
+                    setShareName(seed.name);
                     setShareErr("");
                   } else setShareErr("Wrong password.");
                   setShareCred("");
                 }}
               >
-                <Label htmlFor="spw">Vault password or hidden coin QR to share</Label>
+                <Label htmlFor="sname">Type “{seed.name}” to confirm</Label>
+                <Input
+                  id="sname"
+                  value={shareConfirmName}
+                  onChange={(e) => setShareConfirmName(e.target.value)}
+                />
+                <Label htmlFor="spw">Vault password or hidden coin QR</Label>
                 <CredentialInput
                   id="spw"
                   type="password"
@@ -204,16 +225,18 @@ function SeedPage() {
                 />
                 {shareErr && <p className="text-sm text-destructive">{shareErr}</p>}
                 <div className="flex flex-wrap gap-2">
-                  <Button type="submit" disabled={!shareCred}>
+                  <Button type="submit" disabled={!shareCred || shareConfirmName !== seed.name}>
                     Continue
                   </Button>
                   {bio && (
                     <Button
                       type="button"
                       variant="outline"
+                      disabled={shareConfirmName !== seed.name}
                       onClick={async () => {
-                        if (await confirmWithBiometric("Share this seed", checkPassword)) {
+                        if (await confirmWithBiometric("Give a copy of this seed", checkPassword)) {
                           setShare("password");
+                          setShareName(seed.name);
                           setShareErr("");
                         }
                       }}
@@ -244,8 +267,13 @@ function SeedPage() {
                   setShareBusy(true);
                   try {
                     setShareCode(
-                      await lockTypedText(JSON.stringify(singleSeedTransferPayload(seed)), sharePw),
+                      await lockTypedText(
+                        JSON.stringify(singleSeedTransferPayload(seed, shareName)),
+                        sharePw,
+                      ),
                     );
+                    setShareGen("");
+                    await save(markSeedShared(seeds, seed.id, Date.now()));
                     setSharePw("");
                     setSharePw2("");
                   } catch (x) {
@@ -255,7 +283,37 @@ function SeedPage() {
                   }
                 }}
               >
-                <Label htmlFor="tpw">New one-time transfer password</Label>
+                <Label htmlFor="cname">Name for their copy</Label>
+                <Input
+                  id="cname"
+                  value={shareName}
+                  maxLength={64}
+                  onChange={(e) => setShareName(e.target.value)}
+                />
+                <div className="flex items-center justify-between gap-2">
+                  <Label htmlFor="tpw">New one-time transfer password</Label>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      const g = generateTransferPassphrase();
+                      setSharePw(g);
+                      setSharePw2(g);
+                      setShareGen(g);
+                    }}
+                  >
+                    Generate
+                  </Button>
+                </div>
+                {shareGen && (
+                  <p className="rounded-md border p-2 text-center font-mono text-sm">
+                    {shareGen}
+                    <span className="block text-xs text-muted-foreground font-sans">
+                      Read these six words to them by phone. Hidden once the codes appear.
+                    </span>
+                  </p>
+                )}
                 <Input
                   id="tpw"
                   type="password"
