@@ -289,8 +289,9 @@ function SeedPage() {
                   intervalMs={1000}
                 />
                 <p className="text-center text-xs text-muted-foreground">
-                  On the other phone: Backup → Receive, scan every code, then type the transfer
-                  password. Only this seed is added; nothing there is replaced.
+                  On the other phone: Backup → Receive, scan every code, tap “Different key or older
+                  backup?” and type the transfer password. Only this seed is added; nothing there is
+                  replaced.
                 </p>
                 <p className="text-center text-xs text-destructive">
                   Tell them the password a different way (a phone call), never on this screen. Hides
