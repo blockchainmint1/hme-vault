@@ -68,7 +68,7 @@ export function generateTransferPassphrase(): string {
     crypto.getRandomValues(buf);
     // Rejection sampling avoids modulo bias over the 2048-word list.
     if (buf[0] >= Math.floor(2 ** 32 / 2048) * 2048) continue;
-    out.push(bip39Wordlist[buf[0] % 2048]);
+    out.push(wordlist[buf[0] % 2048]);
   }
   return out.join(" ");
 }
