@@ -42,6 +42,22 @@ export const emptyVault = (): VaultPayload => ({
   secrets: [],
 });
 
+/**
+ * Single-seed transfer: an ordinary HMVAULT1 vault payload holding exactly one seed
+ * (allowlisted fields only) and no secrets, so any existing import path reads it additively.
+ */
+export function singleSeedTransferPayload(seed: SeedEntry): VaultPayload {
+  const entry: SeedEntry = {
+    id: seed.id,
+    name: seed.name,
+    words: seed.words,
+    fingerprint: seed.fingerprint,
+    createdAt: seed.createdAt,
+  };
+  if (seed.passphrase) entry.passphrase = seed.passphrase;
+  return { ...emptyVault(), seeds: [entry], secrets: [] };
+}
+
 /** Remind for additions, not reads, renames or deletions. */
 export function hasNewVaultEntries(
   previous: Pick<VaultPayload, "seeds" | "secrets">,
