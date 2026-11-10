@@ -15,7 +15,7 @@ All binary fields are base64url without padding.
 {"v":1,"kind":"hm-seed-vault","seeds":[],"secrets":[]}
 ```
 
-Seeds contain `id,name,words,passphrase?,fingerprint,createdAt`. The optional `secrets` array contains `id,name,type,content,filename?,createdAt`. Types are `password`, `note`, and `file`. Text is preserved verbatim; file content is standard padded base64 of the exact file bytes, with the original filename. Older JSON without `secrets` means an empty secrets array. File limit: 256 KiB; whole plaintext vault: 2 MiB in JSON characters. Restore merges without overwriting; identical seed words/passphrase and identical secret type/content/filename are skipped. Dates are Unix milliseconds.
+Seeds contain `id,name,words,passphrase?,fingerprint,createdAt,sharedAt?` (`sharedAt` records when the owner gave a copy away; readers may ignore it). The optional `secrets` array contains `id,name,type,content,filename?,createdAt`. Types are `password`, `note`, and `file`. Text is preserved verbatim; file content is standard padded base64 of the exact file bytes, with the original filename. Older JSON without `secrets` means an empty secrets array. File limit: 256 KiB; whole plaintext vault: 2 MiB in JSON characters. Restore merges without overwriting; identical seed words/passphrase and identical secret type/content/filename are skipped. Dates are Unix milliseconds.
 
 QR transport is separate from encryption: a short code is sent verbatim, longer codes use `HMQR2:<8-hex content label>:<part>/<total>:<chunk>`. Chunks default to 600 characters. The label is a 32-bit FNV-1a checksum (not a security signature); AES-GCM verifies authenticity on decryption. Legacy `HMQR:<part>/<total>:<chunk>` is still accepted. Conflicting parts and mixed labels are rejected.
 
