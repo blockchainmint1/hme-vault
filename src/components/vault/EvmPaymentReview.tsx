@@ -1,9 +1,23 @@
+import { useEffect, useRef } from "react";
 import { AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { EvmReview } from "@/lib/signer/evm";
 
-export function EvmPaymentReview({ review: r }: { review: EvmReview }) {
+export function EvmPaymentReview({
+  review: r,
+  onListEnd,
+}: {
+  review: EvmReview;
+  onListEnd?: () => void;
+}) {
   const q = r.request;
+  const list = useRef<HTMLOListElement>(null);
+  const check = () => {
+    const el = list.current;
+    if (el && el.scrollTop + el.clientHeight >= el.scrollHeight - 4) onListEnd?.();
+  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(check, [r]);
   return (
     <Card>
       <CardHeader>
@@ -13,10 +27,32 @@ export function EvmPaymentReview({ review: r }: { review: EvmReview }) {
       </CardHeader>
       <CardContent className="space-y-3">
         <p className="text-lg font-semibold">{r.amountLabel}</p>
-        <div>
-          <p className="text-xs text-muted-foreground">Pay to</p>
-          <p className="break-all font-mono text-sm">{q.to}</p>
-        </div>
+        {r.payouts ? (
+          <div className="space-y-1">
+            <p className="text-xs text-muted-foreground">
+              Bulk payment via Disperse (pinned) · {r.payouts.length} recipients · contract {q.to}
+            </p>
+            <ol
+              ref={list}
+              onScroll={check}
+              aria-label="Every recipient and amount"
+              className="max-h-72 space-y-2 overflow-y-auto rounded-md border p-2"
+            >
+              {r.payouts.map((p, i) => (
+                <li key={p.address} className="text-sm">
+                  <span className="text-muted-foreground">{i + 1}. </span>
+                  <span className="font-medium">{p.amountLabel}</span>
+                  <span className="block break-all font-mono text-xs">{p.address}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        ) : (
+          <div>
+            <p className="text-xs text-muted-foreground">Pay to</p>
+            <p className="break-all font-mono text-sm">{q.to}</p>
+          </div>
+        )}
         <div>
           <p className="text-xs text-muted-foreground">From</p>
           <p className="break-all font-mono text-sm">{q.from}</p>
