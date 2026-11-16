@@ -65,6 +65,12 @@ function SignPage() {
   const [network, setNetwork] = useState<CoinId | "EVM">("TXC");
   const [evm, setEvm] = useState<EvmReview | null>(null);
   const [thor, setThor] = useState<ThorSwapReview | null>(null);
+  const [listSeen, setListSeen] = useState(false);
+  const [listOk, setListOk] = useState(false);
+  useEffect(() => {
+    setListSeen(false);
+    setListOk(false);
+  }, [evm]);
   const generation = useRef(0);
   const [bioOn, setBioOn] = useState(false);
   useEffect(() => {
@@ -90,7 +96,7 @@ function SignPage() {
   }
 
   async function signEvmNow() {
-    if (!evm) return;
+    if (!evm || (evm.payouts && !listOk)) return;
     setPw("");
     setBusy(true);
     setErr("");
@@ -287,40 +293,58 @@ function SignPage() {
     return (
       <Unlocked title="Check this payment" back>
         <div className="space-y-3">
-          <EvmPaymentReview review={evm} />
-          <form
-            className="space-y-2"
-            onSubmit={async (e) => {
-              e.preventDefault();
-              if (!checkPassword(pw)) {
-                setErr("Wrong password.");
-                setPw("");
-                return;
-              }
-              await signEvmNow();
-            }}
-          >
-            {fpButton(signEvmNow)}
-            <Label htmlFor="epw">
-              {bioOn ? "Or type your Vault password" : "Vault password to sign"}
-            </Label>
-            <CredentialInput
-              id="epw"
-              type="password"
-              value={pw}
-              onChange={(e) => setPw(e.target.value)}
-            />
-            {err && <p className="text-sm text-destructive">{err}</p>}
-            <div className="flex gap-2">
-              <Button type="button" variant="ghost" onClick={reset}>
-                Cancel
-              </Button>
-              <Button className="flex-1" type="submit" disabled={!pw || busy}>
-                <PenLine className="mr-1.5 h-4 w-4" />
-                {busy ? "Signing…" : "Sign"}
-              </Button>
-            </div>
-          </form>
+          <EvmPaymentReview review={evm} onListEnd={() => setListSeen(true)} />
+          {evm.payouts && (
+            <label className="flex items-start gap-2 rounded-md border p-3 text-sm">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-4 w-4"
+                disabled={!listSeen}
+                checked={listOk}
+                onChange={(e) => setListOk(e.target.checked)}
+              />
+              <span>
+                {listSeen
+                  ? `I checked all ${evm.payouts.length} addresses and amounts.`
+                  : "Scroll to the end of the recipient list first."}
+              </span>
+            </label>
+          )}
+          {(!evm.payouts || listOk) && (
+            <form
+              className="space-y-2"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!checkPassword(pw)) {
+                  setErr("Wrong password.");
+                  setPw("");
+                  return;
+                }
+                await signEvmNow();
+              }}
+            >
+              {fpButton(signEvmNow)}
+              <Label htmlFor="epw">
+                {bioOn ? "Or type your Vault password" : "Vault password to sign"}
+              </Label>
+              <CredentialInput
+                id="epw"
+                type="password"
+                value={pw}
+                onChange={(e) => setPw(e.target.value)}
+              />
+              {err && <p className="text-sm text-destructive">{err}</p>}
+              <div className="flex gap-2">
+                <Button type="button" variant="ghost" onClick={reset}>
+                  Cancel
+                </Button>
+                <Button className="flex-1" type="submit" disabled={!pw || busy}>
+                  <PenLine className="mr-1.5 h-4 w-4" />
+                  {busy ? "Signing…" : "Sign"}
+                </Button>
+              </div>
+            </form>
+          )}
         </div>
       </Unlocked>
     );

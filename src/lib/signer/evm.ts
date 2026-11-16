@@ -64,7 +64,10 @@ const schema = z.discriminatedUnion("kind", [
       ...common,
       kind: z.literal("native-disperse"),
       recipients: z.array(address).min(1).max(50),
-      values: z.array(uint.refine((s) => BigInt(s) > 0n, "Amount must be positive.")).min(1).max(50),
+      values: z
+        .array(uint.refine((s) => BigInt(s) > 0n, "Amount must be positive."))
+        .min(1)
+        .max(50),
       value: uint,
     })
     .strict(),
