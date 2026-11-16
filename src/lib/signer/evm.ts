@@ -59,7 +59,65 @@ const schema = z.discriminatedUnion("kind", [
       amount: uint.refine((s) => BigInt(s) > 0n, "Amount must be positive."),
     })
     .strict(),
+  z
+    .object({
+      ...common,
+      kind: z.literal("native-disperse"),
+      recipients: z.array(address).min(1).max(50),
+      values: z
+        .array(uint.refine((s) => BigInt(s) > 0n, "Amount must be positive."))
+        .min(1)
+        .max(50),
+      value: uint,
+    })
+    .strict(),
 ]);
+/** Disperse.app contract, same address on Ethereum, BNB Chain and Base. Only disperseEther is ever encoded. */
+export const DISPERSE_ADDRESS = "0xD152f549545093347A162Dce210e7293f1452150";
+export const DISPERSE_CHAINS = [1, 56, 8453] as const;
+export const DISPERSE_MAX_RECIPIENTS = 50;
+const DISPERSE_ABI = [
+  {
+    type: "function",
+    name: "disperseEther",
+    stateMutability: "payable",
+    inputs: [
+      { name: "recipients", type: "address[]" },
+      { name: "values", type: "uint256[]" },
+    ],
+    outputs: [],
+  },
+] as const;
+export function disperseCalldata(recipients: string[], values: string[]) {
+  return encodeFunctionData({
+    abi: DISPERSE_ABI,
+    functionName: "disperseEther",
+    args: [recipients.map((a) => getAddress(a)), values.map((v) => BigInt(v))],
+  });
+}
+function checkDisperse(r: Extract<EvmRequest, { kind: "native-disperse" }>) {
+  const fail = (m: string) => {
+    throw new Error(`Bulk payment refused: ${m}`);
+  };
+  if (!(DISPERSE_CHAINS as readonly number[]).includes(r.chainId))
+    fail("only Ethereum, BNB Chain and Base are supported.");
+  if (getAddress(r.to) !== DISPERSE_ADDRESS) fail("not the pinned Disperse contract.");
+  const n = r.recipients.length;
+  if (r.values.length !== n) fail("recipient and amount counts differ.");
+  const seen = new Set<string>();
+  for (const a of r.recipients) {
+    const c = getAddress(a);
+    if (seen.has(c)) fail("a recipient appears twice.");
+    if (c === getAddress(r.from)) fail("you can't pay yourself.");
+    if (c === DISPERSE_ADDRESS) fail("the contract can't be a recipient.");
+    seen.add(c);
+  }
+  const sum = r.values.reduce((t, v) => t + BigInt(v), 0n);
+  if (sum !== BigInt(r.value)) fail("total doesn't equal the sum of amounts.");
+  const gas = BigInt(r.gas);
+  const k = BigInt(n);
+  if (gas < 21_000n + 9_000n * k || gas > 60_000n + 40_000n * k) fail("gas limit out of range.");
+}
 export type EvmRequest = z.infer<typeof schema>;
 const CHAINS: Record<number, { name: string; symbol: string }> = {
   1: { name: "Ethereum", symbol: "ETH" },
@@ -92,6 +150,8 @@ export interface EvmReview {
   feeLabel: string;
   totalLabel: string;
   warnings: string[];
+  /** Every Disperse recipient, in order, for full on-screen review. */
+  payouts?: { address: string; amountLabel: string }[];
 }
 function parseRequest(text: string): EvmRequest {
   if (text.length > 8192) throw new Error("EVM payment is too large.");
@@ -104,7 +164,7 @@ function parseRequest(text: string): EvmRequest {
   const result = schema.safeParse(parsed);
   if (!result.success)
     throw new Error(
-      "Invalid EVM payment. Only native or ERC-20 transfers with explicit chain, sender, path and fees are supported.",
+      "Invalid EVM payment. Only native, ERC-20 or pinned Disperse bulk payments with explicit chain, sender, path and fees are supported.",
     );
   const r = result.data;
   if (r.type === "legacy") {
@@ -125,6 +185,7 @@ function parseRequest(text: string): EvmRequest {
     )
       throw new Error("Invalid EIP-1559 fees.");
   }
+  if (r.kind === "native-disperse") checkDisperse(r);
   if (BigInt(r.gas) * BigInt(r.gasPrice ?? r.maxFeePerGas ?? "0") > MAX_UINT256)
     throw new Error("Fee exceeds uint256.");
   return Object.freeze(r);
@@ -149,7 +210,7 @@ export async function reviewEvm(text: string, seeds: SignerSeed[]): Promise<EvmR
   const { seedName } = await accountFor(request, seeds);
   const chain = CHAINS[request.chainId];
   const fee = BigInt(request.gas) * BigInt(request.gasPrice ?? request.maxFeePerGas ?? "0");
-  const value = request.kind === "native-transfer" ? BigInt(request.value) : 0n;
+  const value = request.kind === "erc20-transfer" ? 0n : BigInt(request.value);
   const label = (v: bigint) =>
     chain ? `${formatUnits(v, 18)} ${chain.symbol}` : `${v} native base units`;
   const warnings: string[] = [];
@@ -160,6 +221,10 @@ export async function reviewEvm(text: string, seeds: SignerSeed[]): Promise<EvmR
   if (request.kind === "erc20-transfer")
     warnings.push(
       "Token identity and decimals cannot be verified offline. Compare the contract address and raw token units; a contract may behave differently from a standard ERC-20.",
+    );
+  if (request.kind === "native-disperse")
+    warnings.push(
+      `Bulk payment to ${request.recipients.length} addresses through the pinned Disperse contract. Check every address and amount below.`,
     );
   if (value > 0n && fee * 20n > value)
     warnings.push("The maximum network fee is more than 5% of what you're sending.");
@@ -173,6 +238,14 @@ export async function reviewEvm(text: string, seeds: SignerSeed[]): Promise<EvmR
     feeLabel: label(fee),
     totalLabel: label(value + fee),
     warnings,
+    ...(request.kind === "native-disperse"
+      ? {
+          payouts: request.recipients.map((a, i) => ({
+            address: getAddress(a),
+            amountLabel: label(BigInt(request.values[i])),
+          })),
+        }
+      : {}),
   };
 }
 export async function signEvm(
@@ -186,7 +259,8 @@ export async function signEvm(
     nonce: r.nonce,
     gas: BigInt(r.gas),
     to: getAddress(r.kind === "erc20-transfer" ? r.token : r.to) as Address,
-    value: r.kind === "native-transfer" ? BigInt(r.value) : 0n,
+    value: r.kind === "erc20-transfer" ? 0n : BigInt(r.value),
+    ...(r.kind === "native-disperse" ? { data: disperseCalldata(r.recipients, r.values) } : {}),
     ...(r.kind === "erc20-transfer"
       ? {
           data: encodeFunctionData({

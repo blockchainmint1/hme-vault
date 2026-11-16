@@ -117,3 +117,55 @@ describe("offline EVM signing", () => {
     await expect(reviewEvm(" ".repeat(8193), seeds)).rejects.toThrow(/too large/);
   });
 });
+
+describe("native-disperse bulk payments", () => {
+  const recips = Array.from(
+    { length: 10 },
+    (_, i) => `0x${(i + 1).toString(16).padStart(40, "a")}`,
+  );
+  const ok = {
+    ...dummyEvm,
+    kind: "native-disperse",
+    to: "0xd152f549545093347a162dce210e7293f1452150",
+    recipients: recips,
+    values: recips.map(() => "1000000000000000"),
+    value: "10000000000000000",
+    gas: "200000",
+  };
+  const bad = (o: object) =>
+    expect(reviewEvm(JSON.stringify({ ...ok, ...o }), seeds)).rejects.toThrow();
+  it("signs a 10-recipient payment with locally rebuilt disperseEther calldata", async () => {
+    const r = await reviewEvm(JSON.stringify(ok), seeds);
+    expect(r.payouts).toHaveLength(10);
+    const { hex } = await signEvm(r, seeds);
+    const tx = parseTransaction(hex as TransactionSerialized);
+    expect(tx.to?.toLowerCase()).toBe(ok.to);
+    expect(tx.value).toBe(10000000000000000n);
+    expect(tx.data?.slice(0, 10)).toBe("0xe63d38ed");
+    expect(
+      (
+        await recoverTransactionAddress({ serializedTransaction: hex as TransactionSerialized })
+      ).toLowerCase(),
+    ).toBe(dummyEvm.from);
+  });
+  it("rejects wrong contract", () => bad({ to: "0x1111111111111111111111111111111111111111" }));
+  it("rejects unsupported chain", () => bad({ chainId: 137 }));
+  it("rejects mismatched list lengths", () =>
+    bad({ values: ok.values.slice(1), value: "9000000000000000" }));
+  it("rejects duplicate recipient", () => bad({ recipients: [...recips.slice(0, 9), recips[0]] }));
+  it("rejects zero value", () =>
+    bad({ values: [...ok.values.slice(0, 9), "0"], value: "9000000000000000" }));
+  it("rejects total not equal to sum", () => bad({ value: "1" }));
+  it("rejects gas below 21000 + 9000 per recipient", () => bad({ gas: "110999" }));
+  it("rejects gas above 60000 + 40000 per recipient", () => bad({ gas: "460001" }));
+  it("rejects paying the sender", () =>
+    bad({ recipients: [...recips.slice(0, 9), dummyEvm.from] }));
+  it("rejects more than 50 recipients", () => {
+    const many = Array.from(
+      { length: 51 },
+      (_, i) => `0x${(i + 1).toString(16).padStart(40, "b")}`,
+    );
+    return bad({ recipients: many, values: many.map(() => "1"), value: "51", gas: "1000000" });
+  });
+  it("rejects supplied calldata", () => bad({ data: "0xe63d38ed" }));
+});

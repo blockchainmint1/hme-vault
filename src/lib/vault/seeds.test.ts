@@ -209,7 +209,14 @@ describe("vault rules", () => {
         ]),
       );
     const { xpub: _xpub, ...legacyEvm } = pairing.evm;
-    const { bch: _bch, dash: _dash, tron: _tron, sol: _sol, ...legacyPairing } = pairing;
+    const {
+      caps: _caps,
+      bch: _bch,
+      dash: _dash,
+      tron: _tron,
+      sol: _sol,
+      ...legacyPairing
+    } = pairing;
     expect({ ...legacyPairing, evm: legacyEvm }).toEqual({
       hmvault: 1,
       fp: "73c5da0a",
