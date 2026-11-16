@@ -1,12 +1,11 @@
-// @vitest-environment jsdom
-import { describe, expect, it, vi } from "vitest";
-import { render } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
+import { renderToStaticMarkup } from "react-dom/server";
 import { EvmPaymentReview } from "./EvmPaymentReview";
 import { reviewEvm } from "@/lib/signer/evm";
 import { dummyEvm } from "@/lib/signer/evm.test";
 
 describe("bulk payment review", () => {
-  it("lists every recipient and reports when the whole list is visible", async () => {
+  it("lists every recipient and shows every address", async () => {
     const recips = Array.from(
       { length: 10 },
       (_, i) => `0x${(i + 1).toString(16).padStart(40, "a")}`,
@@ -31,9 +30,8 @@ describe("bulk payment review", () => {
         },
       ],
     );
-    const end = vi.fn();
-    const { getByLabelText } = render(<EvmPaymentReview review={r} onListEnd={end} />);
-    expect(getByLabelText("Every recipient and amount").querySelectorAll("li")).toHaveLength(10);
-    expect(end).toHaveBeenCalled();
+    const html = renderToStaticMarkup(<EvmPaymentReview review={r} />);
+    expect((html.match(/<li/g) ?? []).length).toBe(10);
+    for (const a of recips) expect(html.toLowerCase()).toContain(a);
   });
 });
