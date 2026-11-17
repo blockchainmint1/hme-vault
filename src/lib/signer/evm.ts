@@ -75,6 +75,18 @@ export const DISPERSE_CODE_HASHES = Object.freeze({
   56: "0x65660051e320731a70b9ddcd5ec9fd4f565cf85e2f6caf0eb71589fb544b9996",
   8453: "0xc0a38c227d2c70248fc51ed0dd3a72df3adf5b41494c7f3cc19c16c38523244d",
 } as const);
+/** Ethereum/Base agree after removing the CBOR metadata suffix; BNB's full code matches Ethereum. */
+export const DISPERSE_STRIPPED_CODE_HASHES = Object.freeze({
+  1: "0xab5361a2ceb73b9f4ae4dc31c9079082571483cbd6115cc3010aa93963634d6b",
+  56: "0xab5361a2ceb73b9f4ae4dc31c9079082571483cbd6115cc3010aa93963634d6b",
+  8453: "0xab5361a2ceb73b9f4ae4dc31c9079082571483cbd6115cc3010aa93963634d6b",
+} as const);
+/** Bulk ceiling = the ordinary payment ceiling plus this allowance for each recipient. */
+export const DISPERSE_PER_RECIPIENT_FEE_WEI = Object.freeze({
+  1: 500_000_000_000_000n,
+  56: 500_000_000_000_000n,
+  8453: 50_000_000_000_000n,
+} as const);
 export const DISPERSE_MAX_RECIPIENTS = 50;
 const DISPERSE_ABI = [
   {
@@ -189,10 +201,15 @@ function parseRequest(text: string): EvmRequest {
   const maximumFee = BigInt(r.gas) * BigInt(r.gasPrice ?? r.maxFeePerGas ?? "0");
   if (maximumFee > MAX_UINT256) throw new Error("Fee exceeds uint256.");
   const feeChain = THOR_CHAINS[r.chainId];
-  if (feeChain && maximumFee > feeChain.maxFeeWei)
+  const feeLimit =
+    feeChain && r.kind === "native-disperse"
+      ? feeChain.maxFeeWei +
+        DISPERSE_PER_RECIPIENT_FEE_WEI[r.chainId as 1 | 56 | 8453] * BigInt(r.recipients.length)
+      : feeChain?.maxFeeWei;
+  if (feeChain && feeLimit !== undefined && maximumFee > feeLimit)
     throw new Error(
       `The maximum network fee exceeds Vault's ${feeChain.name} payment limit of ${formatUnits(
-        feeChain.maxFeeWei,
+        feeLimit,
         18,
       )} ${feeChain.symbol}.`,
     );

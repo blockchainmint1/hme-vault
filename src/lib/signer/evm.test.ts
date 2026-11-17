@@ -244,4 +244,37 @@ describe("native-disperse bulk payments", () => {
     bad({
       recipients: [...recips.slice(0, 9), "0xa0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"],
     }));
+  it.each([
+    [1, 1, "100000", "205000000000", "0.0205 ETH"],
+    [1, 50, "2000000", "22500000000", "0.045 ETH"],
+    [56, 1, "100000", "205000000000", "0.0205 BNB"],
+    [56, 50, "2000000", "22500000000", "0.045 BNB"],
+    [8453, 1, "100000", "20500000000", "0.00205 ETH"],
+    [8453, 50, "2000000", "2250000000", "0.0045 ETH"],
+  ] as const)(
+    "enforces the chain %i bulk ceiling with %i recipients",
+    async (chainId, count, gas, atCap, label) => {
+      const recipients = Array.from(
+        { length: count },
+        (_, i) => `0x${(i + 1).toString(16).padStart(40, "c")}`,
+      );
+      const request = {
+        ...ok,
+        chainId,
+        recipients,
+        values: recipients.map(() => "1"),
+        value: String(count),
+        gas,
+        maxFeePerGas: atCap,
+        maxPriorityFeePerGas: "0",
+      };
+      await expect(reviewEvm(JSON.stringify(request), seeds)).resolves.toBeTruthy();
+      await expect(
+        reviewEvm(
+          JSON.stringify({ ...request, maxFeePerGas: (BigInt(atCap) + 1n).toString() }),
+          seeds,
+        ),
+      ).rejects.toThrow(`payment limit of ${label}`);
+    },
+  );
 });

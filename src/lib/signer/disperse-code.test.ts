@@ -4,12 +4,18 @@ import {
   DISPERSE_CHAINS,
   DISPERSE_CODE_CHECKED_AT,
   DISPERSE_CODE_HASHES,
+  DISPERSE_STRIPPED_CODE_HASHES,
 } from "./evm";
 
 /**
  * Release evidence, not a runtime lookup: eth_getCode at DISPERSE_ADDRESS on 2026-11-17.
  * Ethereum: PublicNode. BNB Chain: official BNB endpoint and PublicNode independently agreed.
  * Base: the official endpoint and PublicNode independently agreed. Every result was 1,780 bytes.
+ * Ethereum PublicNode and Base's official endpoint were fetched again for the metadata check:
+ * the last a165627a7a72305820 marker began at byte 1,737 on both. Removing that 43-byte CBOR
+ * suffix left identical 1,737-byte executable code with Keccak-256
+ * 0xab5361a2ceb73b9f4ae4dc31c9079082571483cbd6115cc3010aa93963634d6b. BNB's full code already
+ * matches Ethereum byte for byte, so its stripped code and hash are identical too.
  */
 describe("pinned Disperse contract code", () => {
   it("keeps the verified address, date and supported chains together", () => {
@@ -25,4 +31,13 @@ describe("pinned Disperse contract code", () => {
   ] as const)("pins the eth_getCode Keccak-256 for chain %i", (chainId, hash) => {
     expect(DISPERSE_CODE_HASHES[chainId]).toBe(hash);
   });
+
+  it.each([1, 56, 8453] as const)(
+    "pins the same metadata-stripped executable code on chain %i",
+    (chainId) => {
+      expect(DISPERSE_STRIPPED_CODE_HASHES[chainId]).toBe(
+        "0xab5361a2ceb73b9f4ae4dc31c9079082571483cbd6115cc3010aa93963634d6b",
+      );
+    },
+  );
 });
