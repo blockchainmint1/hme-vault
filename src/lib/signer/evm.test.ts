@@ -95,6 +95,61 @@ describe("offline EVM signing", () => {
     const tx = parseTransaction((await signEvm(r, seeds)).hex as `0x${string}`);
     expect(tx.chainId).toBe(123456);
   });
+  it("accepts lowercase addresses and correctly checksummed mixed-case addresses", async () => {
+    const lower = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48";
+    const checksummed = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
+    await expect(
+      reviewEvm(JSON.stringify({ ...dummyEvm, to: lower }), seeds),
+    ).resolves.toBeTruthy();
+    await expect(
+      reviewEvm(JSON.stringify({ ...dummyEvm, to: checksummed }), seeds),
+    ).resolves.toBeTruthy();
+  });
+  it("refuses a mixed-case address with a bad checksum", async () => {
+    const badChecksum = "0xa0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
+    await expect(
+      reviewEvm(JSON.stringify({ ...dummyEvm, to: badChecksum }), seeds),
+    ).rejects.toThrow(/Invalid EVM payment/);
+  });
+  it.each([
+    [1, "200000000", "200000001", "0.02 ETH"],
+    [56, "200000000", "200000001", "0.02 BNB"],
+    [8453, "20000000", "20000001", "0.002 ETH"],
+  ] as const)("enforces the chain %i payment fee ceiling", async (chainId, atCap, aboveCap, label) => {
+    await expect(
+      reviewEvm(
+        JSON.stringify({ ...dummyEvm, chainId, gas: "100000", maxFeePerGas: atCap }),
+        seeds,
+      ),
+    ).resolves.toBeTruthy();
+    await expect(
+      reviewEvm(
+        JSON.stringify({ ...dummyEvm, chainId, gas: "100000", maxFeePerGas: aboveCap }),
+        seeds,
+      ),
+    ).rejects.toThrow(`payment limit of ${label}`);
+  });
+  it("refuses the auditor's 2.4 ETH fee example instead of only warning", async () => {
+    await expect(
+      reviewEvm(
+        JSON.stringify({ ...dummyEvm, gas: "1200000", maxFeePerGas: "2000000000000" }),
+        seeds,
+      ),
+    ).rejects.toThrow(/payment limit of 0.02 ETH/);
+  });
+  it("keeps the high-fee warning without a hard cap on unlisted chains", async () => {
+    const r = await reviewEvm(
+      JSON.stringify({
+        ...dummyEvm,
+        chainId: 123456,
+        value: "1",
+        gas: "1200000",
+        maxFeePerGas: "2000000000000",
+      }),
+      seeds,
+    );
+    expect(r.warnings).toContain("The maximum network fee is more than 5% of what you're sending.");
+  });
   for (const [rule, change] of [
     ["wrong sender", { from: "0x3333333333333333333333333333333333333333" }],
     ["wrong path", { path: "m/44'/60'/0'/0/1" }],

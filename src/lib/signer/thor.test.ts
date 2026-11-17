@@ -297,6 +297,11 @@ describe("THORChain memo grammar", () => {
       parseThorMemo("=:ETH.ETH:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4:1/1/1"),
     ).toThrow(/not a valid Ether on Ethereum address/);
   });
+  it("refuses an EVM payout address with a bad mixed-case checksum", () => {
+    expect(() =>
+      parseThorMemo("=:ETH.ETH:0xa0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48:1/1/1"),
+    ).toThrow(/not a valid Ether on Ethereum address/);
+  });
   it("refuses a zero payout minimum", () => {
     expect(() =>
       parseThorMemo("=:BTC.BTC:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4:0/1/1"),

@@ -186,8 +186,16 @@ function parseRequest(text: string): EvmRequest {
       throw new Error("Invalid EIP-1559 fees.");
   }
   if (r.kind === "native-disperse") checkDisperse(r);
-  if (BigInt(r.gas) * BigInt(r.gasPrice ?? r.maxFeePerGas ?? "0") > MAX_UINT256)
-    throw new Error("Fee exceeds uint256.");
+  const maximumFee = BigInt(r.gas) * BigInt(r.gasPrice ?? r.maxFeePerGas ?? "0");
+  if (maximumFee > MAX_UINT256) throw new Error("Fee exceeds uint256.");
+  const feeChain = THOR_CHAINS[r.chainId];
+  if (feeChain && maximumFee > feeChain.maxFeeWei)
+    throw new Error(
+      `The maximum network fee exceeds Vault's ${feeChain.name} payment limit of ${formatUnits(
+        feeChain.maxFeeWei,
+        18,
+      )} ${feeChain.symbol}.`,
+    );
   return Object.freeze(r);
 }
 async function accountFor(r: EvmRequest, seeds: SignerSeed[]) {
