@@ -138,6 +138,12 @@ describe("batch sweep review and signing", () => {
       ).toBe(addr(i));
     }
   });
+  it("hashes the exact received bytes, even with spacing and key order Vault wouldn't produce", async () => {
+    const text = `{ "items" : [${JSON.stringify(native(3, 0))}],\n "destination":"${DEST}", "chainId":1, "fp":"73c5da0a", "kind":"sweep-batch", "v":1, "format":"hm-evm-tx" }`;
+    const reply = JSON.parse(await signSweep(await reviewSweep(text, seeds), seeds));
+    expect(reply.intentHash).toBe(keccak256(stringToBytes(text)));
+    expect(reply.intentHash).not.toBe(keccak256(stringToBytes(JSON.stringify(JSON.parse(text)))));
+  });
   it("rebuilds token calldata paying the destination", async () => {
     const reply = JSON.parse(await signSweep(await reviewSweep(req([token(3, 0)]), seeds), seeds));
     const hex = bytesToHex(Uint8Array.from(atob(reply.signed[0]), (c) => c.charCodeAt(0)));
