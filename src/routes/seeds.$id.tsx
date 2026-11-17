@@ -24,7 +24,6 @@ import { confirmWithBiometric, getBiometricStatus } from "@/lib/native/biometric
 import {
   deriveKeys,
   pairingPayload,
-  nectarPairingPayload,
   REVEAL_HIDE_MS,
   generateTransferPassphrase,
   markSeedShared,
@@ -422,13 +421,6 @@ function SeedPage() {
                         frameSize={PAIRING_PART_SIZE}
                         intervalMs={1000}
                       />
-                      <p className="text-xs text-muted-foreground">
-                        Fingerprint {keys.fingerprint}
-                      </p>
-                    </div>
-                    <div className="flex w-60 flex-col items-center gap-1">
-                      <p className="text-center text-sm font-medium">Pair with Nectar.Pay</p>
-                      <QrCode value={nectarPairingPayload(pairing)} size={240} />
                       <p className="text-xs text-muted-foreground">
                         Fingerprint {keys.fingerprint}
                       </p>

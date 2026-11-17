@@ -106,7 +106,7 @@ Raw base64/hex PSBT or EVM JSON. Long values use content-labelled `HMQR2:<8-hex 
 
 ### Webcam-friendly full pairing — October 25, 2026
 
-The full watch-only pairing QR now uses **240-character chunks**, **1,000 ms per frame**, and a **280 px** display instead of 600-character chunks at 700 ms and 240 px. Every displayed QR has a four-module quiet zone. The complete JSON and all public receiving data remain identical; only transport density and timing change. Pause/previous/next controls remain available. Individual addresses and the compact EVM-only Nectar.Pay QR remain static.
+The full watch-only pairing QR now uses **240-character chunks**, **1,000 ms per frame**, and a **280 px** display instead of 600-character chunks at 700 ms and 240 px. Every displayed QR has a four-module quiet zone. The complete JSON and all public receiving data remain identical; only transport density and timing change. Pause/previous/next controls remain available. Individual addresses remain static.
 
 Readers must collect numbered HMQR2 chunks in any order with repeats and concatenate exactly before parsing JSON; do not assume 600 characters per chunk. Verify the content label over the assembled text independent of chunk size. Vault's collector now handles 240–2,000-character chunk sizes (default writer 600), including transfers whose combined text is shorter than 600. The 3 MiB assembled-text bound, conflicting-part rejection and legacy HMQR reading remain. The bounded part-count ceiling becomes 13,108 to accommodate the existing maximum at 240 characters. FNV-1a labels detect accidental mixing/damage, not malicious authentication.
 
@@ -140,17 +140,15 @@ Nectar.Pay derives relative `m/0/n` from this EVM account xpub, starting at **n 
 
 Privacy warning: an account xpub reveals all non-hardened receiving addresses. Never share a child private key with an xpub recipient: BIP-32 non-hardened derivation can expose the account private key when both are known. Vault's pairing QR contains public keys only; seed words, passphrases and private keys are not included.
 
-### Dedicated Nectar.Pay pairing QR
+### Dedicated Nectar.Pay pairing QR — removed November 17, 2026
 
-The seed screen also shows **Pair with Nectar.Pay** beside the full wallet pairing QR (stacked on narrow screens). Its payload contains exactly:
+The seed screen previously showed a second, EVM-only **Pair with Nectar.Pay** QR beside the full
+wallet QR. The owner removed it: the full wallet QR already carries every network Nectar.Pay needs,
+so a second code only added confusion. Vault now shows one pairing QR.
 
-```json
-{"hmvault":1,"fp":"73c5da0a","evm":{"xpub":"xpub…"}}
-```
-
-`nectarPairingPayload` filters the already-generated `pairingPayload` JSON; it performs no separate key derivation. The fingerprint and EVM account xpub therefore match the full QR, including any seed passphrase. No other coin keys, address or path are included. The full HME Wallet QR is unchanged.
-
-The compact payload fits within the HMQR2 transport's 600-character single-frame limit. As with all short payloads in Vault, it is displayed as **plain JSON in one static QR**, without an HMQR2 multipart envelope. Nectar.Pay must read this as EVM-only pairing; use the full wallet QR when linking the other coins. The same account-xpub privacy and child-private-key precautions apply. Actual Nectar.Pay merchant scanning remains a release integration check.
+`nectarPairingPayload` and its tests were deleted with the QR. The full pairing JSON is unchanged —
+the same `fp`, `evm.xpub` and every other field are still delivered by the full QR, and Nectar.Pay
+must read them from there.
 
 ## Before real funds
 
@@ -174,13 +172,20 @@ The owner requires the Nectar.Pay integration handoff to cover **EVM, BTC, LTC, 
 
 For implemented Bitcoin-family account keys, derive relative `/0/n` receiving children and apply the chosen chain's address encoding. The original Nectar.Pay request explicitly confirms n starts at 1 for EVM; confirm the starting index and reserved address #0 policy on each other chain rather than assuming it. All exported account keys use standard `xpub` public version bytes `0x0488b21e`, not network-specific extended-key prefixes. The master fingerprint and optional seed passphrase must remain consistent across all keys.
 
-**Which QR to scan today:** the dedicated **Pair with Nectar.Pay** QR is still EVM-only, exactly as documented above. For all eleven requested network categories, scan the existing **full wallet QR**, which now includes additive BCH, DASH, TRON public account fields and a Solana public address/path. ZCU uses `evm.xpub`, not a duplicate ZCU key. Nectar.Pay must accept plain JSON and multi-part HMQR2. APK rebuilding, independent review and merchant-device testing remain pending.
+**Which QR to scan:** the **full wallet QR** is the only pairing QR Vault shows. It carries all
+eleven requested network categories, including the additive BCH, DASH and TRON public account
+fields, the Solana public address/path and `evm.xpub`. ZCU uses `evm.xpub`, not a duplicate ZCU key.
+Nectar.Pay must accept plain JSON and multi-part HMQR2. APK rebuilding, independent review and
+merchant-device testing remain pending.
 
-**Partner integration contract:** Nectar.Pay should read additive `bch["44"]` and `dash["44"]` account fields at the exact paths above, with standard xpub public versions. Existing full-pairing fields and version remain unchanged. Confirm receiving address encodings and sale indexes against independent references before use. If the dedicated Nectar.Pay QR is later expanded to carry all coin keys, filter them from the full payload rather than deriving separately and replace the one-static-frame requirement with animated transport; that dedicated-QR expansion is not part of this change.
+**Partner integration contract:** Nectar.Pay should read additive `bch["44"]` and `dash["44"]` account fields at the exact paths above, with standard xpub public versions. Existing full-pairing fields and version remain unchanged. Confirm receiving address encodings and sale indexes against independent references before use. The
+dedicated EVM-only Nectar.Pay QR was removed on November 17, 2026; the full wallet QR is the only
+pairing handoff. Any future service-specific QR must filter this same payload rather than derive
+keys separately.
 
 ### TRON and Solana receiving contract
 
-Nectar.Pay must read `tron["44"]` and `sol` from the full QR; the dedicated Nectar.Pay QR remains EVM-only. TRON uses standard xpub version `0x0488b21e` and public children `/0/n`. Convert compressed secp256k1 children to uncompressed X/Y, Keccak-256 the 64 bytes without the `0x04` prefix, take the last 20 bytes, prefix `0x41`, and Base58Check encode with the double-SHA-256 checksum. Confirm sale starting indexes independently; EVM's n=1 policy does not automatically apply to TRON.
+Nectar.Pay must read `tron["44"]` and `sol` from the full QR, the only pairing QR Vault shows. TRON uses standard xpub version `0x0488b21e` and public children `/0/n`. Convert compressed secp256k1 children to uncompressed X/Y, Keccak-256 the 64 bytes without the `0x04` prefix, take the last 20 bytes, prefix `0x41`, and Base58Check encode with the double-SHA-256 checksum. Confirm sale starting indexes independently; EVM's n=1 policy does not automatically apply to TRON.
 
 Solana uses `m/44'/501'/0'/0'`, a common Phantom recovery-phrase path; other wallet paths differ. The seed passphrase applies to both curves. `fp` remains the existing secp256k1 master fingerprint and is a pairing identifier, not a Solana master fingerprint. Solana SLIP-0010 is hardened-only and cannot derive children from public keys. Nectar.Pay must accept one fixed receiving address, or agree a future finite address-list export; never request private keys, derive `/0/n` from this address, or pretend an ed25519 xpub exists. Only raw 32-byte public address and path are exported, no chain code or private material. Token-account discovery/creation (SPL, TRC-20) and merchant tracking belong to Nectar.Pay; token integration is not established by this export.
 
