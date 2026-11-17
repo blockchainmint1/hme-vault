@@ -1,6 +1,7 @@
 # Roadmap — HME Seed Vault
 
-- [ ] Apply the 2026-11-17 EVM bulk-payment audit: strict EIP-55 validation, hard EVM fee ceilings, dated per-chain Disperse code hashes and recipient-revert warning; owner approved all four with BNB retained after two-provider verification. Tests and auditor handoff pending.
+- [x] Apply the 2026-11-17 EVM bulk-payment audit: strict EIP-55 validation, hard EVM fee ceilings, dated per-chain Disperse code hashes and recipient-revert warning; owner approved all four with BNB retained. 398/398 tests, typecheck, lint and formatting pass; ten-recipient scan/review/scroll/sign flow verified with a dummy seed at desktop and phone sizes. Auditor handoff: HME-Vault-EVM-Bulk-Audit-Fixes-2026-11-17.md.
+- [ ] Obtain independent audit of the EVM bulk-payment fixes, then build through the gated workflow and run the Pixel checklist before replacing the APK; no new APK or publication has occurred.
 
 - [x] Evaluate THORChain spec v2; owner decided /1/1 only, owner-compared deposit address, short USDC/USDT payouts allowed from UTXO, EVM fee caps 0.02 ETH / 0.002 Base / 0.02 BNB.
 - [x] Build THORChain swap signing per spec v2 + owner decisions: `/1/1` only, no affiliate tags, pinned routers/tokens, rebuilt-and-compared EVM calldata, UTXO deposit-first/change-to-input-0 shape, EVM fee caps 0.02 ETH / 0.002 Base / 0.02 BNB; 307 tests pass and both swap paths were reviewed and signed through the real UI with a fake camera (dummy seeds, nothing broadcast).
