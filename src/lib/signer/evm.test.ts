@@ -115,32 +115,35 @@ describe("offline EVM signing", () => {
     [1, "200000000000", "200000000001", "0.02 ETH"],
     [56, "200000000000", "200000000001", "0.02 BNB"],
     [8453, "20000000000", "20000000001", "0.002 ETH"],
-  ] as const)("enforces the chain %i payment fee ceiling", async (chainId, atCap, aboveCap, label) => {
-    await expect(
-      reviewEvm(
-        JSON.stringify({
-          ...dummyEvm,
-          chainId,
-          gas: "100000",
-          maxFeePerGas: atCap,
-          maxPriorityFeePerGas: "0",
-        }),
-        seeds,
-      ),
-    ).resolves.toBeTruthy();
-    await expect(
-      reviewEvm(
-        JSON.stringify({
-          ...dummyEvm,
-          chainId,
-          gas: "100000",
-          maxFeePerGas: aboveCap,
-          maxPriorityFeePerGas: "0",
-        }),
-        seeds,
-      ),
-    ).rejects.toThrow(`payment limit of ${label}`);
-  });
+  ] as const)(
+    "enforces the chain %i payment fee ceiling",
+    async (chainId, atCap, aboveCap, label) => {
+      await expect(
+        reviewEvm(
+          JSON.stringify({
+            ...dummyEvm,
+            chainId,
+            gas: "100000",
+            maxFeePerGas: atCap,
+            maxPriorityFeePerGas: "0",
+          }),
+          seeds,
+        ),
+      ).resolves.toBeTruthy();
+      await expect(
+        reviewEvm(
+          JSON.stringify({
+            ...dummyEvm,
+            chainId,
+            gas: "100000",
+            maxFeePerGas: aboveCap,
+            maxPriorityFeePerGas: "0",
+          }),
+          seeds,
+        ),
+      ).rejects.toThrow(`payment limit of ${label}`);
+    },
+  );
   it("refuses the auditor's 2.4 ETH fee example instead of only warning", async () => {
     await expect(
       reviewEvm(
