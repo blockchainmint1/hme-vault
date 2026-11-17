@@ -306,14 +306,7 @@ export function isThorMemoOutput(script: Uint8Array): boolean {
 export function isValidThorDestination(payout: ThorPayout, destination: string): boolean {
   const dest = destination.trim();
   if (!dest) return false;
-  if (payout === "EVM") {
-    if (!/^0x[0-9a-fA-F]{40}$/.test(dest)) return false;
-    try {
-      return getAddress(dest) !== "0x0000000000000000000000000000000000000000";
-    } catch {
-      return false;
-    }
-  }
+  if (payout === "EVM") return isValidEvmAddress(dest);
   try {
     baddress.toOutputScript(dest, NETWORKS[payout]);
     return true;

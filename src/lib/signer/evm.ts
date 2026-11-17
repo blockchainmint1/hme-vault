@@ -68,6 +68,13 @@ const schema = z.discriminatedUnion("kind", [
 /** Disperse.app contract, same address on Ethereum, BNB Chain and Base. Only disperseEther is ever encoded. */
 export const DISPERSE_ADDRESS = "0xD152f549545093347A162Dce210e7293f1452150";
 export const DISPERSE_CHAINS = [1, 56, 8453] as const;
+/** Release-time eth_getCode evidence only; the offline app never performs an RPC lookup. */
+export const DISPERSE_CODE_CHECKED_AT = "2026-11-17";
+export const DISPERSE_CODE_HASHES = Object.freeze({
+  1: "0x65660051e320731a70b9ddcd5ec9fd4f565cf85e2f6caf0eb71589fb544b9996",
+  56: "0x65660051e320731a70b9ddcd5ec9fd4f565cf85e2f6caf0eb71589fb544b9996",
+  8453: "0xc0a38c227d2c70248fc51ed0dd3a72df3adf5b41494c7f3cc19c16c38523244d",
+} as const);
 export const DISPERSE_MAX_RECIPIENTS = 50;
 const DISPERSE_ABI = [
   {
