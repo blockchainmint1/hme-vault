@@ -231,8 +231,8 @@ function TutorialPage() {
             <strong>Make my words</strong>.
           </li>
           <li>
-            Write the words down in order, away from cameras. Tap <strong>I wrote them down</strong>
-            , answer the word checks, give it a name and tap <strong>Save to vault</strong>.
+            Your words appear on screen, away from cameras. Give the seed a name and tap{" "}
+            <strong>Save to vault</strong>. The words are stored only inside the encrypted Vault.
           </li>
           <li>
             Leave the optional extra passphrase empty unless you intentionally want one and can

@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "asset_id": "0ed91623-c9cd-41f7-b36a-9518ab9805a3",
+  "asset_id": "51440c9a-89a0-4f15-9b2f-d964698ac26c",
   "project_id": "954a8d62-2653-447a-8d15-1cbcf445b17d",
-  "url": "/__l5e/assets-v1/0ed91623-c9cd-41f7-b36a-9518ab9805a3/hme-vault-0.1.202611111807-release.apk",
-  "r2_key": "a/v1/954a8d62-2653-447a-8d15-1cbcf445b17d/0ed91623-c9cd-41f7-b36a-9518ab9805a3/hme-vault-0.1.202611111807-release.apk",
-  "original_filename": "hme-vault-0.1.202611111807-release.apk",
-  "size": 8975859,
+  "url": "/__l5e/assets-v1/51440c9a-89a0-4f15-9b2f-d964698ac26c/hme-vault-0.1.202611171658-release.apk",
+  "r2_key": "a/v1/954a8d62-2653-447a-8d15-1cbcf445b17d/51440c9a-89a0-4f15-9b2f-d964698ac26c/hme-vault-0.1.202611171658-release.apk",
+  "original_filename": "hme-vault-0.1.202611171658-release.apk",
+  "size": 8976891,
   "content_type": "application/zip",
-  "created_at": "2026-11-11T18:20:04Z"
+  "created_at": "2026-11-17T17:09:15Z"
 }
