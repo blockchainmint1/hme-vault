@@ -112,9 +112,9 @@ describe("offline EVM signing", () => {
     ).rejects.toThrow(/Invalid EVM payment/);
   });
   it.each([
-    [1, "200000000", "200000001", "0.02 ETH"],
-    [56, "200000000", "200000001", "0.02 BNB"],
-    [8453, "20000000", "20000001", "0.002 ETH"],
+    [1, "200000000000", "200000000001", "0.02 ETH"],
+    [56, "200000000000", "200000000001", "0.02 BNB"],
+    [8453, "20000000000", "20000000001", "0.002 ETH"],
   ] as const)("enforces the chain %i payment fee ceiling", async (chainId, atCap, aboveCap, label) => {
     await expect(
       reviewEvm(
