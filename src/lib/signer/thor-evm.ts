@@ -16,6 +16,7 @@ import {
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import type { SignerSeed } from "./psbt";
+import { evmAddress } from "./evm-address";
 import {
   MIN_EXPIRY_SECONDS,
   THOR_CHAINS,
@@ -32,16 +33,7 @@ const uint = z
   .string()
   .regex(/^(0|[1-9][0-9]{0,77})$/)
   .refine((v) => BigInt(v) <= MAX_UINT256, "Quantity exceeds uint256.");
-const address = z.string().refine((s) => {
-  try {
-    return (
-      getAddress(s) !== "0x0000000000000000000000000000000000000000" &&
-      /^0x[0-9a-fA-F]{40}$/.test(s)
-    );
-  } catch {
-    return false;
-  }
-}, "Invalid or zero address.");
+const address = evmAddress;
 /** THORChain expiry/quantity fields arrive as decimal strings or plain numbers. */
 const quantity = z.union([uint, z.number().int().nonnegative()]);
 const asBigInt = (v: string | number): bigint => BigInt(v);

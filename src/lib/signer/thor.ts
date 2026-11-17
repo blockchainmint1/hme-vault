@@ -3,8 +3,8 @@
  * Nothing here fetches anything; every value the Vault needs is frozen in this file.
  */
 import { address as baddress, payments } from "bitcoinjs-lib";
-import { getAddress } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
+import { isValidEvmAddress } from "./evm-address";
 import { HDKey } from "@scure/bip32";
 import { mnemonicToSeed } from "@scure/bip39";
 import { NETWORKS, type CoinId } from "./networks";
@@ -306,14 +306,7 @@ export function isThorMemoOutput(script: Uint8Array): boolean {
 export function isValidThorDestination(payout: ThorPayout, destination: string): boolean {
   const dest = destination.trim();
   if (!dest) return false;
-  if (payout === "EVM") {
-    if (!/^0x[0-9a-fA-F]{40}$/.test(dest)) return false;
-    try {
-      return getAddress(dest) !== "0x0000000000000000000000000000000000000000";
-    } catch {
-      return false;
-    }
-  }
+  if (payout === "EVM") return isValidEvmAddress(dest);
   try {
     baddress.toOutputScript(dest, NETWORKS[payout]);
     return true;

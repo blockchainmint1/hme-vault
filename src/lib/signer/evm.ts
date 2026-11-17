@@ -12,22 +12,15 @@ import {
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import type { SignerSeed } from "./psbt";
+import { evmAddress } from "./evm-address";
+import { THOR_CHAINS } from "./thor";
 
 const MAX_UINT256 = (1n << 256n) - 1n;
 const uint = z
   .string()
   .regex(/^(0|[1-9][0-9]{0,77})$/)
   .refine((v) => BigInt(v) <= MAX_UINT256, "Quantity exceeds uint256.");
-const address = z.string().refine((s) => {
-  try {
-    return (
-      getAddress(s) !== "0x0000000000000000000000000000000000000000" &&
-      /^0x[0-9a-fA-F]{40}$/.test(s)
-    );
-  } catch {
-    return false;
-  }
-}, "Invalid or zero address.");
+const address = evmAddress;
 const common = {
   format: z.literal("hm-evm-tx"),
   v: z.literal(1),
@@ -75,6 +68,13 @@ const schema = z.discriminatedUnion("kind", [
 /** Disperse.app contract, same address on Ethereum, BNB Chain and Base. Only disperseEther is ever encoded. */
 export const DISPERSE_ADDRESS = "0xD152f549545093347A162Dce210e7293f1452150";
 export const DISPERSE_CHAINS = [1, 56, 8453] as const;
+/** Release-time eth_getCode evidence only; the offline app never performs an RPC lookup. */
+export const DISPERSE_CODE_CHECKED_AT = "2026-11-17";
+export const DISPERSE_CODE_HASHES = Object.freeze({
+  1: "0x65660051e320731a70b9ddcd5ec9fd4f565cf85e2f6caf0eb71589fb544b9996",
+  56: "0x65660051e320731a70b9ddcd5ec9fd4f565cf85e2f6caf0eb71589fb544b9996",
+  8453: "0xc0a38c227d2c70248fc51ed0dd3a72df3adf5b41494c7f3cc19c16c38523244d",
+} as const);
 export const DISPERSE_MAX_RECIPIENTS = 50;
 const DISPERSE_ABI = [
   {
@@ -186,8 +186,16 @@ function parseRequest(text: string): EvmRequest {
       throw new Error("Invalid EIP-1559 fees.");
   }
   if (r.kind === "native-disperse") checkDisperse(r);
-  if (BigInt(r.gas) * BigInt(r.gasPrice ?? r.maxFeePerGas ?? "0") > MAX_UINT256)
-    throw new Error("Fee exceeds uint256.");
+  const maximumFee = BigInt(r.gas) * BigInt(r.gasPrice ?? r.maxFeePerGas ?? "0");
+  if (maximumFee > MAX_UINT256) throw new Error("Fee exceeds uint256.");
+  const feeChain = THOR_CHAINS[r.chainId];
+  if (feeChain && maximumFee > feeChain.maxFeeWei)
+    throw new Error(
+      `The maximum network fee exceeds Vault's ${feeChain.name} payment limit of ${formatUnits(
+        feeChain.maxFeeWei,
+        18,
+      )} ${feeChain.symbol}.`,
+    );
   return Object.freeze(r);
 }
 async function accountFor(r: EvmRequest, seeds: SignerSeed[]) {

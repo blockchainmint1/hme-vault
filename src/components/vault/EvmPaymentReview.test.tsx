@@ -33,5 +33,8 @@ describe("bulk payment review", () => {
     const html = renderToStaticMarkup(<EvmPaymentReview review={r} />);
     expect((html.match(/<li/g) ?? []).length).toBe(10);
     for (const a of recips) expect(html.toLowerCase()).toContain(a);
+    const warning = "If any recipient cannot receive, the whole payment fails and nothing is sent.";
+    expect(html).toContain(warning);
+    expect(html.indexOf(warning)).toBeLessThan(html.indexOf("<ol"));
   });
 });
