@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -169,30 +169,22 @@ function MakeSeed() {
   const add = useAdd();
   const [count, setCount] = useState<12 | 24>(24);
   const [words, setWords] = useState("");
-  const [step, setStep] = useState<"pick" | "write" | "check">("pick");
-  const [answers, setAnswers] = useState<Record<number, string>>({});
+  const [step, setStep] = useState<"pick" | "show">("pick");
   const [name, setName] = useState("");
   const [pass, setPass] = useState("");
   const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
   const list = words.split(" ");
-  const quiz = useMemo(() => {
-    const idx = new Set<number>();
-    const r = new Uint32Array(8);
-    crypto.getRandomValues(r);
-    for (const n of r) {
-      if (idx.size < 3) idx.add(n % list.length);
-    }
-    return [...idx].sort((a, b) => a - b);
-  }, [words]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function finish() {
+    if (busy) return;
     setErr("");
-    if (quiz.some((i) => (answers[i] ?? "").trim().toLowerCase() !== list[i]))
-      return setErr("One of those words doesn't match. Check what you wrote down.");
+    setBusy(true);
     try {
       await add(name, words, pass);
     } catch (e) {
       setErr((e as Error).message);
+      setBusy(false);
     }
   }
 
@@ -216,7 +208,7 @@ function MakeSeed() {
             className="w-full"
             onClick={() => {
               setWords(newSeedWords(count));
-              setStep("write");
+              setStep("show");
             }}
           >
             Make my words
@@ -225,57 +217,26 @@ function MakeSeed() {
       </Card>
     );
   }
-  if (step === "write") {
-    return (
-      <Card>
-        <CardContent className="space-y-3 pt-6">
-          <p className="text-sm font-medium">Write these down on paper, in order.</p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {list.map((w, i) => (
-              <div
-                key={i}
-                className="flex gap-2 rounded-md border border-border px-3 py-2 font-mono text-sm"
-              >
-                <span className="w-5 text-right text-xs text-muted-foreground">{i + 1}.</span>
-                {w}
-              </div>
-            ))}
-          </div>
-          <Button className="w-full" onClick={() => setStep("check")}>
-            I wrote them down
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
   return (
     <Card>
       <CardContent className="space-y-3 pt-6">
-        <p className="text-sm">Check your paper copy: type these words.</p>
-        {quiz.map((i) => (
-          <div key={i}>
-            <Label htmlFor={`q${i}`}>Word #{i + 1}</Label>
-            <Input
-              id={`q${i}`}
-              autoComplete="off"
-              autoCorrect="off"
-              spellCheck={false}
-              autoCapitalize="none"
-              value={answers[i] ?? ""}
-              onChange={(e) => setAnswers({ ...answers, [i]: e.target.value })}
-            />
-          </div>
-        ))}
+        <p className="text-sm font-medium">Your recovery words</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {list.map((w, i) => (
+            <div
+              key={i}
+              className="flex gap-2 rounded-md border border-border px-3 py-2 font-mono text-sm"
+            >
+              <span className="w-5 text-right text-xs text-muted-foreground">{i + 1}.</span>
+              {w}
+            </div>
+          ))}
+        </div>
         <NameAndPass name={name} setName={setName} pass={pass} setPass={setPass} />
         {err && <p className="text-sm text-destructive">{err}</p>}
-        <div className="flex gap-2">
-          <Button variant="ghost" onClick={() => setStep("write")}>
-            Show words again
-          </Button>
-          <Button className="flex-1" onClick={finish}>
-            Save to vault
-          </Button>
-        </div>
+        <Button className="w-full" disabled={busy} onClick={finish}>
+          {busy ? "Saving…" : "Save to vault"}
+        </Button>
       </CardContent>
     </Card>
   );
