@@ -16,6 +16,7 @@ import {
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import type { SignerSeed } from "./psbt";
+import { evmAddress } from "./evm-address";
 import {
   MIN_EXPIRY_SECONDS,
   THOR_CHAINS,

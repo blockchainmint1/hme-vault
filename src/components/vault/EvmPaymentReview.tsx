@@ -32,6 +32,9 @@ export function EvmPaymentReview({
             <p className="text-xs text-muted-foreground">
               Bulk payment via Disperse (pinned) · {r.payouts.length} recipients · contract {q.to}
             </p>
+            <p className="text-sm font-medium">
+              If any recipient cannot receive, the whole payment fails and nothing is sent.
+            </p>
             <ol
               ref={list}
               onScroll={check}

@@ -12,22 +12,15 @@ import {
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import type { SignerSeed } from "./psbt";
+import { evmAddress } from "./evm-address";
+import { THOR_CHAINS } from "./thor";
 
 const MAX_UINT256 = (1n << 256n) - 1n;
 const uint = z
   .string()
   .regex(/^(0|[1-9][0-9]{0,77})$/)
   .refine((v) => BigInt(v) <= MAX_UINT256, "Quantity exceeds uint256.");
-const address = z.string().refine((s) => {
-  try {
-    return (
-      getAddress(s) !== "0x0000000000000000000000000000000000000000" &&
-      /^0x[0-9a-fA-F]{40}$/.test(s)
-    );
-  } catch {
-    return false;
-  }
-}, "Invalid or zero address.");
+const address = evmAddress;
 const common = {
   format: z.literal("hm-evm-tx"),
   v: z.literal(1),

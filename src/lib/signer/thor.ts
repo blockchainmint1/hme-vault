@@ -3,8 +3,8 @@
  * Nothing here fetches anything; every value the Vault needs is frozen in this file.
  */
 import { address as baddress, payments } from "bitcoinjs-lib";
-import { getAddress } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
+import { isValidEvmAddress } from "./evm-address";
 import { HDKey } from "@scure/bip32";
 import { mnemonicToSeed } from "@scure/bip39";
 import { NETWORKS, type CoinId } from "./networks";
