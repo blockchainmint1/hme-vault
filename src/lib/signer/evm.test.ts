@@ -223,4 +223,10 @@ describe("native-disperse bulk payments", () => {
     return bad({ recipients: many, values: many.map(() => "1"), value: "51", gas: "1000000" });
   });
   it("rejects supplied calldata", () => bad({ data: "0xe63d38ed" }));
+  it("rejects a bulk payment above the Ethereum fee ceiling", () =>
+    bad({ maxFeePerGas: "10000000000000" }));
+  it("rejects a badly checksummed recipient instead of normalizing it", () =>
+    bad({
+      recipients: [...recips.slice(0, 9), "0xa0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"],
+    }));
 });

@@ -586,6 +586,10 @@ describe("THORChain EVM swap signing", () => {
       "sender not derived from the fingerprint and path",
       { transaction: { from: "0x3333333333333333333333333333333333333333" } },
     ],
+    [
+      "mixed-case request address with a bad checksum",
+      { transaction: { to: "0xa0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" } },
+    ],
     ["unsupported chain", { transaction: { chainId: 137 } }],
     ["router not pinned for that chain", { quote: { router: BASE_ROUTER } }],
     [

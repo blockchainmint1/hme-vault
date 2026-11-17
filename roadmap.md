@@ -1,5 +1,7 @@
 # Roadmap — HME Seed Vault
 
+- [ ] Apply the 2026-11-17 EVM bulk-payment audit: strict EIP-55 validation, hard EVM fee ceilings, dated per-chain Disperse code hashes and recipient-revert warning; owner approved all four with BNB retained after two-provider verification. Tests and auditor handoff pending.
+
 - [x] Evaluate THORChain spec v2; owner decided /1/1 only, owner-compared deposit address, short USDC/USDT payouts allowed from UTXO, EVM fee caps 0.02 ETH / 0.002 Base / 0.02 BNB.
 - [x] Build THORChain swap signing per spec v2 + owner decisions: `/1/1` only, no affiliate tags, pinned routers/tokens, rebuilt-and-compared EVM calldata, UTXO deposit-first/change-to-input-0 shape, EVM fee caps 0.02 ETH / 0.002 Base / 0.02 BNB; 307 tests pass and both swap paths were reviewed and signed through the real UI with a fake camera (dummy seeds, nothing broadcast).
 - [x] Unpack and distribute uploaded APK 0.1.202611021719 to the preview download link: archive and APK checksums verified against the package's own SHA256SUMS, signing certificate matches Vault's established key (parsed from the v2 signing block; no apksigner available), permissions are camera and fingerprint only with no network permission, backups disabled with extraction rules present, and the shipped bundle confirmed to contain the file-picker lock grace plus the no-keyboard-on-open change; 324 tests pass; served file byte-identical; live site untouched. Auditor record: HME-Vault-APK-Release-0.1.202611021719.md.
