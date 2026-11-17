@@ -5,10 +5,18 @@
  */
 import { HDKey } from "@scure/bip32";
 import { mnemonicToSeed } from "@scure/bip39";
-import { formatUnits, getAddress, keccak256, stringToBytes, hexToBytes, type Hex } from "viem";
-import { privateKeyToAccount, type PrivateKeyAccount } from "viem/accounts";
-import { checkEvmRequest, buildEvmTx, type EvmRequest } from "./evm";
-import { THOR_CHAINS } from "./thor";
+import {
+  bytesToHex,
+  formatUnits,
+  getAddress,
+  keccak256,
+  stringToBytes,
+  hexToBytes,
+  type Hex,
+} from "viem";
+import { privateKeyToAccount, publicKeyToAddress, type PrivateKeyAccount } from "viem/accounts";
+import { secp256k1 } from "@noble/curves/secp256k1";
+import { checkEvmRequest, buildEvmTx, EVM_FEE_CEILINGS, type EvmRequest } from "./evm";
 import type { SignerSeed } from "./psbt";
 
 export const SWEEP_MAX_ITEMS = 25;
@@ -20,7 +28,7 @@ export const SWEEP_CHAINS: Record<number, { name: string; symbol: string }> = {
   8453: { name: "Base", symbol: "ETH" },
   90031273: { name: "Zero Chill", symbol: "ZCU" },
 };
-/** Whole-batch fee ceiling = 5 × the single-payment ceiling. Zero Chill has no frozen ceiling. */
+/** Whole-batch fee ceiling = 5 × the single-payment ceiling pinned in `EVM_FEE_CEILINGS`. */
 export const SWEEP_TOTAL_FEE_MULTIPLIER = 5n;
 const NATIVE_GAS = 21_000n;
 const TOKEN_GAS_MIN = 30_000n;
@@ -210,6 +218,15 @@ async function sweepAccounts(p: Parsed, seeds: SignerSeed[]) {
     const root = HDKey.fromMasterSeed(await mnemonicToSeed(s.words, s.passphrase ?? ""));
     if (root.fingerprint.toString(16).padStart(8, "0") !== p.fp.toLowerCase()) continue;
     const branch = root.derive("m/44'/60'/0'/0");
+    // Public-only branch: reviewing a batch never materialises a private key (auditor 2026-11-17).
+    const pubOnly = HDKey.fromExtendedKey(branch.publicExtendedKey);
+    const publicAddress = (i: number): string => {
+      const point = pubOnly.deriveChild(i).publicKey;
+      if (!point) return fail("key derivation failed.");
+      return publicKeyToAddress(
+        bytesToHex(secp256k1.ProjectivePoint.fromHex(point).toRawBytes(false)),
+      );
+    };
     const account = (i: number): PrivateKeyAccount => {
       const k = branch.deriveChild(i).privateKey;
       if (!k) return fail("key derivation failed.");
@@ -217,29 +234,29 @@ async function sweepAccounts(p: Parsed, seeds: SignerSeed[]) {
         `0x${Array.from(k, (b) => b.toString(16).padStart(2, "0")).join("")}`,
       );
     };
-    const accounts = p.items.map((r) => {
-      const a = account(Number(r.path.split("/").pop()));
-      if (a.address !== getAddress(r.from)) fail(`sender ${r.from} isn't ${r.path} on this seed.`);
-      return a;
-    });
-    return { seedName: s.name, accounts, account };
+    for (const r of p.items) {
+      const index = Number(r.path.split("/").pop());
+      if (publicAddress(index) !== getAddress(r.from))
+        fail(`sender ${r.from} isn't ${r.path} on this seed.`);
+    }
+    return { seedName: s.name, account, publicAddress };
   }
   return fail("no stored seed matches this fingerprint.");
 }
 
 export async function reviewSweep(text: string, seeds: SignerSeed[]): Promise<SweepReview> {
   const p = parseSweep(text);
-  const { seedName, account } = await sweepAccounts(p, seeds);
+  const { seedName, publicAddress } = await sweepAccounts(p, seeds);
   const chain = SWEEP_CHAINS[p.chainId];
   const totalFee = p.items.reduce((t, r) => t + fee(r), 0n);
-  const ceiling = THOR_CHAINS[p.chainId]?.maxFeeWei;
+  const ceiling = EVM_FEE_CEILINGS[p.chainId]?.maxFeeWei;
   if (ceiling !== undefined && totalFee > ceiling * SWEEP_TOTAL_FEE_MULTIPLIER)
     fail(
       `total maximum fee exceeds Vault's batch limit of ${formatUnits(ceiling * SWEEP_TOTAL_FEE_MULTIPLIER, 18)} ${chain.symbol}.`,
     );
   let ownIndex: number | null = null;
   for (let i = 0; i <= SWEEP_MAX_INDEX && ownIndex === null; i++)
-    if (account(i).address === p.destination) ownIndex = i;
+    if (publicAddress(i) === p.destination) ownIndex = i;
   const native = (v: bigint) => `${formatUnits(v, 18)} ${chain.symbol}`;
   const totals = new Map<string, { label: (v: bigint) => string; sum: bigint }>();
   let unknown = false;
@@ -318,10 +335,12 @@ export const sweepIntentHash = (text: string) => keccak256(stringToBytes(text));
 /** Re-validates the reviewed bytes, signs every item locally and returns the `hm-evm-signed-batch` reply. */
 export async function signSweep(review: SweepReview, seeds: SignerSeed[]): Promise<string> {
   const p = parseSweep(review.text);
-  const { accounts } = await sweepAccounts(p, seeds);
+  const { account } = await sweepAccounts(p, seeds);
   const signed: string[] = [];
-  for (let i = 0; i < p.items.length; i++)
-    signed.push(toBase64(await accounts[i].signTransaction(buildEvmTx(p.items[i]))));
+  for (const r of p.items)
+    signed.push(
+      toBase64(await account(Number(r.path.split("/").pop())).signTransaction(buildEvmTx(r))),
+    );
   if (new Set(signed).size !== signed.length) fail("duplicate signed transaction.");
   return JSON.stringify({
     format: "hm-evm-signed-batch",

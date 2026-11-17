@@ -141,6 +141,23 @@ const CHAINS: Record<number, { name: string; symbol: string }> = {
   43114: { name: "Avalanche C-Chain", symbol: "AVAX" },
   11155111: { name: "Ethereum Sepolia (testnet)", symbol: "test ETH" },
 };
+/**
+ * Pinned maximum network fee per payment. Ethereum, Base and BNB Chain reuse the ceilings already
+ * pinned for THORChain; Zero Chill is not a THORChain swap chain, so its ceiling is pinned here.
+ * A chain absent from this table has no fee ceiling.
+ */
+export const EVM_FEE_CEILINGS: Readonly<
+  Record<number, { name: string; symbol: string; maxFeeWei: bigint }>
+> = Object.freeze({
+  1: Object.freeze({ name: "Ethereum", symbol: "ETH", maxFeeWei: THOR_CHAINS[1].maxFeeWei }),
+  56: Object.freeze({ name: "BNB Chain", symbol: "BNB", maxFeeWei: THOR_CHAINS[56].maxFeeWei }),
+  8453: Object.freeze({ name: "Base", symbol: "ETH", maxFeeWei: THOR_CHAINS[8453].maxFeeWei }),
+  90031273: Object.freeze({
+    name: "Zero Chill",
+    symbol: "ZCU",
+    maxFeeWei: 20_000_000_000_000_000n,
+  }),
+});
 const TRANSFER_ABI = [
   {
     type: "function",
@@ -204,7 +221,7 @@ export function checkEvmRequest(parsed: unknown): EvmRequest {
   if (r.kind === "native-disperse") checkDisperse(r);
   const maximumFee = BigInt(r.gas) * BigInt(r.gasPrice ?? r.maxFeePerGas ?? "0");
   if (maximumFee > MAX_UINT256) throw new Error("Fee exceeds uint256.");
-  const feeChain = THOR_CHAINS[r.chainId];
+  const feeChain = EVM_FEE_CEILINGS[r.chainId];
   const feeLimit =
     feeChain && r.kind === "native-disperse"
       ? feeChain.maxFeeWei +

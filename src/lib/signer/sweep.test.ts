@@ -57,6 +57,13 @@ const req = (items: unknown[], extra: Record<string, unknown> = {}) =>
     ...extra,
   });
 const ok = [token(3, 0), native(3, 1), native(4, 9)];
+const ZCU = 90031273;
+/** A token item at gas 100,000, so its maximum fee is exactly 100,000 × maxFeePerGas wei. */
+const zcuToken = (i: number, nonce: number, maxFeePerGas: string) => ({
+  ...token(i, nonce),
+  gas: "100000",
+  maxFeePerGas,
+});
 
 describe("batch sweep validation", () => {
   it("accepts a valid batch", () => expect(parseSweep(req(ok)).items).toHaveLength(3));
@@ -102,9 +109,18 @@ describe("batch sweep validation", () => {
   it("pins curated tokens with valid checksums", () => {
     for (const t of SWEEP_TOKENS) expect(getAddress(t.contract)).toBe(t.contract);
   });
+  it("applies the 0.02 ZCU single ceiling to a Zero Chill item", () => {
+    expect(parseSweep(req([zcuToken(3, 0, "200000000000")], { chainId: ZCU })).items).toHaveLength(
+      1,
+    );
+    expect(() => parseSweep(req([zcuToken(3, 0, "200000000001")], { chainId: ZCU }))).toThrow(
+      /Zero Chill payment limit of 0.02 ZCU/,
+    );
+  });
 });
 
 describe("batch sweep review and signing", () => {
+  // Three reviews, two of which scan all 1,000 child public keys: ~3s alone, over 5s under full-suite load.
   it("labels own vs external destination and unknown tokens", async () => {
     const ext = await reviewSweep(req(ok), seeds);
     expect(ext.ownIndex).toBeNull();
@@ -119,7 +135,7 @@ describe("batch sweep review and signing", () => {
       seeds,
     );
     expect(unk.rows[0].unknownToken).toBe(true);
-  });
+  }, 20_000);
   it("signs a full 25-item batch bound to the exact request bytes", async () => {
     const items = Array.from({ length: 25 }, (_, i) => native(i, i));
     const text = req(items);
@@ -159,5 +175,22 @@ describe("batch sweep review and signing", () => {
     const hot = { maxFeePerGas: "900000000000", maxPriorityFeePerGas: "1" };
     const items = Array.from({ length: 6 }, (_, i) => ({ ...native(i, 0), ...hot }));
     await expect(reviewSweep(req(items), seeds)).rejects.toThrow(/batch limit/);
+  });
+  it("accepts a Zero Chill batch at exactly 0.1 ZCU and refuses one above it", async () => {
+    const at = Array.from({ length: 5 }, (_, i) => zcuToken(i, 0, "200000000000"));
+    const review = await reviewSweep(req(at, { chainId: ZCU }), seeds);
+    expect(review.totalFeeLabel).toBe("0.1 ZCU");
+    expect(review.warnings.some((w) => w.includes("no fixed fee limit"))).toBe(false);
+    const over = Array.from({ length: 6 }, (_, i) => zcuToken(i, 0, "200000000000"));
+    await expect(reviewSweep(req(over, { chainId: ZCU }), seeds)).rejects.toThrow(
+      /batch limit of 0.1 ZCU/,
+    );
+  });
+  it("detects an own destination at the top of the scanned range", async () => {
+    const own = await reviewSweep(
+      req([native(3, 0)], { destination: addr(999) }).replace(DEST, addr(999)),
+      seeds,
+    );
+    expect(own.ownIndex).toBe(999);
   });
 });

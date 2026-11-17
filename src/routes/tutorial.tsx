@@ -233,6 +233,7 @@ function TutorialPage() {
           <li>
             Your words appear on screen, away from cameras. Give the seed a name and tap{" "}
             <strong>Save to vault</strong>. The words are stored only inside the encrypted Vault.
+            Until you make a backup, this phone holds the only copy of that seed.
           </li>
           <li>
             Leave the optional extra passphrase empty unless you intentionally want one and can

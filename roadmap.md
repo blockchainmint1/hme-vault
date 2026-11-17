@@ -1,5 +1,7 @@
 # Roadmap — HME Seed Vault
 
+- [x] Apply the 2026-11-17 batch-sweep audit follow-up at owner decision: pinned Zero Chill fee ceilings (0.02 ZCU per payment, 0.1 ZCU per batch) in the new shared `EVM_FEE_CEILINGS`, stated in the setup guide that a new seed exists only on this phone until a backup is made, and switched batch review to public-only key derivation so no private key is derived before signing. 442/442 tests, typecheck, formatting and changed-file lint pass. Auditor handoff: HME-Vault-Batch-Sweep-Followup-Audit-2026-11-17.md.
+
 - [x] Compare EVM Wallet batch-sweep spec v2 with the build: matches except reply framing (owner kept 240-char parts); add intentHash odd-spacing test.
 
 - [x] Batch sweep signing (`sweep-batch`, auditor-approved v1 with corrections): one approval signs up to 25 transfers to one destination; reply QR stays 240-char chunks per owner. EVM Wallet note reviewed: wallet-side items only, no Vault change.
