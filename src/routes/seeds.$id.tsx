@@ -6,6 +6,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { CredentialInput } from "@/components/vault/CredentialInput";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { QrCode } from "@/components/wallet/QrCode";
 import { AnimatedQr } from "@/components/vault/AnimatedQr";
 import { PAIRING_PART_SIZE } from "@/lib/signer/qr-parts";
@@ -24,7 +31,10 @@ import {
   singleSeedTransferPayload,
   TXC_ACCOUNT_PATH,
   TXC_ADDRESS_PATH,
-  EVM_PATH,
+  RECEIVE_COINS,
+  receivingAddress,
+  type ReceiveCoin,
+  type ReceivingAddress,
   type SeedKeys,
 } from "@/lib/vault/seeds";
 
@@ -431,12 +441,7 @@ function SeedPage() {
                   <p className="break-all font-mono text-xs">{keys.txcXpub}</p>
                   <p className="text-xs text-muted-foreground">{TXC_ACCOUNT_PATH}</p>
                 </div>
-                <div className="flex flex-col items-center gap-1">
-                  <p className="text-sm font-medium">Ethereum / EVM address</p>
-                  <QrCode value={keys.evmAddress} size={220} />
-                  <p className="break-all font-mono text-xs">{keys.evmAddress}</p>
-                  <p className="text-xs text-muted-foreground">{EVM_PATH}</p>
-                </div>
+                <AddressPicker words={seed.words} passphrase={seed.passphrase ?? ""} />
               </div>
             )}
           </CardContent>
@@ -503,5 +508,72 @@ function SeedPage() {
         </Card>
       </div>
     </Unlocked>
+  );
+}
+
+const COIN_LABELS: Record<ReceiveCoin, string> = {
+  TXC: "TEXITcoin (TXC)",
+  ISK: "ISK",
+  BTC: "Bitcoin (BTC)",
+  LTC: "Litecoin (LTC)",
+  DOGE: "Dogecoin (DOGE)",
+  BCH: "Bitcoin Cash (BCH)",
+  DASH: "Dash (DASH)",
+  EVM: "Ethereum / EVM",
+  ZCU: "ZeroChill (ZCU)",
+  TRON: "TRON",
+  SOL: "Solana (SOL)",
+};
+
+/** Single public address QR for one network; display only, nothing is paired or saved. */
+function AddressPicker({ words, passphrase }: { words: string; passphrase: string }) {
+  const [coin, setCoin] = useState<ReceiveCoin>("EVM");
+  const [addr, setAddr] = useState<{ coin: ReceiveCoin; value: ReceivingAddress } | null>(null);
+  const [err, setErr] = useState("");
+  useEffect(() => {
+    let live = true;
+    setErr("");
+    receivingAddress(words, passphrase, coin)
+      .then((value) => live && setAddr({ coin, value }))
+      .catch(() => live && setErr("Could not derive this address."));
+    return () => {
+      live = false;
+    };
+  }, [words, passphrase, coin]);
+  const shown = addr?.coin === coin ? addr.value : null;
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <Label htmlFor="address-coin" className="text-sm font-medium">
+        Single address QR
+      </Label>
+      <Select value={coin} onValueChange={(v) => setCoin(v as ReceiveCoin)}>
+        <SelectTrigger id="address-coin" className="w-60">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {RECEIVE_COINS.map((c) => (
+            <SelectItem key={c} value={c}>
+              {COIN_LABELS[c]}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {err ? (
+        <p className="text-sm text-destructive">{err}</p>
+      ) : !shown ? (
+        <p className="text-sm text-muted-foreground">Working…</p>
+      ) : (
+        <>
+          <QrCode value={shown.address} size={220} />
+          <p className="break-all text-center font-mono text-xs select-text">{shown.address}</p>
+          <p className="text-xs text-muted-foreground">
+            {shown.path} · {shown.format}
+          </p>
+          <p className="text-center text-xs text-muted-foreground">
+            Just this one address — nothing is linked or imported.
+          </p>
+        </>
+      )}
+    </div>
   );
 }
