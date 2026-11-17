@@ -118,13 +118,25 @@ describe("offline EVM signing", () => {
   ] as const)("enforces the chain %i payment fee ceiling", async (chainId, atCap, aboveCap, label) => {
     await expect(
       reviewEvm(
-        JSON.stringify({ ...dummyEvm, chainId, gas: "100000", maxFeePerGas: atCap }),
+        JSON.stringify({
+          ...dummyEvm,
+          chainId,
+          gas: "100000",
+          maxFeePerGas: atCap,
+          maxPriorityFeePerGas: "0",
+        }),
         seeds,
       ),
     ).resolves.toBeTruthy();
     await expect(
       reviewEvm(
-        JSON.stringify({ ...dummyEvm, chainId, gas: "100000", maxFeePerGas: aboveCap }),
+        JSON.stringify({
+          ...dummyEvm,
+          chainId,
+          gas: "100000",
+          maxFeePerGas: aboveCap,
+          maxPriorityFeePerGas: "0",
+        }),
         seeds,
       ),
     ).rejects.toThrow(`payment limit of ${label}`);
