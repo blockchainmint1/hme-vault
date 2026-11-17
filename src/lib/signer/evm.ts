@@ -173,6 +173,10 @@ function parseRequest(text: string): EvmRequest {
   } catch {
     throw new Error("That isn't an EVM payment QR.");
   }
+  return checkEvmRequest(parsed);
+}
+/** Validate one already-parsed `hm-evm-tx` object with every single-payment rule (schema, fees, ceilings). */
+export function checkEvmRequest(parsed: unknown): EvmRequest {
   const result = schema.safeParse(parsed);
   if (!result.success)
     throw new Error(
@@ -279,6 +283,11 @@ export async function signEvm(
 ): Promise<{ hex: string; txid: string }> {
   const r = parseRequest(JSON.stringify(review.request));
   const { account } = await accountFor(r, seeds);
+  const signed = await account.signTransaction(buildEvmTx(r));
+  return { hex: signed, txid: keccak256(signed) };
+}
+/** Rebuild the exact transaction (and calldata) locally from a validated request. */
+export function buildEvmTx(r: EvmRequest): TransactionSerializable {
   const base = {
     chainId: r.chainId,
     nonce: r.nonce,
@@ -296,15 +305,12 @@ export async function signEvm(
         }
       : {}),
   };
-  const tx: TransactionSerializable =
-    r.type === "legacy"
-      ? { ...base, type: "legacy", gasPrice: BigInt(r.gasPrice ?? "0") }
-      : {
-          ...base,
-          type: "eip1559",
-          maxFeePerGas: BigInt(r.maxFeePerGas ?? "0"),
-          maxPriorityFeePerGas: BigInt(r.maxPriorityFeePerGas ?? "0"),
-        };
-  const signed = await account.signTransaction(tx);
-  return { hex: signed, txid: keccak256(signed) };
+  return r.type === "legacy"
+    ? { ...base, type: "legacy", gasPrice: BigInt(r.gasPrice ?? "0") }
+    : {
+        ...base,
+        type: "eip1559",
+        maxFeePerGas: BigInt(r.maxFeePerGas ?? "0"),
+        maxPriorityFeePerGas: BigInt(r.maxPriorityFeePerGas ?? "0"),
+      };
 }

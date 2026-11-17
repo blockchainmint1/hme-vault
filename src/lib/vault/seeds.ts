@@ -280,7 +280,7 @@ export async function pairingPayload(words: string, passphrase = ""): Promise<st
   return JSON.stringify({
     hmvault: 1,
     fp,
-    caps: ["native-disperse"],
+    caps: ["native-disperse", "sweep-batch"],
     txc: acct(696969),
     isk: acct(969696),
     btc: acct(0),

@@ -1,5 +1,7 @@
 # Roadmap — HME Seed Vault
 
+- [x] Batch sweep signing (`sweep-batch`, auditor-approved v1 with corrections): one approval signs up to 25 transfers to one destination; reply QR stays 240-char chunks per owner. EVM Wallet note reviewed: wallet-side items only, no Vault change.
+
 - [x] Unpack and verify APK 0.1.202611171732: SHA256SUMS matches, full APK v2 signature verifies with the established release certificate, versionCode 26101933/minSdk 28/targetSdk 36, zero network permissions, allowBackup=false and all cloud-backup/device-transfer domains excluded, vault.local unchanged. Nectar.Pay QR and paper-copy prompts absent; full wallet pairing and Give-a-copy remain. All 410 source tests pass. APK and release audit report supplied for phone testing.
 - [ ] Replace the website APK with 0.1.202611171732 after Bobby confirms the actual Pixel checklist and supplies the successful gated workflow URL/source commit; this ZIP includes no workflow provenance. Download remains 0.1.202611171658; no publication performed.
 

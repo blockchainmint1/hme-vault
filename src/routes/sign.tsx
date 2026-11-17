@@ -17,6 +17,8 @@ import { reviewThorSwap, signThorSwap, type ThorSwapReview } from "@/lib/signer/
 import { format1e8 } from "@/lib/signer/thor";
 import { COIN_IDS, type CoinId } from "@/lib/signer/networks";
 import { EvmPaymentReview } from "@/components/vault/EvmPaymentReview";
+import { SweepPaymentReview } from "@/components/vault/SweepPaymentReview";
+import { reviewSweep, signSweep, type SweepReview } from "@/lib/signer/sweep";
 import { ThorSwapPaymentReview } from "@/components/vault/ThorSwapPaymentReview";
 import {
   Select,
@@ -67,10 +69,13 @@ function SignPage() {
   const [thor, setThor] = useState<ThorSwapReview | null>(null);
   const [listSeen, setListSeen] = useState(false);
   const [listOk, setListOk] = useState(false);
+  const [sweep, setSweep] = useState<SweepReview | null>(null);
+  const [extOk, setExtOk] = useState(false);
   useEffect(() => {
     setListSeen(false);
     setListOk(false);
-  }, [evm]);
+    setExtOk(false);
+  }, [evm, sweep]);
   const generation = useRef(0);
   const [bioOn, setBioOn] = useState(false);
   useEffect(() => {
@@ -104,6 +109,23 @@ function SignPage() {
     try {
       const result = await signEvm(evm, seeds);
       if (run === generation.current && active.current) setSigned(result);
+    } catch (x) {
+      if (run === generation.current && active.current) setErr((x as Error).message);
+    } finally {
+      if (run === generation.current) setBusy(false);
+    }
+  }
+
+  async function signSweepNow() {
+    if (!sweep || !listOk || (sweep.ownIndex === null && !extOk)) return;
+    setPw("");
+    setBusy(true);
+    setErr("");
+    const run = generation.current;
+    try {
+      const reply = await signSweep(sweep, seeds);
+      if (run === generation.current && active.current)
+        setSigned({ hex: reply, txid: `${sweep.rows.length} signed payments` });
     } catch (x) {
       if (run === generation.current && active.current) setErr((x as Error).message);
     } finally {
@@ -159,6 +181,7 @@ function SignPage() {
       setState(null);
       setEvm(null);
       setThor(null);
+      setSweep(null);
       setSigned(null);
       setPw("");
       setScan(false);
@@ -174,11 +197,15 @@ function SignPage() {
     setState(null);
     setEvm(null);
     setThor(null);
+    setSweep(null);
     setSigned(null);
     const run = ++generation.current;
     try {
       if (network === "EVM") {
-        if (text.includes('"hm-thor-swap"')) {
+        if (text.includes('"sweep-batch"')) {
+          const review = await reviewSweep(text, seeds);
+          if (run === generation.current && active.current) setSweep(review);
+        } else if (text.includes('"hm-thor-swap"')) {
           const review = await reviewThorSwap(text, seeds);
           if (run === generation.current && active.current) setThor(review);
         } else {
@@ -221,12 +248,13 @@ function SignPage() {
     setState(null);
     setEvm(null);
     setThor(null);
+    setSweep(null);
     setSigned(null);
     setPw("");
     setErr("");
   }
 
-  if (signed && (state || evm || thor)) {
+  if (signed && (state || evm || thor || sweep)) {
     return (
       <Unlocked title="Signed" back>
         <Card>
@@ -236,7 +264,7 @@ function SignPage() {
             </p>
             <AnimatedQr value={signed.hex} frameSize={SIGNING_PART_SIZE} />
             <p className="break-all font-mono text-xs text-muted-foreground">
-              Transaction ID: {signed.txid}
+              {sweep ? signed.txid : `Transaction ID: ${signed.txid}`}
             </p>
             <Button variant="secondary" onClick={reset}>
               Done
@@ -246,6 +274,75 @@ function SignPage() {
       </Unlocked>
     );
   }
+
+  if (sweep)
+    return (
+      <Unlocked title="Check this sweep" back>
+        <div className="space-y-3">
+          <SweepPaymentReview review={sweep} onListEnd={() => setListSeen(true)} />
+          <label className="flex items-start gap-2 rounded-md border p-3 text-sm">
+            <input
+              type="checkbox"
+              className="mt-0.5 h-4 w-4"
+              disabled={!listSeen}
+              checked={listOk}
+              onChange={(e) => setListOk(e.target.checked)}
+            />
+            <span>
+              {listSeen
+                ? `I checked all ${sweep.rows.length} payments and the destination.`
+                : "Scroll to the end of the payment list first."}
+            </span>
+          </label>
+          {sweep.ownIndex === null && listOk && (
+            <label className="flex items-start gap-2 rounded-md border border-destructive/50 p-3 text-sm">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-4 w-4"
+                checked={extOk}
+                onChange={(e) => setExtOk(e.target.checked)}
+              />
+              <span>I confirm the external address {sweep.destination} is correct.</span>
+            </label>
+          )}
+          {listOk && (sweep.ownIndex !== null || extOk) && (
+            <form
+              className="space-y-2"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!checkPassword(pw)) {
+                  setErr("Wrong password.");
+                  setPw("");
+                  return;
+                }
+                await signSweepNow();
+              }}
+            >
+              {fpButton(signSweepNow)}
+              <Label htmlFor="spw">
+                {bioOn ? "Or type your Vault password" : "Vault password to sign"}
+              </Label>
+              <CredentialInput
+                id="spw"
+                type="password"
+                value={pw}
+                onChange={(e) => setPw(e.target.value)}
+              />
+              <div className="flex gap-2">
+                <Button type="button" variant="ghost" onClick={reset}>
+                  Cancel
+                </Button>
+                <Button className="flex-1" type="submit" disabled={!pw || busy}>
+                  <PenLine className="mr-1.5 h-4 w-4" />
+                  {busy ? "Signing…" : `Sign all ${sweep.rows.length}`}
+                </Button>
+              </div>
+            </form>
+          )}
+          {err && <p className="text-sm text-destructive">{err}</p>}
+        </div>
+      </Unlocked>
+    );
 
   if (thor)
     return (
