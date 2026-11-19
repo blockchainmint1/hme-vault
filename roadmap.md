@@ -130,3 +130,5 @@
 - [x] `bun audit fix` in-range bumps
 - [x] Zero Chill named in single-transfer review
 - [ ] Release 0.1.202611171732 to site — blocked on Pixel checklist + gated workflow run URL/source commit
+
+- [x] Phone checks (2026-11-19, Bobby): Vault stays unlocked after saving a backup file; no self-lock during camera or fingerprint prompts.
