@@ -140,6 +140,7 @@ const CHAINS: Record<number, { name: string; symbol: string }> = {
   42161: { name: "Arbitrum One", symbol: "ETH" },
   43114: { name: "Avalanche C-Chain", symbol: "AVAX" },
   11155111: { name: "Ethereum Sepolia (testnet)", symbol: "test ETH" },
+  90031273: { name: "Zero Chill", symbol: "ZCU" },
 };
 /**
  * Pinned maximum network fee per payment. Ethereum, Base and BNB Chain reuse the ceilings already

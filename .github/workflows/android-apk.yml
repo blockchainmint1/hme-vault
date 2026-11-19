@@ -30,13 +30,30 @@ on:
         options: [release, debug]
         default: release
 
+# Least privilege: the build job reads only; the separate release job alone may write.
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
     # Signing secrets live in the "release" environment, which needs owner approval.
     environment: release
+    outputs:
+      artifact: hme-vault-${{ steps.ver.outputs.version }}-${{ steps.mode.outputs.mode }}
+      version: ${{ steps.ver.outputs.version }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Refuse remote app URL
+        # A release must load bundled code only, never a server URL.
+        run: |
+          if [ -n "${HME_REMOTE_URL:-}" ]; then
+            echo "::error::HME_REMOTE_URL is set; releases must not load a remote URL."
+            exit 1
+          fi
 
       - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
         with:
@@ -83,6 +100,19 @@ jobs:
 
       - name: Patch AndroidManifest (perms + deep links)
         run: bun scripts/patch-android-manifest.mjs
+
+      - name: Verify zero network permissions
+        run: |
+          M=android/app/src/main/AndroidManifest.xml
+          bad=0
+          for p in INTERNET ACCESS_NETWORK_STATE ACCESS_WIFI_STATE; do
+            if grep -E "<uses-permission[^>]*android\.permission\.$p\"" "$M" | grep -v 'tools:node="remove"' | grep -q .; then
+              echo "::error::$p is requested without tools:node=\"remove\"."
+              bad=1
+            fi
+          done
+          [ "$bad" -eq 0 ] || exit 1
+          echo "No network permissions requested."
 
       - name: Patch launcher icons (dollar-sign brand mark, dark/light adaptive)
         run: bun scripts/patch-android-icons.mjs
@@ -258,10 +288,22 @@ jobs:
           name: hme-vault-${{ steps.ver.outputs.version }}-${{ steps.mode.outputs.mode }}
           path: out/*
 
+  release:
+    # Only this job can write to the repository, and only for android-v* tags.
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/android-v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: ${{ needs.build.outputs.artifact }}
+          path: out
+
       - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/android-v')
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           files: out/*
-          name: HME Vault Android ${{ steps.ver.outputs.version }}
+          name: HME Vault Android ${{ needs.build.outputs.version }}
           generate_release_notes: true

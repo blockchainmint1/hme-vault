@@ -122,3 +122,11 @@
 - [ ] Build new APK and phone-test (needs Bobby / GitHub run); update `src/lib/release.ts` with the new APK SHA-256
 
 - [ ] Pixel hide-lock checks: file picker (open/save backup) keeps Vault unlocked under 2 min; camera permission prompt and fingerprint prompt — note whether they lock Vault (not covered by the picker grace). The picker fix is now in APK 0.1.202611021719 (preview download); it was not in 0.1.202611021636.
+
+## Auditor housekeeping (2026-11-19) — done
+- [x] APK workflow: top-level read-only token; GitHub Release moved to its own write-scoped job (tags only)
+- [x] APK workflow: fails if merged manifest requests INTERNET/ACCESS_NETWORK_STATE/ACCESS_WIFI_STATE without removal, or if HME_REMOTE_URL is set
+- [x] CI: production build + `bun audit --audit-level=critical` (tar 6.x via Capacitor CLI ignored, build-tool only)
+- [x] `bun audit fix` in-range bumps
+- [x] Zero Chill named in single-transfer review
+- [ ] Release 0.1.202611171732 to site — blocked on Pixel checklist + gated workflow run URL/source commit
