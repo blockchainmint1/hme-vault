@@ -283,6 +283,15 @@ jobs:
           (cd out && sha256sum "$(basename "$DEST")" > SHA256SUMS)
           echo "path=$DEST" >> $GITHUB_OUTPUT
 
+      - name: Verify built APK has zero network permissions
+        run: |
+          AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
+          "$AAPT" dump permissions "${{ steps.apk.outputs.path }}" | tee out/permissions.txt
+          if grep -Ei "android\.permission\.(INTERNET|ACCESS_NETWORK_STATE|ACCESS_WIFI_STATE|CHANGE_NETWORK_STATE|CHANGE_WIFI_STATE)" out/permissions.txt; then
+            echo "::error::Built APK requests a network permission"; exit 1
+          fi
+          rm out/permissions.txt
+
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: hme-vault-${{ steps.ver.outputs.version }}-${{ steps.mode.outputs.mode }}
