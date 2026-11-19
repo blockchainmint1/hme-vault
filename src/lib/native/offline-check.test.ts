@@ -28,7 +28,8 @@ describe("offline checklist", () => {
   it.each(["wifi", "mobileData", "bluetooth", "nfc", "sim", "adb", "usbHost"] as const)(
     "warns when %s is on",
     (k) => {
-      const items = offlineChecklist({ ...clean, [k]: true });
+      const cell = k === "mobileData" ? { airplane: false, sim: true } : {};
+      const items = offlineChecklist({ ...clean, ...cell, [k]: true });
       expect(items.find((i) => i.key === k)?.ok).toBe(false);
       expect(needsOverride(items)).toBe(true);
     },
@@ -67,7 +68,8 @@ describe("offline checklist", () => {
     (key) => {
       expect(canIgnoreCheck(key)).toBe(false);
       for (const value of [key === "airplane" ? false : true, null]) {
-        const items = offlineChecklist({ ...clean, [key]: value });
+        const cell = key === "mobileData" ? { airplane: false, sim: true } : {};
+        const items = offlineChecklist({ ...clean, ...cell, [key]: value });
         const after = applyIgnoredChecks(items, [key]);
         expect(after.find((item) => item.key === key)?.ok).toBe(value === null ? null : false);
         expect(needsOverride(after)).toBe(true);
@@ -100,4 +102,26 @@ describe("offline checklist", () => {
     const items = offlineChecklist(clean);
     expect(applyIgnoredChecks(items, ["sim"])).toEqual(items);
   });
+});
+
+import { offlineChecklist as _ocl } from "./offline-check";
+describe("mobile data with no cell radio", () => {
+  const base = {
+    airplane: false,
+    wifi: false,
+    mobileData: true,
+    bluetooth: false,
+    nfc: false,
+    sim: true,
+    adb: false,
+    usbHost: false,
+  };
+  const md = (s: typeof base | Record<string, unknown>) =>
+    _ocl(s as never).find((i) => i.key === "mobileData")!.ok;
+  it("passes when airplane mode is on even if the switch reads on", () =>
+    expect(md({ ...base, airplane: true })).toBe(true));
+  it("passes when no SIM is present", () => expect(md({ ...base, sim: false })).toBe(true));
+  it("still fails with a SIM, airplane off and data on", () => expect(md(base)).toBe(false));
+  it("stays unknown when nothing is known", () =>
+    expect(md({ ...base, airplane: null, sim: null, mobileData: null })).toBe(null));
 });

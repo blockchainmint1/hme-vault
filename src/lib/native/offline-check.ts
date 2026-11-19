@@ -63,7 +63,9 @@ export function offlineChecklist(s: RadioStatus): CheckItem[] {
     {
       key: "mobileData",
       label: "Mobile data off",
-      ok: off(s.mobileData),
+      // The mobile-data switch can stay "on" with no SIM; the cell radio is off
+      // when airplane mode is on or no SIM is present, so that also passes.
+      ok: s.airplane === true || s.sim === false ? true : off(s.mobileData),
       fix: "Turn mobile data off",
     },
     { key: "bluetooth", label: "Bluetooth off", ok: off(s.bluetooth), fix: "Turn Bluetooth off" },
