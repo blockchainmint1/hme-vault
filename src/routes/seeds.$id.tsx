@@ -136,7 +136,9 @@ function SeedPage() {
               <p className="text-sm text-muted-foreground">
                 Hands-off copy. Whoever gave you this seed chose that Vault won't show its words,
                 put it in backups or give another copy. You can still pair it with a wallet, receive
-                and sign.
+                and sign. Someone technical can still recover the words; this is not custody
+                control. This copy is not included in your backups. If you lose this phone, ask the
+                sender for a new copy.
               </p>
             ) : !reveal ? (
               <form
@@ -322,10 +324,10 @@ function SeedPage() {
                     <div className="space-y-1">
                       <Label htmlFor="handsoff">Hands-off copy</Label>
                       <p className="text-xs text-muted-foreground">
-                        Their Vault won't show the words, back them up or give another copy. They
-                        can still pair, receive and sign. This stops accidents and casual looking,
-                        not a determined, technical person: they hold their own password and could
-                        still dig the seed out. If their phone is lost, they lose this copy.
+                        Vault on their phone won't show or export these words. They can still pair,
+                        receive and sign. Someone technical can still recover the words; this is not
+                        custody control. Hands-off copies can only be received in the phone app. If
+                        their phone is lost, they'll need a new copy from you.
                       </p>
                     </div>
                   </div>

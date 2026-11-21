@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { generateMnemonic } from "@scure/bip39";
 import { wordlist } from "@scure/bip39/wordlists/english.js";
 import {
+  assertImportAllowed,
   canRevealSeed,
   exportablePayload,
   parsePayload,
@@ -22,6 +23,39 @@ function entry(name: string): SeedEntry {
 }
 
 describe("hands-off seeds", () => {
+  it("refuses hands-off imports in the browser", () => {
+    const payload = parsePayload(
+      JSON.stringify(singleSeedTransferPayload(entry("Gift"), "Theirs", true)),
+    );
+    expect(() => assertImportAllowed(payload, false)).toThrow(
+      "Hands-off copies can only be received in the phone app.",
+    );
+  });
+
+  it("allows hands-off imports in the phone app without dropping the flag", () => {
+    const payload = parsePayload(
+      JSON.stringify(singleSeedTransferPayload(entry("Gift"), "Theirs", true)),
+    );
+    expect(() => assertImportAllowed(payload, true)).not.toThrow();
+    expect(payload.seeds[0]?.handsOff).toBe(true);
+  });
+
+  it("allows ordinary browser imports", () => {
+    const payload = singleSeedTransferPayload(entry("Ordinary"));
+    expect(() => assertImportAllowed(payload, false)).not.toThrow();
+    expect(payload.seeds).toHaveLength(1);
+  });
+
+  it("refuses a mixed browser import as a whole before merging", () => {
+    const ordinary = entry("Ordinary");
+    const restricted = { ...entry("Hands-off"), handsOff: true as const };
+    const payload = { seeds: [ordinary, restricted] };
+    expect(() => assertImportAllowed(payload, false)).toThrow(
+      "Hands-off copies can only be received in the phone app.",
+    );
+    expect(payload.seeds).toEqual([ordinary, restricted]);
+  });
+
   it("a hands-off copy keeps the flag through transfer parsing", () => {
     const p = singleSeedTransferPayload(entry("Gift"), "Theirs", true);
     const got = parsePayload(JSON.stringify(p)).seeds[0];

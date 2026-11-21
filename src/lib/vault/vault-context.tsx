@@ -13,6 +13,7 @@ import {
 } from "react";
 import { lockText, unlockText } from "./format";
 import {
+  assertImportAllowed,
   emptyVault,
   encryptVaultBackup,
   exportablePayload,
@@ -28,6 +29,7 @@ import { MAX_VAULT_CHARS, type SecretEntry } from "./secrets";
 import { setCoinExtraRequired } from "./coin-unlock";
 import { disableBiometric } from "../native/biometric";
 import { systemPickerOpenedAt } from "./save-file";
+import { isNative } from "../native/platform";
 
 const VAULT_KEY = "hmsv.vault.v1";
 const FAILS_KEY = "hmsv.fails.v1";
@@ -207,6 +209,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
       const incoming = parsePayload(await unlockText(code, sourceCredential ?? pw.current));
       if (generation.current !== version || pw.current === null)
         throw new Error("Vault locked. Unlock and try again.");
+      assertImportAllowed(incoming, isNative());
       const result = mergeVaultBackup({ ...emptyVault(), ...data.current }, incoming);
       await persist(result.payload.seeds, result.payload.secrets, pw.current);
       return {

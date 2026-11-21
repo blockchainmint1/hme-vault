@@ -1,5 +1,7 @@
 # Roadmap — HME Seed Vault
 
+- [x] Apply the owner-approved hands-off audit follow-up: explicit app-only limitation and lost-phone replacement warnings; shared phone-only import guard for Backup/Receive and Secrets; 455/455 tests passed, changed-file lint has no errors, preview build OK, and both browser import paths refuse mixed hands-off payloads without changing encrypted storage while normal imports read back successfully. Desktop/390px warnings checked. Auditor handoff: HME-Vault-Hands-Off-Followup-Audit-2026-11-21.md. APK build/publication remains outside this task.
+
 - [x] Apply the 2026-11-17 batch-sweep audit follow-up at owner decision: pinned Zero Chill fee ceilings (0.02 ZCU per payment, 0.1 ZCU per batch) in the new shared `EVM_FEE_CEILINGS`, stated in the setup guide that a new seed exists only on this phone until a backup is made, and switched batch review to public-only key derivation so no private key is derived before signing. 442/442 tests, typecheck, formatting and changed-file lint pass. Auditor handoff: HME-Vault-Batch-Sweep-Followup-Audit-2026-11-17.md.
 
 - [x] Compare EVM Wallet batch-sweep spec v2 with the build: matches except reply framing (owner kept 240-char parts); add intentHash odd-spacing test.

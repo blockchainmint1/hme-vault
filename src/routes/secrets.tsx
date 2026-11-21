@@ -24,11 +24,11 @@ import { Unlocked } from "@/components/vault/Unlocked";
 import { TransferInput } from "@/components/vault/TransferInput";
 import { AnimatedQr } from "@/components/vault/AnimatedQr";
 import { useVault } from "@/lib/vault/vault-context";
-import { emptyVault, mergeSeeds, parsePayload, REVEAL_HIDE_MS } from "@/lib/vault/seeds";
-import { mergeSecrets, validateSecret, type SecretEntry } from "@/lib/vault/secrets";
+import { emptyVault, REVEAL_HIDE_MS } from "@/lib/vault/seeds";
+import { validateSecret, type SecretEntry } from "@/lib/vault/secrets";
 import { VaultTabs } from "@/components/vault/VaultTabs";
 import { confirmWithBiometric, getBiometricStatus } from "@/lib/native/biometric";
-import { lockTypedText, unlockText } from "@/lib/vault/format";
+import { lockTypedText } from "@/lib/vault/format";
 import { saveBinaryFile, saveTextFile, savedMessage } from "@/lib/vault/save-file";
 import { OFFLINE_TRANSFER_PAGE } from "@/lib/vault/transfer-page";
 
@@ -60,7 +60,7 @@ function SecretsPage() {
 }
 
 function SecretsContent() {
-  const { seeds, secrets, saveSecrets, restore, checkPassword, setPendingCode } = useVault();
+  const { secrets, saveSecrets, importBackup, checkPassword, setPendingCode } = useVault();
   const [mode, setMode] = useState("list");
   const [name, setName] = useState("");
   const [type, setType] = useState<"password" | "note">("password");
@@ -411,14 +411,11 @@ function SecretsContent() {
             disabled={busy || !code || !pw}
             onClick={() =>
               void run(async () => {
-                const incoming = parsePayload(await unlockText(code, pw));
-                const a = mergeSeeds(seeds, incoming.seeds);
-                const b = mergeSecrets(secrets, incoming.secrets);
-                await restore(a.seeds, b.secrets);
+                const result = await importBackup(code, pw);
                 setPendingCode("");
                 reset();
                 toast.success(
-                  `Imported ${b.added} secrets and ${a.added} seeds; ${a.skipped + b.skipped} duplicates skipped.`,
+                  `Imported ${result.addedSecrets} secrets and ${result.addedSeeds} seeds; ${result.skipped} duplicates skipped.`,
                 );
               })
             }

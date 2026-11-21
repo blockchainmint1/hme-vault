@@ -75,6 +75,12 @@ export function singleSeedTransferPayload(
 /** Hands-off seeds may be viewed, exported or re-shared by this app? */
 export const canRevealSeed = (seed: Pick<SeedEntry, "handsOff">) => seed.handsOff !== true;
 
+/** App-level import guard only; the open format remains independently recoverable. */
+export function assertImportAllowed(payload: Pick<VaultPayload, "seeds">, native: boolean): void {
+  if (!native && payload.seeds.some((seed) => seed.handsOff === true))
+    throw new Error("Hands-off copies can only be received in the phone app.");
+}
+
 /** Backups and device transfers leave out hands-off seeds. */
 export function exportablePayload(payload: Pick<VaultPayload, "seeds" | "secrets">): VaultPayload {
   return { ...emptyVault(), seeds: payload.seeds.filter(canRevealSeed), secrets: payload.secrets };
