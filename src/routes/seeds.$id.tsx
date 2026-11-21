@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { CredentialInput } from "@/components/vault/CredentialInput";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -27,6 +28,7 @@ import {
   REVEAL_HIDE_MS,
   generateTransferPassphrase,
   markSeedShared,
+  canRevealSeed,
   singleSeedTransferPayload,
   TXC_ACCOUNT_PATH,
   TXC_ADDRESS_PATH,
@@ -77,6 +79,7 @@ function SeedPage() {
   const [shareConfirmName, setShareConfirmName] = useState("");
   const [shareGen, setShareGen] = useState("");
   const [bio, setBio] = useState(false);
+  const [shareHandsOff, setShareHandsOff] = useState(true);
 
   useEffect(() => {
     getBiometricStatus().then((s) => setBio(s.enabled));
@@ -92,6 +95,7 @@ function SeedPage() {
     setShareName("");
     setShareConfirmName("");
     setShareGen("");
+    setShareHandsOff(true);
   }
 
   useEffect(() => {
@@ -114,6 +118,7 @@ function SeedPage() {
     );
 
   const words = seed.words.split(" ");
+  const revealable = canRevealSeed(seed);
 
   return (
     <Unlocked title={seed.name} back>
@@ -127,7 +132,13 @@ function SeedPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {!reveal ? (
+            {!revealable ? (
+              <p className="text-sm text-muted-foreground">
+                Hands-off copy. Whoever gave you this seed chose that Vault won't show its words,
+                put it in backups or give another copy. You can still pair it with a wallet, receive
+                and sign.
+              </p>
+            ) : !reveal ? (
               <form
                 className="space-y-2"
                 onSubmit={(e) => {
@@ -185,192 +196,212 @@ function SeedPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Give a copy of this seed</CardTitle>
-            <CardDescription>
-              After this, you and they can both spend from it. You cannot undo it. Another Vault
-              scans encrypted QR codes and adds just this seed.
-            </CardDescription>
-            {seed.sharedAt && (
-              <p className="text-sm font-medium text-destructive">
-                Copy given on {new Date(seed.sharedAt).toLocaleDateString()}
-              </p>
-            )}
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {share === "off" && (
-              <Button variant="outline" onClick={() => setShare("confirm")}>
-                <Share2 className="h-4 w-4 mr-1.5" />
-                Give a copy of this seed
-              </Button>
-            )}
-            {share === "confirm" && (
-              <form
-                className="space-y-2"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (shareConfirmName !== seed.name) setShareErr("Type the seed name exactly.");
-                  else if (checkPassword(shareCred)) {
-                    setShare("password");
-                    setShareName(seed.name);
+        {revealable && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Give a copy of this seed</CardTitle>
+              <CardDescription>
+                After this, you and they can both spend from it. You cannot undo it. Another Vault
+                scans encrypted QR codes and adds just this seed.
+              </CardDescription>
+              {seed.sharedAt && (
+                <p className="text-sm font-medium text-destructive">
+                  Copy given on {new Date(seed.sharedAt).toLocaleDateString()}
+                </p>
+              )}
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {share === "off" && (
+                <Button variant="outline" onClick={() => setShare("confirm")}>
+                  <Share2 className="h-4 w-4 mr-1.5" />
+                  Give a copy of this seed
+                </Button>
+              )}
+              {share === "confirm" && (
+                <form
+                  className="space-y-2"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (shareConfirmName !== seed.name) setShareErr("Type the seed name exactly.");
+                    else if (checkPassword(shareCred)) {
+                      setShare("password");
+                      setShareName(seed.name);
+                      setShareErr("");
+                    } else setShareErr("Wrong password.");
+                    setShareCred("");
+                  }}
+                >
+                  <Label htmlFor="sname">Type “{seed.name}” to confirm</Label>
+                  <Input
+                    id="sname"
+                    value={shareConfirmName}
+                    onChange={(e) => setShareConfirmName(e.target.value)}
+                  />
+                  <Label htmlFor="spw">Vault password or hidden coin QR</Label>
+                  <CredentialInput
+                    id="spw"
+                    type="password"
+                    value={shareCred}
+                    onChange={(e) => setShareCred(e.target.value)}
+                  />
+                  {shareErr && <p className="text-sm text-destructive">{shareErr}</p>}
+                  <div className="flex flex-wrap gap-2">
+                    <Button type="submit" disabled={!shareCred || shareConfirmName !== seed.name}>
+                      Continue
+                    </Button>
+                    {bio && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={shareConfirmName !== seed.name}
+                        onClick={async () => {
+                          if (
+                            await confirmWithBiometric("Give a copy of this seed", checkPassword)
+                          ) {
+                            setShare("password");
+                            setShareName(seed.name);
+                            setShareErr("");
+                          }
+                        }}
+                      >
+                        <Fingerprint className="h-4 w-4 mr-1.5" />
+                        Use fingerprint
+                      </Button>
+                    )}
+                    <Button type="button" variant="ghost" onClick={stopShare}>
+                      Cancel
+                    </Button>
+                  </div>
+                </form>
+              )}
+              {share === "password" && !shareCode && (
+                <form
+                  className="space-y-2"
+                  onSubmit={async (e) => {
+                    e.preventDefault();
                     setShareErr("");
-                  } else setShareErr("Wrong password.");
-                  setShareCred("");
-                }}
-              >
-                <Label htmlFor="sname">Type “{seed.name}” to confirm</Label>
-                <Input
-                  id="sname"
-                  value={shareConfirmName}
-                  onChange={(e) => setShareConfirmName(e.target.value)}
-                />
-                <Label htmlFor="spw">Vault password or hidden coin QR</Label>
-                <CredentialInput
-                  id="spw"
-                  type="password"
-                  value={shareCred}
-                  onChange={(e) => setShareCred(e.target.value)}
-                />
-                {shareErr && <p className="text-sm text-destructive">{shareErr}</p>}
-                <div className="flex flex-wrap gap-2">
-                  <Button type="submit" disabled={!shareCred || shareConfirmName !== seed.name}>
-                    Continue
-                  </Button>
-                  {bio && (
+                    if (sharePw !== sharePw2) return setShareErr("Passwords don't match.");
+                    const v = assessPassword(sharePw);
+                    if (!v.ok) return setShareErr(v.message);
+                    if (checkPassword(sharePw))
+                      return setShareErr(
+                        "Use a different transfer password than your Vault password.",
+                      );
+                    setShareBusy(true);
+                    try {
+                      setShareCode(
+                        await lockTypedText(
+                          JSON.stringify(singleSeedTransferPayload(seed, shareName, shareHandsOff)),
+                          sharePw,
+                        ),
+                      );
+                      setShareGen("");
+                      await save(markSeedShared(seeds, seed.id, Date.now()));
+                      setSharePw("");
+                      setSharePw2("");
+                    } catch (x) {
+                      setShareErr((x as Error).message);
+                    } finally {
+                      setShareBusy(false);
+                    }
+                  }}
+                >
+                  <Label htmlFor="cname">Name for their copy</Label>
+                  <Input
+                    id="cname"
+                    value={shareName}
+                    maxLength={64}
+                    onChange={(e) => setShareName(e.target.value)}
+                  />
+                  <div className="flex items-start gap-2 rounded-md border p-2">
+                    <Checkbox
+                      id="handsoff"
+                      checked={shareHandsOff}
+                      onCheckedChange={(v) => setShareHandsOff(v === true)}
+                    />
+                    <div className="space-y-1">
+                      <Label htmlFor="handsoff">Hands-off copy</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Their Vault won't show the words, back them up or give another copy. They
+                        can still pair, receive and sign. This stops accidents and casual looking,
+                        not a determined, technical person: they hold their own password and could
+                        still dig the seed out. If their phone is lost, they lose this copy.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <Label htmlFor="tpw">New one-time transfer password</Label>
                     <Button
                       type="button"
+                      size="sm"
                       variant="outline"
-                      disabled={shareConfirmName !== seed.name}
-                      onClick={async () => {
-                        if (await confirmWithBiometric("Give a copy of this seed", checkPassword)) {
-                          setShare("password");
-                          setShareName(seed.name);
-                          setShareErr("");
-                        }
+                      onClick={() => {
+                        const g = generateTransferPassphrase();
+                        setSharePw(g);
+                        setSharePw2(g);
+                        setShareGen(g);
                       }}
                     >
-                      <Fingerprint className="h-4 w-4 mr-1.5" />
-                      Use fingerprint
+                      Generate
                     </Button>
+                  </div>
+                  {shareGen && (
+                    <p className="rounded-md border p-2 text-center font-mono text-sm">
+                      {shareGen}
+                      <span className="block text-xs text-muted-foreground font-sans">
+                        Read these six words to them by phone. Hidden once the codes appear.
+                      </span>
+                    </p>
                   )}
-                  <Button type="button" variant="ghost" onClick={stopShare}>
-                    Cancel
-                  </Button>
-                </div>
-              </form>
-            )}
-            {share === "password" && !shareCode && (
-              <form
-                className="space-y-2"
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  setShareErr("");
-                  if (sharePw !== sharePw2) return setShareErr("Passwords don't match.");
-                  const v = assessPassword(sharePw);
-                  if (!v.ok) return setShareErr(v.message);
-                  if (checkPassword(sharePw))
-                    return setShareErr(
-                      "Use a different transfer password than your Vault password.",
-                    );
-                  setShareBusy(true);
-                  try {
-                    setShareCode(
-                      await lockTypedText(
-                        JSON.stringify(singleSeedTransferPayload(seed, shareName)),
-                        sharePw,
-                      ),
-                    );
-                    setShareGen("");
-                    await save(markSeedShared(seeds, seed.id, Date.now()));
-                    setSharePw("");
-                    setSharePw2("");
-                  } catch (x) {
-                    setShareErr((x as Error).message);
-                  } finally {
-                    setShareBusy(false);
-                  }
-                }}
-              >
-                <Label htmlFor="cname">Name for their copy</Label>
-                <Input
-                  id="cname"
-                  value={shareName}
-                  maxLength={64}
-                  onChange={(e) => setShareName(e.target.value)}
-                />
-                <div className="flex items-center justify-between gap-2">
-                  <Label htmlFor="tpw">New one-time transfer password</Label>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      const g = generateTransferPassphrase();
-                      setSharePw(g);
-                      setSharePw2(g);
-                      setShareGen(g);
-                    }}
-                  >
-                    Generate
-                  </Button>
-                </div>
-                {shareGen && (
-                  <p className="rounded-md border p-2 text-center font-mono text-sm">
-                    {shareGen}
-                    <span className="block text-xs text-muted-foreground font-sans">
-                      Read these six words to them by phone. Hidden once the codes appear.
-                    </span>
+                  <Input
+                    id="tpw"
+                    type="password"
+                    value={sharePw}
+                    onChange={(e) => setSharePw(e.target.value)}
+                  />
+                  <Label htmlFor="tpw2">Transfer password again</Label>
+                  <Input
+                    id="tpw2"
+                    type="password"
+                    value={sharePw2}
+                    onChange={(e) => setSharePw2(e.target.value)}
+                  />
+                  {shareErr && <p className="text-sm text-destructive">{shareErr}</p>}
+                  <div className="flex flex-wrap gap-2">
+                    <Button type="submit" disabled={shareBusy || !sharePw}>
+                      {shareBusy ? "Encrypting…" : "Make encrypted QR codes"}
+                    </Button>
+                    <Button type="button" variant="ghost" onClick={stopShare}>
+                      Cancel
+                    </Button>
+                  </div>
+                </form>
+              )}
+              {shareCode && (
+                <div className="flex flex-col items-center gap-2">
+                  <AnimatedQr
+                    value={shareCode}
+                    size={280}
+                    frameSize={PAIRING_PART_SIZE}
+                    intervalMs={1000}
+                  />
+                  <p className="text-center text-xs text-muted-foreground">
+                    On the other phone: Backup → Receive, scan every code, tap “Different key or
+                    older backup?” and type the transfer password. Only this seed is added; nothing
+                    there is replaced.
                   </p>
-                )}
-                <Input
-                  id="tpw"
-                  type="password"
-                  value={sharePw}
-                  onChange={(e) => setSharePw(e.target.value)}
-                />
-                <Label htmlFor="tpw2">Transfer password again</Label>
-                <Input
-                  id="tpw2"
-                  type="password"
-                  value={sharePw2}
-                  onChange={(e) => setSharePw2(e.target.value)}
-                />
-                {shareErr && <p className="text-sm text-destructive">{shareErr}</p>}
-                <div className="flex flex-wrap gap-2">
-                  <Button type="submit" disabled={shareBusy || !sharePw}>
-                    {shareBusy ? "Encrypting…" : "Make encrypted QR codes"}
-                  </Button>
-                  <Button type="button" variant="ghost" onClick={stopShare}>
-                    Cancel
+                  <p className="text-center text-xs text-destructive">
+                    Tell them the password a different way (a phone call), never on this screen.
+                    Hides in 60 seconds.
+                  </p>
+                  <Button variant="secondary" onClick={stopShare}>
+                    Stop sharing
                   </Button>
                 </div>
-              </form>
-            )}
-            {shareCode && (
-              <div className="flex flex-col items-center gap-2">
-                <AnimatedQr
-                  value={shareCode}
-                  size={280}
-                  frameSize={PAIRING_PART_SIZE}
-                  intervalMs={1000}
-                />
-                <p className="text-center text-xs text-muted-foreground">
-                  On the other phone: Backup → Receive, scan every code, tap “Different key or older
-                  backup?” and type the transfer password. Only this seed is added; nothing there is
-                  replaced.
-                </p>
-                <p className="text-center text-xs text-destructive">
-                  Tell them the password a different way (a phone call), never on this screen. Hides
-                  in 60 seconds.
-                </p>
-                <Button variant="secondary" onClick={stopShare}>
-                  Stop sharing
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader>

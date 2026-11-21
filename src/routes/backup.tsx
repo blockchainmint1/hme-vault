@@ -129,15 +129,23 @@ function ExportPanel({ mode }: { mode: "file" | "send" }) {
     }
   }
   const accounts = secrets.filter((s) => s.type === "totp").length;
+  const handsOff = seeds.filter((s) => s.handsOff).length;
   return (
     <section className="space-y-4 py-4">
       <h2 className="text-lg font-semibold">
         {mode === "send" ? "Copy to another Vault" : "Save an encrypted backup"}
       </h2>
       <p className="text-sm">
-        {seeds.length} seeds · {secrets.length - accounts} secrets · {accounts} authenticator
-        accounts
+        {seeds.length - handsOff} seeds · {secrets.length - accounts} secrets · {accounts}{" "}
+        authenticator accounts
       </p>
+      {handsOff > 0 && (
+        <p className="text-sm text-muted-foreground">
+          {handsOff} hands-off {handsOff === 1 ? "seed is" : "seeds are"} left out. Someone gave you{" "}
+          {handsOff === 1 ? "it" : "them"} on the condition that Vault never exports{" "}
+          {handsOff === 1 ? "it" : "them"}.
+        </p>
+      )}
       <p className="text-sm text-muted-foreground">
         Encrypted with your current Vault key, including your extra secret word if set. No separate
         backup password. Keep both safe and separate from the backup. Changing your Vault key does

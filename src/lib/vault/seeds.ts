@@ -28,6 +28,12 @@ export interface SeedEntry {
   createdAt: number;
   /** When a copy of this seed was last given away (ms). Lives in the locked vault only. */
   sharedAt?: number;
+  /**
+   * Received as a hands-off copy: this app never shows the words, exports them in a backup,
+   * or gives another copy. An app-level restriction only; the receiver's own credential
+   * still decrypts the open HMVAULT1 format.
+   */
+  handsOff?: true;
 }
 
 export interface VaultPayload {
@@ -48,7 +54,12 @@ export const emptyVault = (): VaultPayload => ({
  * Single-seed transfer: an ordinary HMVAULT1 vault payload holding exactly one seed
  * (allowlisted fields only) and no secrets, so any existing import path reads it additively.
  */
-export function singleSeedTransferPayload(seed: SeedEntry, copyName?: string): VaultPayload {
+export function singleSeedTransferPayload(
+  seed: SeedEntry,
+  copyName?: string,
+  handsOff = false,
+): VaultPayload {
+  if (seed.handsOff) throw new Error("This seed was received hands-off and can't be shared.");
   const entry: SeedEntry = {
     id: seed.id,
     name: copyName?.trim() ? cleanSeedName(copyName) : seed.name,
@@ -57,7 +68,16 @@ export function singleSeedTransferPayload(seed: SeedEntry, copyName?: string): V
     createdAt: seed.createdAt,
   };
   if (seed.passphrase) entry.passphrase = seed.passphrase;
+  if (handsOff) entry.handsOff = true;
   return { ...emptyVault(), seeds: [entry], secrets: [] };
+}
+
+/** Hands-off seeds may be viewed, exported or re-shared by this app? */
+export const canRevealSeed = (seed: Pick<SeedEntry, "handsOff">) => seed.handsOff !== true;
+
+/** Backups and device transfers leave out hands-off seeds. */
+export function exportablePayload(payload: Pick<VaultPayload, "seeds" | "secrets">): VaultPayload {
+  return { ...emptyVault(), seeds: payload.seeds.filter(canRevealSeed), secrets: payload.secrets };
 }
 
 /** Six random BIP39 words for a transfer password that is easy to read aloud. */
@@ -134,7 +154,8 @@ export function parsePayload(text: string): VaultPayload {
       !isValidSeed(s.words) ||
       !Number.isFinite(s.createdAt) ||
       (s.passphrase !== undefined && typeof s.passphrase !== "string") ||
-      (s.sharedAt !== undefined && !Number.isFinite(s.sharedAt))
+      (s.sharedAt !== undefined && !Number.isFinite(s.sharedAt)) ||
+      (s.handsOff !== undefined && s.handsOff !== true)
     )
       throw new Error("Invalid seed in backup.");
     const words = normalizeSeed(s.words);
@@ -148,6 +169,7 @@ export function parsePayload(text: string): VaultPayload {
       fingerprint: seedFingerprint(words, passphrase ?? ""),
       createdAt: s.createdAt,
       ...(s.sharedAt !== undefined ? { sharedAt: s.sharedAt } : {}),
+      ...(s.handsOff === true ? { handsOff: true as const } : {}),
     };
     if (seeds.some((e) => sameSeed(e, entry))) continue;
     seeds.push(entry);

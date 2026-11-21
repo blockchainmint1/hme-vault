@@ -15,6 +15,7 @@ import { lockText, unlockText } from "./format";
 import {
   emptyVault,
   encryptVaultBackup,
+  exportablePayload,
   hasNewVaultEntries,
   mergeVaultBackup,
   lockoutMs,
@@ -194,7 +195,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
   const exportBackup = useCallback(async () => {
     if (pw.current === null) throw new Error("Vault is locked.");
     const version = generation.current;
-    const code = await encryptVaultBackup({ ...emptyVault(), ...data.current }, pw.current);
+    const code = await encryptVaultBackup(exportablePayload(data.current), pw.current);
     if (generation.current !== version) throw new Error("Vault locked. Unlock and try again.");
     return code;
   }, []);
