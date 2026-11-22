@@ -1,6 +1,10 @@
 # HME Vault → Seeds: pre-implementation security assessment
 
-Date: 2026-11-22. Status: **assessment only; implementation awaiting owner decision**.
+Date: 2026-11-22. Status: **owner requires signed requests; production activation awaits upstream provisioning**.
+
+## Owner decision and preparation update (15:06 UTC)
+
+Bobby selected **Require signed requests**, with no manual/unsigned fallback. A fresh Seeds Key snapshot at `f5a315cf` now implements signed v2 request verification and keeps production trust empty. SEEDS remains `10288a21` and must provision the request signer and issue the matching signed manifest. Vault's matching offline verifier is being prepared separately from the still-unimplemented delegation UI. The historical findings below describe the earlier snapshots; S1 is now addressed in the Key protocol design, but the production signing key is not yet provisioned/pinned. See `docs/seeds-signed-request-handoff.md` for the current coordinated contract and remaining gates.
 
 ## Reviewed inputs and recorded heads
 
@@ -28,7 +32,7 @@ The Key-side checks in `vault-link.ts:56–91` correctly bind the returned signa
 
 **Recommended coordinated fix:** authenticate a versioned, canonical request with a SEEDS signing key. Bind domain, Key host, challenge ID, challenge, recipient encryption key, pocket, issue/expiry times and any displayed authorization-relevant app identity. Pin its verification key in Vault with an explicit rotation/release policy. Verify before showing approval or deriving private keys; reject missing/invalid signatures, field substitutions and unrecognized versions. The private signing key remains only on SEEDS, never in Vault or Seeds Key. This requires upstream changes and an updated compatibility test; do not fabricate a verification key or claim current v1 is authenticated.
 
-Owner may instead explicitly accept existing trusted-browser/manual comparison with clear limitations. Never label that alternative as cryptographically sealed *only to Seeds*.
+Owner explicitly rejected the trusted-browser/manual-only alternative. Never offer an unsigned fallback or label a host-name check as cryptographically sealed *only to Seeds*.
 
 ## Finding S2: existing seed passphrase is silently ignored
 

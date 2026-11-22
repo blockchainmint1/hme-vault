@@ -1,5 +1,7 @@
 # Signer rules
 
+- Seeds delegation request authentication lives in `seeds-request.ts`, with immutable validated fields, fixed-order v2 canonical bytes and a release-pinned trust map; the production reader never accepts injected trust. Why: recipient identity must be verified offline before any later private-key derivation, without changing payment signer dependencies.
+
 - QR collectors bound cumulative unique chunk characters before storing for both HMQR2 and legacy HMQR; duplicates do not consume the budget. Why: incomplete hostile streams must not bypass the assembled-text limit.
 - Outgoing PSBT and EVM signed QR displays explicitly select the signing chunk policy rather than changing shared transfer defaults. Why: webcam tuning must not alter backup exports or incoming wallet requests.
 
