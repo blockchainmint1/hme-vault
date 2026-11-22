@@ -54,8 +54,9 @@ A request must be JSON, signed by a key Vault already trusts, and must contain:
 Vault refuses: an unknown signing key, a tampered signature, an expired or
 not-yet-valid window, a pocket other than 1106, a path list that differs from
 the profile's, or a request over the size limit. A refusal never reveals which
-check failed except for the deliberate "waiting for Seeds' verified signing
-key" message, which tells the owner the link is not provisioned yet.
+check failed except for the deliberate "signed by a key this Vault doesn't
+trust" message, which tells the owner to update Vault (for example after a key
+rotation).
 
 ## What the owner sees
 
@@ -109,22 +110,32 @@ BCH, ZEC, XRP, TRX, SOL, DASH, ATOM, RUNE, ADA, XMR. The answer is never
 persisted, never added to a backup, and is dropped when the screen is left or
 Vault locks.
 
-## What is still missing before this can be used live
+## SEEDS' pinned signing key
 
-`SEEDS_PROFILE.trust` is **empty**. Until SEEDS supplies an independently
-verified signing public key, every real request is refused. That is the intended
-state, not a bug.
+Pinned on 2026-11-22 in `SEEDS_REQUEST_KEYS` (`src/lib/signer/seeds-request.ts`):
 
-To turn it on, someone must:
+| Field | Value |
+|---|---|
+| `signing_key_id` | `seeds-vault-2026-11` |
+| Public key (Ed25519, base64url, 32 bytes) | `KuDdTWX-bDwxkSff2lULKVwvUS_Dfa0tZLy_iWefuxc` |
+| SHA-256 of the decoded bytes | `b81366bf60017f6ce50379f3dea1868c18c311bec9ba31292116e6552163307c` |
 
-1. Obtain SEEDS' signing public key out of band (not from a QR, not from the
-   request).
-2. Verify it against SEEDS' own published record.
-3. Pin it in `src/lib/signer/branch-access.ts` with its key id and date.
-4. Re-run the safety suite and get an independent audit of the pinned value.
+All four checks in SEEDS' release record matched before pinning: the record
+itself (`docs/vault-request-signer.md` in SEEDS), the live
+`seeds.honest.money/api/public/key-signin/vault-signer` endpoint (checked by a
+person; Vault never fetches it), the owner reading the fingerprint on his own
+phone, and a recomputed fingerprint. SEEDS' production-signed, already-expired
+example is kept at `src/lib/signer/fixtures/seeds-production-example-request.json`
+and verifies at its own clock, which proves Vault's canonical bytes match the
+real signer.
 
-Then a funded test on a real phone: request from SEEDS, scan, confirm, and check
-that SEEDS can actually spend from the pocket it received.
+Before members use it: independent review of the pin, a gated APK build, and a
+phone round-trip with a disposable, unfunded seed (request from SEEDS, scan,
+confirm, and check that SEEDS received the pocket).
+
+Rotation follows SEEDS' record: add the new id beside the old one in a reviewed
+release, wait for an audited overlap so offline phones update, then remove the
+old id.
 
 ## Reserved for the next contract version
 

@@ -27,8 +27,19 @@ export const SEEDS_POCKET_PATHS: readonly string[] = Object.freeze([
 ]);
 
 export type SeedsRequestTrust = Readonly<Record<string, string>>;
-/** Deliberately empty until SEEDS supplies an independently verified production public key. */
-export const SEEDS_REQUEST_KEYS: SeedsRequestTrust = Object.freeze({});
+/**
+ * SEEDS' production request-signing public key (Ed25519, 32 bytes, base64url).
+ * Pinned 2026-11-22. SHA-256 of the decoded bytes:
+ * b81366bf60017f6ce50379f3dea1868c18c311bec9ba31292116e6552163307c.
+ * Four sources matched before pinning: the SEEDS release record
+ * (docs/vault-request-signer.md), the live seeds.honest.money signer endpoint
+ * (checked by a person; Vault never fetches it), the owner reading the
+ * fingerprint on his own phone, and a recomputed fingerprint. Rotation adds a
+ * new id alongside this one in a reviewed release; never edit a value in place.
+ */
+export const SEEDS_REQUEST_KEYS: SeedsRequestTrust = Object.freeze({
+  "seeds-vault-2026-11": "KuDdTWX-bDwxkSff2lULKVwvUS_Dfa0tZLy_iWefuxc",
+});
 
 export interface SignedSeedsRequest {
   readonly type: typeof SEEDS_VAULT_REQUEST;
@@ -157,7 +168,10 @@ export function verifySignedSeedsRequest(
   )
     throw new Error(BAD);
   const key = Object.hasOwn(trust, r.signing_key_id) ? trust[r.signing_key_id] : undefined;
-  if (!key) throw new Error("Vault linking is waiting for Seeds' verified signing key.");
+  if (!key)
+    throw new Error(
+      "This request was signed by a key this Vault doesn't trust. Update Vault, then start again on Seeds.",
+    );
   let verified = false;
   try {
     verified = ed25519.verify(decode(r.request_sig, 64), seedsRequestBytes(r), decode(key, 32), {

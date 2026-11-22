@@ -8,9 +8,9 @@
  * private key. Adding a second service means adding a profile here, not a new
  * screen.
  *
- * Production trust (`SEEDS_REQUEST_KEYS`) is deliberately empty, so the app path
- * stays inert until a reviewed public key is pinned. Tests pass a fixture trust
- * to exercise the same code; the UI never supplies trust.
+ * Production trust is `SEEDS_REQUEST_KEYS`, which pins SEEDS' reviewed signing
+ * key. Tests pass a fixture trust to exercise the same code; the UI never
+ * supplies trust.
  */
 import { pairingCode } from "@/lib/key-signin/rules";
 import {

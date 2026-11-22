@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { sha256 } from "@noble/hashes/sha2.js";
+import { bytesToHex } from "@noble/hashes/utils.js";
 import { describe, expect, it } from "vitest";
 import { ed25519, x25519 } from "@noble/curves/ed25519";
 import { base64urlnopad } from "@scure/base";
@@ -38,11 +41,67 @@ function request(overrides: Partial<Omit<SignedSeedsRequest, "request_sig">> = {
   };
 }
 
-describe("Seeds signed-request protection", () => {
-  it("keeps production disabled without an independently verified Seeds key", () => {
-    expect(Object.keys(SEEDS_REQUEST_KEYS)).toEqual([]);
-    expect(() => readSeedsRequest(JSON.stringify(request()))).toThrow(/verified signing key/);
+/** SEEDS' own harmless example, signed with the production key (docs/vault-request-signer.md in SEEDS). */
+const PRODUCTION_EXAMPLE = readFileSync(
+  new URL("./fixtures/seeds-production-example-request.json", import.meta.url),
+  "utf8",
+);
+const EXAMPLE_CLOCK = Date.parse("2026-01-01T00:05:00.000Z");
+
+describe("SEEDS' pinned production signing key", () => {
+  it("pins exactly one reviewed key id and value", () => {
+    expect(SEEDS_REQUEST_KEYS).toEqual({
+      "seeds-vault-2026-11": "KuDdTWX-bDwxkSff2lULKVwvUS_Dfa0tZLy_iWefuxc",
+    });
+    expect(Object.isFrozen(SEEDS_REQUEST_KEYS)).toBe(true);
   });
+
+  it("matches the fingerprint the owner confirmed on his phone", () => {
+    const key = base64urlnopad.decode(SEEDS_REQUEST_KEYS["seeds-vault-2026-11"]!);
+    expect(key).toHaveLength(32);
+    expect(bytesToHex(sha256(key))).toBe(
+      "b81366bf60017f6ce50379f3dea1868c18c311bec9ba31292116e6552163307c",
+    );
+  });
+
+  it("verifies SEEDS' production-signed example at its own clock", () => {
+    const r = verifySignedSeedsRequest(
+      JSON.parse(PRODUCTION_EXAMPLE),
+      SEEDS_REQUEST_KEYS,
+      EXAMPLE_CLOCK,
+    );
+    expect(r.signing_key_id).toBe("seeds-vault-2026-11");
+    expect(r.pocket).toBe(1106);
+    expect(r.paths).toEqual([...SEEDS_POCKET_PATHS]);
+  });
+
+  it("refuses that example with the real clock, because it expired", () => {
+    expect(() => readSeedsRequest(PRODUCTION_EXAMPLE)).toThrow(/expired/);
+  });
+
+  it("refuses the example if any signed field is changed", () => {
+    const x = JSON.parse(PRODUCTION_EXAMPLE) as Record<string, unknown>;
+    for (const [field, value] of Object.entries({
+      challenge: "0".repeat(47) + "2",
+      recipient_pubkey: base64urlnopad.encode(x25519.getPublicKey(new Uint8Array(32).fill(7))),
+      expires_at: "2026-01-01T00:09:00.000Z",
+    }))
+      expect(() =>
+        verifySignedSeedsRequest({ ...x, [field]: value }, SEEDS_REQUEST_KEYS, EXAMPLE_CLOCK),
+      ).toThrow();
+  });
+
+  it("the production reader refuses a request signed by any other key", () => {
+    expect(() => readSeedsRequest(JSON.stringify(request()))).toThrow(/doesn't trust/);
+  });
+
+  it("a different key cannot reuse the pinned id", () => {
+    const r = request({ signing_key_id: "seeds-vault-2026-11" });
+    expect(() => verifySignedSeedsRequest(r, SEEDS_REQUEST_KEYS, NOW)).toThrow();
+  });
+});
+
+describe("Seeds signed-request protection", () => {
   it("refuses unsigned requests with otherwise valid live hosts and pocket 1106", () => {
     const { request_sig, ...unsigned } = request();
     expect(() => verifySignedSeedsRequest(unsigned, TEST_TRUST, NOW)).toThrow();
@@ -131,11 +190,11 @@ describe("Seeds signed-request protection", () => {
   it("does not trust a signing key supplied inside the QR", () => {
     expect(() =>
       readSeedsRequest(JSON.stringify({ ...request(), signing_pubkey: TEST_TRUST["test-only"] })),
-    ).toThrow(/verified signing key/);
+    ).toThrow(/doesn't trust/);
   });
   it("does not accept inherited trust entries", () => {
     const trust = Object.create(TEST_TRUST) as Record<string, string>;
-    expect(() => verifySignedSeedsRequest(request(), trust, NOW)).toThrow(/verified signing key/);
+    expect(() => verifySignedSeedsRequest(request(), trust, NOW)).toThrow(/doesn't trust/);
   });
   it("returns an immutable copy with no attacker-controlled app name or key", () => {
     const paths = [...SEEDS_POCKET_PATHS];

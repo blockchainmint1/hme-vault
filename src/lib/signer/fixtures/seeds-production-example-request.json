@@ -1,0 +1,32 @@
+{
+  "type": "hm-seeds-key-vault-request",
+  "v": 2,
+  "signing_key_id": "seeds-vault-2026-11",
+  "domain": "seeds.honest.money",
+  "key_host": "key.seeds.honest.money",
+  "challenge_id": "00000000000000000000000000000001",
+  "challenge": "000000000000000000000000000000000000000000000001",
+  "recipient_pubkey": "3EqsiBghHmyfs5TMsNBdKbJKEbo95DJM5WdhNDEQqWo",
+  "pocket": 1106,
+  "issued_at": "2026-01-01T00:00:00.000Z",
+  "expires_at": "2026-01-01T00:10:00.000Z",
+  "paths": [
+    "m/44'/696969'/1106'",
+    "m/44'/969696'/1106'",
+    "m/84'/0'/1106'",
+    "m/44'/2'/1106'",
+    "m/44'/60'/1106'",
+    "m/44'/3'/1106'",
+    "m/44'/145'/1106'",
+    "m/44'/133'/1106'",
+    "m/44'/144'/1106'",
+    "m/44'/195'/1106'",
+    "m/44'/501'/1106'/0'",
+    "m/44'/5'/1106'",
+    "m/44'/118'/1106'",
+    "m/44'/931'/1106'",
+    "m/1852'/1815'/1106'",
+    "m/44'/128'/1106'"
+  ],
+  "request_sig": "aSLdBvjd3AiIFXfA8jUEJeGxUdUAnIr6SgnQ8vmJCCk5zF3NL4zMb_UskaVoqjEiyEFzW3_7zJb-O07880C4DQ"
+}

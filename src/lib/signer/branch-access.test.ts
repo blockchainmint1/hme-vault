@@ -1,9 +1,10 @@
 /**
  * Branch-access gating. Every request here is signed by a public, deterministic
  * test key that is never installed in production trust; the app path is checked
- * separately to prove it stays inert until a reviewed key is pinned.
+ * separately to prove only SEEDS' pinned production key opens it.
  */
-import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { describe, expect, it, vi } from "vitest";
 import { ed25519, x25519 } from "@noble/curves/ed25519.js";
 import { hkdf } from "@noble/hashes/hkdf.js";
 import { sha256 } from "@noble/hashes/sha2.js";
@@ -25,6 +26,11 @@ import {
   seedsRequestBytes,
 } from "@/lib/signer/seeds-request";
 import type { SeedEntry } from "@/lib/vault/seeds";
+
+const PRODUCTION_EXAMPLE = readFileSync(
+  new URL("./fixtures/seeds-production-example-request.json", import.meta.url),
+  "utf8",
+);
 
 const TEST_SIGNING_SECRET = new Uint8Array(32).fill(42);
 const TEST_TRUST = {
@@ -107,15 +113,26 @@ async function openPayload(payload: string): Promise<Record<string, string>> {
   return JSON.parse(new TextDecoder().decode(plain)) as Record<string, string>;
 }
 
-describe("the app path stays inert until a reviewed key is pinned", () => {
-  it("production trust is empty", () => {
-    expect(Object.keys(SEEDS_REQUEST_KEYS).length).toBe(0);
+describe("the app path trusts only SEEDS' pinned production key", () => {
+  it("production trust is exactly the reviewed SEEDS key", () => {
+    expect(Object.keys(SEEDS_REQUEST_KEYS)).toEqual(["seeds-vault-2026-11"]);
   });
 
-  it("a correctly signed request is still refused without a pinned key", () => {
-    expect(() => readBranchRequest(signedRequest())).toThrow(
-      /waiting for Seeds' verified signing key/,
-    );
+  it("a request signed by any other key is refused", () => {
+    expect(() => readBranchRequest(signedRequest())).toThrow(/doesn't trust/);
+  });
+
+  it("SEEDS' production-signed example opens the review screen at its own clock", () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(Date.parse("2026-01-01T00:05:00.000Z"));
+      const r = readBranchRequest(PRODUCTION_EXAMPLE);
+      expect(r.service).toBe("Seeds Exchange");
+      expect(r.pocket).toBe(1106);
+      expect(r.paths).toEqual([...SEEDS_POCKET_PATHS]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("only the Seeds profile exists today", () => {
@@ -124,7 +141,7 @@ describe("the app path stays inert until a reviewed key is pinned", () => {
 
   it("every profile's production trust holds only reviewed key ids", () => {
     // Pinning a key means updating this table in the same reviewed change.
-    const REVIEWED: Record<string, string[]> = { seeds: [] };
+    const REVIEWED: Record<string, string[]> = { seeds: ["seeds-vault-2026-11"] };
     expect(BRANCH_PROFILES.map((p) => p.id).sort()).toEqual(Object.keys(REVIEWED).sort());
     for (const p of BRANCH_PROFILES) {
       expect(Object.keys(p.productionTrust).sort()).toEqual(REVIEWED[p.id]);
