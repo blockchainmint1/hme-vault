@@ -88,11 +88,21 @@ export function signTxcMessage(
   return { address, signature: base64.encode(out) };
 }
 
+/**
+ * Optional BIP39 extra password ("25th word"). "" = none, so coin and wallet flows are unchanged.
+ * NFKD-normalised once here, so the BIP39 seed (which normalises anyway) and Cardano's Icarus
+ * key get the same bytes. Any other password is a different wallet with a different identity.
+ */
+export function seedPassphrase(passphrase: unknown = ""): string {
+  if (typeof passphrase !== "string") throw new Error("That extra password isn't valid");
+  return passphrase.normalize("NFKD");
+}
+
 /** The coin's sign-in identity: TXC m/44'/696969'/0'/0/0 (the same address HME Wallet signs links with). */
-export function coinIdentityKey(words: string): Uint8Array {
+export function coinIdentityKey(words: string, passphrase = ""): Uint8Array {
   const phrase = normalizeMnemonic(words);
   if (!validateMnemonic(phrase, wordlist)) throw new Error("That recovery phrase isn't valid");
-  const seed = mnemonicToSeedSync(phrase);
+  const seed = mnemonicToSeedSync(phrase, seedPassphrase(passphrase));
   const root = HDKey.fromMasterSeed(seed);
   try {
     const node = root.derive("m/44'/696969'/0'/0/0");
@@ -131,9 +141,14 @@ export async function buildHandoff(p: {
   kind: KeyKind;
   identity: string;
   account?: number;
+  passphrase?: string;
 }) {
   const account = p.account ?? p.manifest.pocket;
-  const bundle = pocketsFromMnemonic(p.words, { account });
+  // Same extra password as coinIdentityKey, or the pocket and the identity come from different wallets.
+  const bundle = pocketsFromMnemonic(p.words, {
+    account,
+    passphrase: seedPassphrase(p.passphrase ?? ""),
+  });
   const sealed = await sealTo(
     p.manifest.recipient_pubkey,
     enc.encode(JSON.stringify(bundle.xprvs)),

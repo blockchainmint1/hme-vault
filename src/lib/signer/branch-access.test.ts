@@ -39,6 +39,9 @@ const TEST_TRUST = {
 const RECIPIENT_SECRET = new Uint8Array(32).fill(7);
 const RECIPIENT_PUB = base64urlnopad.encode(x25519.getPublicKey(RECIPIENT_SECRET));
 
+/** TXC identity for WORDS + extra password "TREZOR", from the official BIP39 vector seed. */
+const TREZOR_IDENTITY = "TwxEiJxUHv6Qx8tUzdk2XfXzv9q4yt7j8V";
+
 const WORDS =
   "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
 
@@ -219,11 +222,36 @@ describe("the approved answer", () => {
     );
   });
 
-  it("refuses a seed with a passphrase, whose pocket would be a different wallet", async () => {
+  it("hands over the extra-password wallet, never the bare-words wallet or the password", async () => {
     const r = readBranchRequest(signedRequest(), TEST_TRUST);
-    await expect(buildBranchAnswer(r, seed({ passphrase: "extra" }), "Trading")).rejects.toThrow(
-      /passphrase/i,
-    );
+    const plain = JSON.parse(await buildBranchAnswer(r, seed(), "Trading")) as {
+      body: { identity_address: string; xpubs: Record<string, string>; payload: string };
+    };
+    const answer = await buildBranchAnswer(r, seed({ passphrase: "TREZOR" }), "Trading");
+    expect(answer).not.toContain("TREZOR");
+    const extra = JSON.parse(answer) as typeof plain;
+    // Same identity Vault itself shows for this seed and password (BIP39 vector seed).
+    expect(extra.body.identity_address).toBe(TREZOR_IDENTITY);
+    expect(extra.body.identity_address).not.toBe(plain.body.identity_address);
+    for (const coin of POCKET_COINS)
+      expect(extra.body.xpubs[coin]).not.toBe(plain.body.xpubs[coin]);
+    const xprvs = await openPayload(extra.body.payload);
+    expect(Object.keys(xprvs).sort()).toEqual([...POCKET_COINS].sort());
+    expect(JSON.stringify(xprvs)).not.toContain("TREZOR");
+  });
+
+  it("gives the same pocket however the phone's keyboard composed the extra password", async () => {
+    const r = readBranchRequest(signedRequest(), TEST_TRUST);
+    const xpubs = async (passphrase: string) =>
+      (
+        JSON.parse(await buildBranchAnswer(r, seed({ passphrase }), "Trading")) as {
+          body: { identity_address: string; xpubs: Record<string, string> };
+        }
+      ).body;
+    const composed = await xpubs("caf\u00e9");
+    const decomposed = await xpubs("cafe\u0301");
+    expect(decomposed.identity_address).toBe(composed.identity_address);
+    expect(decomposed.xpubs).toEqual(composed.xpubs);
   });
 
   it("refuses an approved request whose scope was altered after reading", async () => {

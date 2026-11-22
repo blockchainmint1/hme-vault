@@ -139,8 +139,8 @@ function BranchFlow() {
     }
   }
 
-  // Hands-off copies never share; passphrase seeds would hand over a different wallet.
-  const usable = useMemo(() => seeds.filter((s) => s.handsOff !== true && !s.passphrase), [seeds]);
+  // Hands-off copies never share a trading pocket.
+  const usable = useMemo(() => seeds.filter((s) => s.handsOff !== true), [seeds]);
   const seed = usable.find((s) => s.id === seedId);
   const nameOk = seed ? seedNameConfirmed(typedName, seed) : false;
 
@@ -349,7 +349,7 @@ function BranchFlow() {
         )}
         {seeds.length > usable.length && (
           <p className="text-xs text-muted-foreground">
-            Hands-off copies and seeds with a passphrase can't share a trading pocket.
+            Hands-off copies can't share a trading pocket.
           </p>
         )}
       </div>

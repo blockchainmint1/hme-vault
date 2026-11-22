@@ -100,7 +100,10 @@ function seedsAnswer(request: BranchRequest, seed: SeedEntry): Promise<string> {
     issued_at: r.issued_at,
     expires_at: r.expires_at,
   };
-  const key = coinIdentityKey(seed.words);
+  // The stored extra password goes to Seeds Key's own code for both the identity
+  // and the pocket, so the hand-over is the same wallet this Vault shows.
+  const passphrase = seed.passphrase ?? "";
+  const key = coinIdentityKey(seed.words, passphrase);
   // The key has to outlive the async sealing, so it is cleared on every exit
   // path of the promise rather than in a synchronous finally.
   const finish = (error?: unknown): Promise<string> => {
@@ -120,6 +123,7 @@ function seedsAnswer(request: BranchRequest, seed: SeedEntry): Promise<string> {
     kind: "coin",
     identity,
     account: SEEDS_POCKET,
+    passphrase,
   })
     .then(async (h) => {
       // The derivation must have produced exactly the scope the owner approved.
@@ -167,9 +171,6 @@ export const SEEDS_BRANCH_PROFILE: BranchProfile = {
   async buildAnswer(request, seed) {
     if (request.profileId !== "seeds") throw new Error("That request is for a different service.");
     if (!canRevealSeed(seed)) throw new Error("Hands-off copies can't share a trading pocket.");
-    // Seeds' contract derives from the words alone; a passphrase seed would hand
-    // over a different wallet than the one this Vault shows.
-    if (seed.passphrase) throw new Error("Seeds with a passphrase can't share a trading pocket.");
     assertScopeWithinPolicy(request.paths, request.pocket, SEEDS_POLICY);
     requireLive(request);
     return seedsAnswer(request, seed);

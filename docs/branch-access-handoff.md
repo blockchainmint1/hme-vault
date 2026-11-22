@@ -36,9 +36,14 @@ a derivation path the profile did not pin.
   screen appears. No widening, and no partial approval.
 - After derivation, the derived path list must equal the approved list before
   anything is signed.
-- Seeds with a BIP39 passphrase are refused: the contract derives from the
-  words alone, so a passphrase seed would hand over a different wallet than the
-  one Vault shows.
+- Seeds with a BIP39 passphrase (extra password) are supported. Vault passes
+  the stored password unchanged to Seeds Key's own copied `coinIdentityKey` and
+  `buildHandoff`, which normalise it once (NFKD) and use it for the identity and
+  all 16 families, Cardano included. The password never appears in the answer.
+  Vault writes no passphrase-aware derivation of its own. Tests check the
+  identity against the official BIP39 "TREZOR" vector seed and against the first
+  TXC address Vault itself shows for that seed, and check that composed and
+  decomposed accented passwords produce the same pocket.
 
 ## What the service must send
 
@@ -66,7 +71,7 @@ rotation).
 3. The mandatory consequence sentences (shared by every profile): the service
    can spend from the pocket until the coins are moved out, and revoking access
    on the service does not take the keys back. The exact paths are one tap away.
-4. A seed picker. Hands-off seeds and passphrase seeds are excluded.
+4. A seed picker. Hands-off seeds are excluded.
 5. Typing the seed's exact name (as for "Give a copy"), then confirmation with
    the Vault password, or fingerprint when enrolled.
 6. A private record ("pocket 1106 · Seeds Exchange · date") is saved inside the

@@ -5,7 +5,16 @@
  * Copying these modules is only safe while this file keeps passing.
  */
 import { describe, expect, it } from "vitest";
-import { coinIdentityKey, signTxcMessage } from "@/lib/key-signin/seeds-key-reference";
+import { HDKey } from "@scure/bip32";
+import { createBase58check, hex } from "@scure/base";
+import { sha256 } from "@noble/hashes/sha2.js";
+import { ripemd160 } from "@noble/hashes/legacy.js";
+import {
+  coinIdentityKey,
+  seedPassphrase,
+  signTxcMessage,
+} from "@/lib/key-signin/seeds-key-reference";
+import { receivingAddress } from "@/lib/vault/seeds";
 import { pairingCode } from "@/lib/key-signin/rules";
 import { pocketsFromMnemonic } from "@/lib/pockets/derive";
 import { POCKET_COINS } from "@/lib/pockets/coins";
@@ -70,5 +79,64 @@ describe("pocket derivation matches Seeds Key exactly", () => {
 
   it("match code is the shared three-digit pairing code", () => {
     expect(pairingCode("c".repeat(48))).toBe("673");
+  });
+});
+
+describe("extra password (BIP39 passphrase) matches the standard and this Vault", () => {
+  // Official BIP39 test vector: these words + "TREZOR" give this seed.
+  const TREZOR_SEED =
+    "c55257c360c07c72029aebc1b53c05ed0362ada38ead3e3e9efa3708e53495531f09a6987599d18264c1e1c92f2cf141630c7a3c4ab7c81b2f001698e7463b04";
+
+  it("identity equals the address derived straight from the BIP39 vector seed", () => {
+    const node = HDKey.fromMasterSeed(hex.decode(TREZOR_SEED)).derive("m/44'/696969'/0'/0/0");
+    const independent = createBase58check(sha256).encode(
+      Uint8Array.of(66, ...ripemd160(sha256(node.publicKey!))),
+    );
+    expect(independent).toBe("TwxEiJxUHv6Qx8tUzdk2XfXzv9q4yt7j8V");
+    expect(signTxcMessage(coinIdentityKey(PHRASE, "TREZOR"), "x").address).toBe(independent);
+  });
+
+  it("identity is the same first TXC address Vault shows for that seed and password", async () => {
+    const shown = await receivingAddress(PHRASE, "TREZOR", "TXC");
+    expect(shown.path).toBe("m/44'/696969'/0'/0/0");
+    expect(signTxcMessage(coinIdentityKey(PHRASE, "TREZOR"), "x").address).toBe(shown.address);
+  });
+
+  it("no password keeps the original identity and pocket", () => {
+    expect(signTxcMessage(coinIdentityKey(PHRASE, ""), "x").address).toBe(
+      "TZZCuca5ntPVCJL5ryTjh465Jvw5vHxsVd",
+    );
+    expect(pocketsFromMnemonic(PHRASE, { account: 1106, passphrase: seedPassphrase("") })).toEqual(
+      pocketsFromMnemonic(PHRASE, { account: 1106 }),
+    );
+  });
+
+  it("a password changes every one of the 16 pocket keys", () => {
+    const plain = pocketsFromMnemonic(PHRASE, { account: 1106 });
+    const extra = pocketsFromMnemonic(PHRASE, {
+      account: 1106,
+      passphrase: seedPassphrase("TREZOR"),
+    });
+    for (const coin of POCKET_COINS) expect(extra.xpubs[coin]).not.toBe(plain.xpubs[coin]);
+  });
+
+  it("composed and decomposed accents give the same wallet on every chain, Cardano included", () => {
+    expect(seedPassphrase("caf\u00e9")).toBe(seedPassphrase("cafe\u0301"));
+    const a = pocketsFromMnemonic(PHRASE, {
+      account: 1106,
+      passphrase: seedPassphrase("caf\u00e9"),
+    });
+    const b = pocketsFromMnemonic(PHRASE, {
+      account: 1106,
+      passphrase: seedPassphrase("cafe\u0301"),
+    });
+    expect(b.xpubs).toEqual(a.xpubs);
+    expect(signTxcMessage(coinIdentityKey(PHRASE, "cafe\u0301"), "x").address).toBe(
+      signTxcMessage(coinIdentityKey(PHRASE, "caf\u00e9"), "x").address,
+    );
+  });
+
+  it("refuses an extra password that is not text", () => {
+    expect(() => seedPassphrase(42)).toThrow();
   });
 });

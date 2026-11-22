@@ -1,9 +1,11 @@
 /**
  * Fingerprints of the modules copied from the Seeds Key project. Each value was
- * recorded after checking the file against Seeds Key commit 80fd70a2: after our
- * Prettier formatting the code is identical, except one line in
- * seeds-key-reference.ts adapted from noble 2.x to Vault's noble 1.9.7
- * (vectors.test.ts proves the signature bytes are the same).
+ * recorded after checking the file against Seeds Key: the pockets modules and
+ * rules.ts at commit 80fd70a2, and seeds-key-reference.ts (with Key's optional
+ * extra-password support) at commit 0af0ba5b. After our Prettier formatting the
+ * code is identical, except one line in seeds-key-reference.ts adapted from
+ * noble 2.x to Vault's noble 1.9.7 (vectors.test.ts proves the signature bytes
+ * are the same).
  *
  * If this test fails, a copied file changed. Re-copy from Seeds Key, re-run the
  * cross-project vectors, get the change reviewed, and only then update the value.
@@ -21,7 +23,7 @@ const PINNED: Readonly<Record<string, string>> = {
   "./slip10.ts": "862526390913aed722c155fdd97838b551da0f1cd52774f5a6309001fe89d344",
   "../key-signin/rules.ts": "147d423f9e87ecd0133f2ed27198d01decaf108ef41240edb6bdaa86c4df2280",
   "../key-signin/seeds-key-reference.ts":
-    "a78667602b2fc067fff86f615cbc188432025f33d138a8ac1f191816a66e1726",
+    "47d7a937a5af0eeb1ed42cbbeb249241a154cab88f3f6ca17eb4492e5d061f58",
 };
 
 describe("files copied from Seeds Key are unchanged", () => {
