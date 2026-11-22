@@ -222,3 +222,75 @@ export async function buildBranchAnswer(
   if (!profile) throw new Error("That request is for a service this Vault doesn't support.");
   return profile.buildAnswer(request, seed);
 }
+
+/**
+ * Re-check a request right before its answer is shown. Derivation and the
+ * sharing-record save both take time; a request that lapsed meanwhile never
+ * reaches the screen.
+ */
+export function assertBranchRequestLive(request: BranchRequest): void {
+  requireLive(request);
+}
+
+/** One owner approval, bound to the exact request object and seed it was given for. */
+export interface HandoverTicket {
+  readonly id: number;
+  readonly request: BranchRequest;
+  readonly seedId: string;
+}
+
+/**
+ * Tracks the single hand-over the screen may complete. Starting a new one, or
+ * cancelling (Cancel, closing the screen, locking, changing seed, expiry),
+ * makes every earlier ticket stale, so a slow derivation can never show a
+ * late answer.
+ */
+export class HandoverGuard {
+  private counter = 0;
+  private active: HandoverTicket | null = null;
+
+  begin(request: BranchRequest, seedId: string): HandoverTicket {
+    const ticket: HandoverTicket = Object.freeze({ id: ++this.counter, request, seedId });
+    this.active = ticket;
+    return ticket;
+  }
+
+  cancel(): void {
+    this.counter++;
+    this.active = null;
+  }
+
+  isCurrent(ticket: HandoverTicket): boolean {
+    return this.active === ticket && ticket.id === this.counter;
+  }
+}
+
+export interface HandoverSteps {
+  readonly guard: HandoverGuard;
+  readonly ticket: HandoverTicket;
+  readonly seed: SeedEntry;
+  readonly typedName: string;
+  /** Saves the private sharing record. Runs only after the answer is built. */
+  readonly record: () => Promise<void>;
+  /** Test seam; the app always uses buildBranchAnswer. */
+  readonly build?: typeof buildBranchAnswer;
+}
+
+/**
+ * Build, record and re-check one approved hand-over. Returns the answer only
+ * if the ticket is still current at every step; returns null when the owner
+ * cancelled, and throws when the request or seed no longer matches.
+ */
+export async function handOverPocket(steps: HandoverSteps): Promise<string | null> {
+  const { guard, ticket, seed } = steps;
+  if (!guard.isCurrent(ticket)) return null;
+  if (seed.id !== ticket.seedId)
+    throw new Error("The chosen seed changed. Choose it again to continue.");
+  const built = await (steps.build ?? buildBranchAnswer)(ticket.request, seed, steps.typedName);
+  // Cancelled during derivation: drop the answer and record nothing.
+  if (!guard.isCurrent(ticket)) return null;
+  await steps.record();
+  if (!guard.isCurrent(ticket)) return null;
+  assertBranchRequestLive(ticket.request);
+  return built;
+}

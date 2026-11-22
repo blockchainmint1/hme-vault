@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { KeyRound, QrCode, ShieldAlert, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,10 +21,12 @@ import { parseAccountPath, POCKET_SPECS } from "@/lib/pockets/coins";
 import { SIGNING_PART_SIZE } from "@/lib/signer/qr-parts";
 import {
   branchConsequence,
-  buildBranchAnswer,
+  handOverPocket,
+  HandoverGuard,
   readBranchRequest,
   seedNameConfirmed,
   type BranchRequest,
+  type HandoverTicket,
 } from "@/lib/signer/branch-access";
 import { useVault } from "@/lib/vault/vault-context";
 import { recordPocketShare } from "@/lib/vault/seeds";
@@ -77,6 +79,19 @@ function BranchFlow() {
   const [left, setLeft] = useState(0);
   const [bioOn, setBioOn] = useState(false);
   const [showPaths, setShowPaths] = useState(false);
+  // Only the latest approval may finish; anything that cancels makes it stale.
+  const guard = useRef(new HandoverGuard());
+
+  // Leaving the screen (including the lock, which unmounts it) cancels any
+  // pending hand-over so nothing is shown or recorded late.
+  useEffect(() => {
+    const g = guard.current;
+    return () => g.cancel();
+  }, []);
+
+  useEffect(() => {
+    if (status !== "unlocked") clear();
+  }, [status]);
 
   useEffect(() => {
     getBiometricStatus()
@@ -100,6 +115,8 @@ function BranchFlow() {
   }, [request]);
 
   function clear() {
+    guard.current.cancel();
+    setBusy(false);
     setRequest(null);
     setAnswer("");
     setSeedId("");
@@ -127,26 +144,32 @@ function BranchFlow() {
   const seed = usable.find((s) => s.id === seedId);
   const nameOk = seed ? seedNameConfirmed(typedName, seed) : false;
 
-  async function handOver() {
-    if (!request || !seed) return;
+  async function handOver(ticket: HandoverTicket) {
+    if (!seed || !guard.current.isCurrent(ticket)) return;
     setBusy(true);
     setErr("");
     try {
-      const built = await buildBranchAnswer(request, seed, typedName);
-      // Record first: if the record can't be saved (for example Vault locked),
-      // the answer is never shown.
-      await save(
-        recordPocketShare(seeds, seed.id, {
-          service: request.service,
-          pocket: request.pocket,
-          at: Date.now(),
-        }),
-      );
-      setAnswer(built);
+      // Built first, then recorded, then re-checked: if the record can't be
+      // saved, the request lapsed, or the owner cancelled, nothing is shown.
+      const built = await handOverPocket({
+        guard: guard.current,
+        ticket,
+        seed,
+        typedName,
+        record: () =>
+          save(
+            recordPocketShare(seeds, seed.id, {
+              service: ticket.request.service,
+              pocket: ticket.request.pocket,
+              at: Date.now(),
+            }),
+          ),
+      });
+      if (built !== null && guard.current.isCurrent(ticket)) setAnswer(built);
     } catch (e) {
-      setErr((e as Error).message);
+      if (guard.current.isCurrent(ticket)) setErr((e as Error).message);
     } finally {
-      setBusy(false);
+      if (guard.current.isCurrent(ticket)) setBusy(false);
     }
   }
 
@@ -156,16 +179,18 @@ function BranchFlow() {
       setErr("Type the seed name exactly.");
       return;
     }
+    const ticket = guard.current.begin(request, seed.id);
     try {
       const secret = await unlockWithBiometric();
-      if (!secret) return;
+      // Cancelled or changed while the fingerprint prompt was open.
+      if (!secret || !guard.current.isCurrent(ticket)) return;
       if (!checkPassword(secret)) {
         setErr("Fingerprint didn't match this Vault. Use your password.");
         return;
       }
-      await handOver();
+      await handOver(ticket);
     } catch (e) {
-      setErr((e as Error).message);
+      if (guard.current.isCurrent(ticket)) setErr((e as Error).message);
     }
   }
 
@@ -300,6 +325,8 @@ function BranchFlow() {
         <Select
           value={seedId}
           onValueChange={(v) => {
+            guard.current.cancel();
+            setBusy(false);
             setSeedId(v);
             setTypedName("");
           }}
@@ -341,7 +368,8 @@ function BranchFlow() {
               setPw("");
               return;
             }
-            void handOver();
+            setPw("");
+            void handOver(guard.current.begin(request, seed.id));
           }}
         >
           <Label htmlFor="bname">Type “{seed.name}” to confirm</Label>

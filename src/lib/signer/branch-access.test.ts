@@ -13,6 +13,8 @@ import {
   BRANCH_ANSWER_TYPE,
   BRANCH_PROFILES,
   buildBranchAnswer,
+  handOverPocket,
+  HandoverGuard,
   readBranchRequest,
 } from "@/lib/signer/branch-access";
 import {
@@ -268,5 +270,113 @@ describe("the approved answer", () => {
     );
     await new Promise((res) => setTimeout(res, 400));
     await expect(buildBranchAnswer(r, seed(), "Trading")).rejects.toThrow();
+  });
+});
+
+/** A promise the test resolves by hand, to pause a step mid-flight. */
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((r) => (resolve = r));
+  return { promise, resolve };
+}
+
+describe("cancelling a hand-over never shows or records a late answer", () => {
+  function setup() {
+    const guard = new HandoverGuard();
+    const request = readBranchRequest(signedRequest(), TEST_TRUST);
+    const ticket = guard.begin(request, "s1");
+    const built = deferred<string>();
+    const saved = deferred<void>();
+    let builds = 0;
+    let records = 0;
+    const run = (over: Partial<Parameters<typeof handOverPocket>[0]> = {}) =>
+      handOverPocket({
+        guard,
+        ticket,
+        seed: seed(),
+        typedName: "Trading",
+        build: () => {
+          builds++;
+          return built.promise;
+        },
+        record: () => {
+          records++;
+          return saved.promise;
+        },
+        ...over,
+      });
+    return { guard, request, ticket, built, saved, run, counts: () => ({ builds, records }) };
+  }
+
+  it("shows the answer when nothing interrupts it", async () => {
+    const t = setup();
+    const result = t.run();
+    t.built.resolve("ANSWER");
+    t.saved.resolve();
+    await expect(result).resolves.toBe("ANSWER");
+    expect(t.counts()).toEqual({ builds: 1, records: 1 });
+  });
+
+  it("cancel while keys are being prepared: no answer and no record", async () => {
+    const t = setup();
+    const result = t.run();
+    t.guard.cancel();
+    t.built.resolve("ANSWER");
+    await expect(result).resolves.toBeNull();
+    expect(t.counts().records).toBe(0);
+  });
+
+  it("cancel while the record is being saved: no answer", async () => {
+    const t = setup();
+    const result = t.run();
+    t.built.resolve("ANSWER");
+    for (let i = 0; i < 50 && t.counts().records === 0; i++) await Promise.resolve();
+    expect(t.counts().records).toBe(1);
+    t.guard.cancel();
+    t.saved.resolve();
+    await expect(result).resolves.toBeNull();
+  });
+
+  it("choosing another seed or starting again makes the earlier approval stale", async () => {
+    const t = setup();
+    const result = t.run();
+    t.guard.begin(t.request, "s2");
+    t.built.resolve("ANSWER");
+    await expect(result).resolves.toBeNull();
+    expect(t.counts().records).toBe(0);
+  });
+
+  it("an already-cancelled approval derives nothing", async () => {
+    const t = setup();
+    t.guard.cancel();
+    await expect(t.run()).resolves.toBeNull();
+    expect(t.counts()).toEqual({ builds: 0, records: 0 });
+  });
+
+  it("refuses when the seed handed in is not the one approved", async () => {
+    const t = setup();
+    await expect(t.run({ seed: seed({ id: "other" }) })).rejects.toThrow(/seed changed/i);
+    expect(t.counts().builds).toBe(0);
+  });
+
+  it("a request that lapses while the record saves is never shown", async () => {
+    const now = Date.now();
+    const guard = new HandoverGuard();
+    const request = readBranchRequest(
+      signedRequest({
+        issued_at: new Date(now - 500_000).toISOString(),
+        expires_at: new Date(now + 300).toISOString(),
+      }),
+      TEST_TRUST,
+    );
+    const result = handOverPocket({
+      guard,
+      ticket: guard.begin(request, "s1"),
+      seed: seed(),
+      typedName: "Trading",
+      build: async () => "ANSWER",
+      record: () => new Promise((res) => setTimeout(res, 500)),
+    });
+    await expect(result).rejects.toThrow(/expired/i);
   });
 });

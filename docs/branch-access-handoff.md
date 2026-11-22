@@ -66,13 +66,34 @@ key" message, which tells the owner the link is not provisioned yet.
    can spend from the pocket until the coins are moved out, and revoking access
    on the service does not take the keys back. The exact paths are one tap away.
 4. A seed picker. Hands-off seeds and passphrase seeds are excluded.
-5. Confirmation with the Vault password, or fingerprint when enrolled.
+5. Typing the seed's exact name (as for "Give a copy"), then confirmation with
+   the Vault password, or fingerprint when enrolled.
 6. A private record ("pocket 1106 · Seeds Exchange · date") is saved inside the
    encrypted Vault first; if it cannot be saved, nothing is shown. It appears on
    the seed's page and the Seeds list, travels in the owner's backups and never
    in shared copies.
 7. Rotating 240-character QR frames containing the sealed answer, with an
    expiry countdown and a stop control.
+
+## Cancellation safeguards
+
+Each approval is a ticket (`HandoverGuard`) bound to the exact verified request
+object and the chosen seed. These all cancel it: Cancel, leaving the screen,
+locking Vault (the screen unmounts), choosing a different seed, the request's
+expiry, and starting a new approval. `handOverPocket` checks the ticket:
+
+1. before deriving anything (and refuses a seed other than the approved one);
+2. after the pocket is derived and sealed. A cancelled ticket drops the answer
+   and records nothing;
+3. after the private record is saved;
+4. after a final signature-and-expiry re-check of the request.
+
+Only then is the answer displayed. The screen also checks the ticket before
+showing errors or clearing the busy state, so a stale run cannot change what the
+owner sees. Known limit: cancelling *while the record is being saved* leaves
+the record in place although no codes were shown. That errs on the side of
+caution. Derivation itself runs in one uninterrupted step, so the UI cannot
+accept a tap until it finishes. After that, the checks above decide.
 
 ## What the service receives
 
