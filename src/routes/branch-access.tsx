@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { KeyRound, QrCode, ShieldAlert, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -22,6 +23,7 @@ import {
   branchConsequence,
   buildBranchAnswer,
   readBranchRequest,
+  seedNameConfirmed,
   type BranchRequest,
 } from "@/lib/signer/branch-access";
 import { useVault } from "@/lib/vault/vault-context";
@@ -68,6 +70,7 @@ function BranchFlow() {
   const [request, setRequest] = useState<BranchRequest | null>(null);
   const [seedId, setSeedId] = useState("");
   const [pw, setPw] = useState("");
+  const [typedName, setTypedName] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const [answer, setAnswer] = useState("");
@@ -101,6 +104,7 @@ function BranchFlow() {
     setAnswer("");
     setSeedId("");
     setPw("");
+    setTypedName("");
     setPaste("");
     setShowPaths(false);
   }
@@ -121,13 +125,14 @@ function BranchFlow() {
   // Hands-off copies never share; passphrase seeds would hand over a different wallet.
   const usable = useMemo(() => seeds.filter((s) => s.handsOff !== true && !s.passphrase), [seeds]);
   const seed = usable.find((s) => s.id === seedId);
+  const nameOk = seed ? seedNameConfirmed(typedName, seed) : false;
 
   async function handOver() {
     if (!request || !seed) return;
     setBusy(true);
     setErr("");
     try {
-      const built = await buildBranchAnswer(request, seed);
+      const built = await buildBranchAnswer(request, seed, typedName);
       // Record first: if the record can't be saved (for example Vault locked),
       // the answer is never shown.
       await save(
@@ -147,6 +152,10 @@ function BranchFlow() {
 
   async function withFingerprint() {
     if (!request || !seed) return;
+    if (!nameOk) {
+      setErr("Type the seed name exactly.");
+      return;
+    }
     try {
       const secret = await unlockWithBiometric();
       if (!secret) return;
@@ -288,7 +297,13 @@ function BranchFlow() {
 
       <div className="space-y-2">
         <Label htmlFor="bseed">Which seed's pocket</Label>
-        <Select value={seedId} onValueChange={setSeedId}>
+        <Select
+          value={seedId}
+          onValueChange={(v) => {
+            setSeedId(v);
+            setTypedName("");
+          }}
+        >
           <SelectTrigger id="bseed">
             <SelectValue placeholder="Choose a seed" />
           </SelectTrigger>
@@ -317,6 +332,10 @@ function BranchFlow() {
           className="space-y-2"
           onSubmit={(e) => {
             e.preventDefault();
+            if (!nameOk) {
+              setErr("Type the seed name exactly.");
+              return;
+            }
             if (!checkPassword(pw)) {
               setErr("Wrong password.");
               setPw("");
@@ -325,6 +344,14 @@ function BranchFlow() {
             void handOver();
           }}
         >
+          <Label htmlFor="bname">Type “{seed.name}” to confirm</Label>
+          <Input
+            id="bname"
+            autoComplete="off"
+            spellCheck={false}
+            value={typedName}
+            onChange={(e) => setTypedName(e.target.value)}
+          />
           <Label htmlFor="bpw">
             {bioOn ? "Or type your Vault password" : "Vault password to hand over"}
           </Label>
@@ -339,6 +366,7 @@ function BranchFlow() {
               type="button"
               variant="outline"
               className="w-full"
+              disabled={!nameOk || busy}
               onClick={() => void withFingerprint()}
             >
               <KeyRound className="mr-1.5 h-4 w-4" />
@@ -349,7 +377,7 @@ function BranchFlow() {
             <Button type="button" variant="ghost" onClick={clear}>
               Cancel
             </Button>
-            <Button className="flex-1" type="submit" disabled={!pw || busy}>
+            <Button className="flex-1" type="submit" disabled={!pw || !nameOk || busy}>
               {busy ? "Preparing…" : `Hand over pocket ${request.pocket}`}
             </Button>
           </div>

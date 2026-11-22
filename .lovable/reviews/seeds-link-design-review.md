@@ -21,3 +21,6 @@ This review was written **before** the trading-pocket screen was built. The scre
 - **C. Say "all 16 chains" on the approval screen** (#8). One sentence.
 
 None of these change what gets shared, the 1106-only limit, or the Seeds signing-key requirement. Real requests stay blocked until Seeds' verified signing key is built in.
+
+## Update (approved by Bobby, built)
+All three gaps (A, B, C) are now done. While checking B, every copied file was compared with Seeds Key commit `80fd70a2`. After formatting they are identical, except for one line deliberately adapted to Vault's older signing library, and the shared address vectors prove that line gives the same result.

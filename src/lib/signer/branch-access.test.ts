@@ -184,14 +184,25 @@ describe("a verified request names exactly one pocket", () => {
 });
 
 describe("the approved answer", () => {
+  it("refuses unless the seed's name is typed exactly", async () => {
+    const r = readBranchRequest(signedRequest(), TEST_TRUST);
+    for (const typed of ["", "trading", "Trading ", " Trading", "Tradin"])
+      await expect(buildBranchAnswer(r, seed(), typed)).rejects.toThrow(/seed name/i);
+    await expect(buildBranchAnswer(r, seed(), "Trading")).resolves.toContain(
+      "hm-seeds-key-vault-response",
+    );
+  });
+
   it("refuses a hands-off copy before deriving anything", async () => {
     const r = readBranchRequest(signedRequest(), TEST_TRUST);
-    await expect(buildBranchAnswer(r, seed({ handsOff: true }))).rejects.toThrow(/hands-off/i);
+    await expect(buildBranchAnswer(r, seed({ handsOff: true }), "Trading")).rejects.toThrow(
+      /hands-off/i,
+    );
   });
 
   it("refuses a seed with a passphrase, whose pocket would be a different wallet", async () => {
     const r = readBranchRequest(signedRequest(), TEST_TRUST);
-    await expect(buildBranchAnswer(r, seed({ passphrase: "extra" }))).rejects.toThrow(
+    await expect(buildBranchAnswer(r, seed({ passphrase: "extra" }), "Trading")).rejects.toThrow(
       /passphrase/i,
     );
   });
@@ -199,12 +210,12 @@ describe("the approved answer", () => {
   it("refuses an approved request whose scope was altered after reading", async () => {
     const r = readBranchRequest(signedRequest(), TEST_TRUST);
     const widened = { ...r, paths: [...r.paths, "m/44'/0'/1106'"] };
-    await expect(buildBranchAnswer(widened, seed())).rejects.toThrow();
+    await expect(buildBranchAnswer(widened, seed(), "Trading")).rejects.toThrow();
   });
 
   it("carries only Seeds' envelope fields and never the recovery words", async () => {
     const r = readBranchRequest(signedRequest(), TEST_TRUST);
-    const answer = await buildBranchAnswer(r, seed());
+    const answer = await buildBranchAnswer(r, seed(), "Trading");
     const parsed = JSON.parse(answer) as Record<string, unknown>;
     expect(Object.keys(parsed).sort()).toEqual(
       ["body", "challenge_id", "message", "signature", "type", "v"].sort(),
@@ -224,7 +235,7 @@ describe("the approved answer", () => {
 
   it("seals exactly the 16 pocket keys and nothing else", async () => {
     const r = readBranchRequest(signedRequest(), TEST_TRUST);
-    const answer = await buildBranchAnswer(r, seed());
+    const answer = await buildBranchAnswer(r, seed(), "Trading");
     const body = (JSON.parse(answer) as { body: { payload: string } }).body;
     const xprvs = await openPayload(body.payload);
     expect(Object.keys(xprvs).sort()).toEqual([...POCKET_COINS].sort());
@@ -237,7 +248,7 @@ describe("the approved answer", () => {
 
   it("binds the answer to the request's own recipient and identity", async () => {
     const r = readBranchRequest(signedRequest(), TEST_TRUST);
-    const answer = await buildBranchAnswer(r, seed());
+    const answer = await buildBranchAnswer(r, seed(), "Trading");
     const parsed = JSON.parse(answer) as { body: { payload: string; identity_address: string } };
     // Opens only with the one-time key the request named, and names the identity
     // the owner was shown.
@@ -256,6 +267,6 @@ describe("the approved answer", () => {
       TEST_TRUST,
     );
     await new Promise((res) => setTimeout(res, 400));
-    await expect(buildBranchAnswer(r, seed())).rejects.toThrow();
+    await expect(buildBranchAnswer(r, seed(), "Trading")).rejects.toThrow();
   });
 });

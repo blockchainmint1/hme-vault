@@ -75,9 +75,11 @@ const SEEDS_POLICY: BranchPolicy = Object.freeze({
  * The consequence the owner must read before approving. Shared by every
  * profile so a new service can't ship without it.
  */
-export function branchConsequence(request: Pick<BranchRequest, "service" | "pocket">): string[] {
+export function branchConsequence(
+  request: Pick<BranchRequest, "service" | "pocket" | "paths">,
+): string[] {
   return [
-    `${request.service} will be able to spend from pocket ${request.pocket} until you move the coins out of it.`,
+    `${request.service} will hold the keys for all ${request.paths.length} chains in pocket ${request.pocket} and can spend from it until you move the coins out of it.`,
     `Revoking access on ${request.service} does not take the keys back.`,
     "Your savings and recovery phrase stay on this phone.",
   ];
@@ -200,8 +202,22 @@ export function readBranchRequest(text: string, trust?: SeedsRequestTrust): Bran
   throw firstError instanceof Error ? firstError : new Error("That request couldn't be verified.");
 }
 
+/**
+ * The owner must type the seed's name exactly, as for "Give a copy", so a
+ * mis-tapped seed choice can never hand over the wrong pocket.
+ */
+export function seedNameConfirmed(typed: string, seed: Pick<SeedEntry, "name">): boolean {
+  return typed.length > 0 && typed === seed.name;
+}
+
 /** The approved answer for the chosen seed, as JSON ready for QR display. */
-export async function buildBranchAnswer(request: BranchRequest, seed: SeedEntry): Promise<string> {
+export async function buildBranchAnswer(
+  request: BranchRequest,
+  seed: SeedEntry,
+  typedName: string,
+): Promise<string> {
+  if (!seedNameConfirmed(typedName, seed))
+    throw new Error("Type the seed name exactly to hand over its pocket.");
   const profile = BRANCH_PROFILES.find((p) => p.id === request.profileId);
   if (!profile) throw new Error("That request is for a service this Vault doesn't support.");
   return profile.buildAnswer(request, seed);
