@@ -174,14 +174,28 @@ export function verifySignedSeedsRequest(
   return r;
 }
 
-/** Production entry point: never accepts a trust key from a QR, UI or function argument. */
-export function readSeedsRequest(text: string): SignedSeedsRequest {
+/** Size-bounded JSON parse shared by both readers below. */
+function parseSeedsRequestText(text: string): unknown {
   if (text.length > SEEDS_REQUEST_MAX_CHARS) throw new Error(BAD);
-  let value: unknown;
   try {
-    value = JSON.parse(text);
+    return JSON.parse(text);
   } catch {
     throw new Error(BAD);
   }
-  return verifySignedSeedsRequest(value, SEEDS_REQUEST_KEYS);
+}
+
+/** Production entry point: hard-wired to pinned trust. No key from a QR, UI or argument. */
+export function readSeedsRequest(text: string): SignedSeedsRequest {
+  return verifySignedSeedsRequest(parseSeedsRequestText(text), SEEDS_REQUEST_KEYS);
+}
+
+/**
+ * Test/profile seam: verifies against explicitly supplied trust. Only a profile
+ * passes this through, and the app never supplies a trust argument.
+ */
+export function readSeedsRequestWithTrust(
+  text: string,
+  trust: SeedsRequestTrust,
+): SignedSeedsRequest {
+  return verifySignedSeedsRequest(parseSeedsRequestText(text), trust);
 }

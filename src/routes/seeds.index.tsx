@@ -1,5 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { KeyRound, Plus, HardDriveDownload, Settings, Camera, ArrowDownLeft } from "lucide-react";
+import {
+  KeyRound,
+  Plus,
+  HardDriveDownload,
+  Settings,
+  Camera,
+  ArrowDownLeft,
+  ShieldCheck,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Unlocked } from "@/components/vault/Unlocked";
@@ -39,6 +47,12 @@ function SeedsPage() {
           </Link>
         </Button>
       </div>
+      <Button asChild variant="outline" className="mb-4 w-full h-12 text-base">
+        <Link to="/branch-access">
+          <ShieldCheck className="h-5 w-5 mr-2" />
+          Share branch access
+        </Link>
+      </Button>
       <div className="space-y-2">
         {seeds.length === 0 && (
           <Card>
