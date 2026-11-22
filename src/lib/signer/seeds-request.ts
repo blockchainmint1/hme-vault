@@ -4,6 +4,13 @@ import { base64urlnopad } from "@scure/base";
 
 export const SEEDS_VAULT_REQUEST = "hm-seeds-key-vault-request";
 export const SEEDS_REQUEST_MAX_CHARS = 8192;
+/**
+ * How far the phone's clock may be off, in either direction, when checking a
+ * request's time window. Owner decision (2026-11-22): five minutes, because the
+ * vault phone never syncs its clock.
+ */
+export const SEEDS_CLOCK_TOLERANCE_MS = 5 * 60_000;
+
 export const SEEDS_POCKET = 1106;
 
 /** Exact Seeds Key f5a315cf POCKET_COINS ordering. Not Vault's payment network list. */
@@ -181,7 +188,9 @@ export function verifySignedSeedsRequest(
     throw new Error(BAD);
   }
   if (!verified) throw new Error(BAD);
-  if (expires <= now || issued > now + 60_000)
+  // An offline phone's clock drifts, so up to five minutes either way is allowed;
+  // anything further off still fails closed.
+  if (expires + SEEDS_CLOCK_TOLERANCE_MS <= now || issued > now + SEEDS_CLOCK_TOLERANCE_MS)
     throw new Error(
       "This Seeds request has expired or your clock is wrong. Check the phone's time.",
     );

@@ -20,6 +20,7 @@ import {
 } from "@/lib/signer/branch-access";
 import {
   readSeedsRequest,
+  SEEDS_CLOCK_TOLERANCE_MS,
   SEEDS_POCKET_PATHS,
   SEEDS_REQUEST_KEYS,
   SEEDS_VAULT_REQUEST,
@@ -304,12 +305,26 @@ describe("the approved answer", () => {
     expect(parsed.body.identity_address).toBe("TZZCuca5ntPVCJL5ryTjh465Jvw5vHxsVd");
   });
 
-  it("refuses to answer a request that lapsed while the owner was deciding", async () => {
+  it("the screen's deadline is the stated expiry plus the clock tolerance", () => {
     const now = Date.now();
+    const expires = now + 600_000;
     const r = readBranchRequest(
       signedRequest({
-        issued_at: new Date(now - 500_000).toISOString(),
-        expires_at: new Date(now + 200).toISOString(),
+        issued_at: new Date(now).toISOString(),
+        expires_at: new Date(expires).toISOString(),
+      }),
+      TEST_TRUST,
+    );
+    expect(r.expiresAt).toBe(expires + 300_000);
+  });
+
+  it("refuses to answer a request that lapsed while the owner was deciding", async () => {
+    // Already past its stated expiry, 200 ms before the clock tolerance runs out.
+    const expires = Date.now() - SEEDS_CLOCK_TOLERANCE_MS + 200;
+    const r = readBranchRequest(
+      signedRequest({
+        issued_at: new Date(expires - 500_000).toISOString(),
+        expires_at: new Date(expires).toISOString(),
       }),
       TEST_TRUST,
     );
@@ -405,12 +420,12 @@ describe("cancelling a hand-over never shows or records a late answer", () => {
   });
 
   it("a request that lapses while the record saves is never shown", async () => {
-    const now = Date.now();
+    const expires = Date.now() - SEEDS_CLOCK_TOLERANCE_MS + 300;
     const guard = new HandoverGuard();
     const request = readBranchRequest(
       signedRequest({
-        issued_at: new Date(now - 500_000).toISOString(),
-        expires_at: new Date(now + 300).toISOString(),
+        issued_at: new Date(expires - 500_000).toISOString(),
+        expires_at: new Date(expires).toISOString(),
       }),
       TEST_TRUST,
     );

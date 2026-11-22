@@ -6,6 +6,7 @@ import { ed25519, x25519 } from "@noble/curves/ed25519";
 import { base64urlnopad } from "@scure/base";
 import {
   readSeedsRequest,
+  SEEDS_CLOCK_TOLERANCE_MS,
   seedsRequestBytes,
   SEEDS_POCKET_PATHS,
   SEEDS_REQUEST_KEYS,
@@ -211,18 +212,28 @@ describe("Seeds signed-request protection", () => {
     expect(result).not.toHaveProperty("app_name");
     expect(result).not.toHaveProperty("signing_pubkey");
   });
-  it("refuses expiry at the exact boundary but accepts one millisecond before", () => {
-    const r = request();
-    expect(verifySignedSeedsRequest(r, TEST_TRUST, NOW + 599_999).pocket).toBe(1106);
-    expect(() => verifySignedSeedsRequest(r, TEST_TRUST, NOW + 600_000)).toThrow(/expired/);
+  it("tolerates exactly five minutes of clock difference, as the owner chose", () => {
+    expect(SEEDS_CLOCK_TOLERANCE_MS).toBe(300_000);
   });
-  it("allows 60 seconds future issued-at skew but not 60 seconds plus one millisecond", () => {
+  it("phone clock up to 5 minutes fast: accepted until expiry + 5 min, refused at that instant", () => {
+    const r = request();
+    expect(verifySignedSeedsRequest(r, TEST_TRUST, NOW + 600_000 + 299_999).pocket).toBe(1106);
+    expect(() => verifySignedSeedsRequest(r, TEST_TRUST, NOW + 600_000 + 300_000)).toThrow(
+      /expired/,
+    );
+  });
+  it("phone clock up to 5 minutes slow: accepted, but 5 minutes plus one millisecond is refused", () => {
     const r = request({
-      issued_at: new Date(NOW + 60_000).toISOString(),
-      expires_at: new Date(NOW + 120_000).toISOString(),
+      issued_at: new Date(NOW + 300_000).toISOString(),
+      expires_at: new Date(NOW + 360_000).toISOString(),
     });
     expect(verifySignedSeedsRequest(r, TEST_TRUST, NOW).pocket).toBe(1106);
     expect(() => verifySignedSeedsRequest(r, TEST_TRUST, NOW - 1)).toThrow(/clock/);
+  });
+  it("a clock that is hours off is still refused", () => {
+    const r = request();
+    expect(() => verifySignedSeedsRequest(r, TEST_TRUST, NOW - 3_600_000)).toThrow(/clock/);
+    expect(() => verifySignedSeedsRequest(r, TEST_TRUST, NOW + 3_600_000)).toThrow(/expired/);
   });
   it("rejects a lifetime exceeding ten minutes", () => {
     expect(() =>

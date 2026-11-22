@@ -23,6 +23,7 @@ import { canRevealSeed, type SeedEntry } from "@/lib/vault/seeds";
 import { assertPolicySound, assertScopeWithinPolicy, type BranchPolicy } from "./branch-policy";
 import {
   readSeedsRequestWithTrust,
+  SEEDS_CLOCK_TOLERANCE_MS,
   SEEDS_POCKET,
   SEEDS_POCKET_PATHS,
   SEEDS_REQUEST_KEYS,
@@ -42,6 +43,7 @@ export interface BranchRequest {
   readonly pocket: number;
   readonly paths: readonly string[];
   readonly matchCode: string;
+  /** When this phone stops accepting the request: expiry plus the clock tolerance. */
   readonly expiresAt: number;
   readonly verified: SignedSeedsRequest;
   /** The trust that authenticated this request; re-checked before deriving. */
@@ -163,7 +165,7 @@ export const SEEDS_BRANCH_PROFILE: BranchProfile = {
       pocket: SEEDS_POCKET,
       paths: SEEDS_POCKET_PATHS,
       matchCode: pairingCode(verified.challenge),
-      expiresAt: Date.parse(verified.expires_at),
+      expiresAt: Date.parse(verified.expires_at) + SEEDS_CLOCK_TOLERANCE_MS,
       verified,
       trust,
     };

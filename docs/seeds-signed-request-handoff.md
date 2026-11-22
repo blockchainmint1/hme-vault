@@ -82,7 +82,7 @@ The Vault reference still omits the stored BIP39 passphrase and does not enforce
 
 ## Clock and key rotation
 
-The updated Key protocol is strict: a request must be unexpired and issuance may be at most 60 seconds ahead of the local clock. Vault follows that v2 contract; a wrong offline clock requires correction, not an override. This supersedes the earlier uploaded v1 clock-warning instruction.
+The updated Key protocol is strict: a request must be unexpired and issuance may be at most 60 seconds ahead of the local clock. Vault's offline phone never syncs its clock, so by owner decision (2026-11-22) Vault allows `SEEDS_CLOCK_TOLERANCE_MS` = 5 minutes either way: a request is accepted while `expires_at + 5 min > now` and `issued_at <= now + 5 min`. Signature, key, lifetime (at most 10 minutes) and every other check are unchanged, and a clock further off still fails closed and needs correcting, not an override. SEEDS and Seeds Key keep checking the challenge with their own online clocks. This supersedes the earlier uploaded v1 clock-warning instruction.
 
 Distribute authenticated new public keys to Key and Vault before SEEDS starts signing with them; permit only a deliberate, reviewed overlap. A compromised retired key remains trusted by older offline APKs until updated. Do not fetch keys, accept QR-based trust-on-first-use or claim remote revocation can update a never-online Vault.
 
