@@ -50,7 +50,7 @@ function SeedsPage() {
       <Button asChild variant="outline" className="mb-4 w-full h-12 text-base">
         <Link to="/branch-access">
           <ShieldCheck className="h-5 w-5 mr-2" />
-          Share branch access
+          Share a trading pocket
         </Link>
       </Button>
       <div className="space-y-2">
@@ -71,6 +71,7 @@ function SeedsPage() {
                   <p className="text-xs text-muted-foreground font-mono">
                     {s.words.split(" ").length} words · {s.fingerprint}
                     {s.sharedAt ? " · copy given" : ""}
+                    {s.pocketShares?.length ? " · pocket shared" : ""}
                     {s.handsOff ? " · hands-off" : ""}
                     {s.passphrase ? " · + passphrase" : ""}
                   </p>

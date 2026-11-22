@@ -16,25 +16,27 @@ import { AnimatedQr } from "@/components/vault/AnimatedQr";
 import { Unlocked } from "@/components/vault/Unlocked";
 import { ScannerDialog } from "@/components/wallet/QrScanButton";
 import { getBiometricStatus, unlockWithBiometric } from "@/lib/native/biometric";
-import { POCKET_COINS, POCKET_SPECS } from "@/lib/pockets/coins";
+import { parseAccountPath, POCKET_SPECS } from "@/lib/pockets/coins";
 import { SIGNING_PART_SIZE } from "@/lib/signer/qr-parts";
 import {
+  branchConsequence,
   buildBranchAnswer,
   readBranchRequest,
   type BranchRequest,
 } from "@/lib/signer/branch-access";
 import { useVault } from "@/lib/vault/vault-context";
+import { recordPocketShare } from "@/lib/vault/seeds";
 
 export const Route = createFileRoute("/branch-access")({
   head: () => ({
     meta: [
-      { title: "Share branch access — HME Vault" },
+      { title: "Share a trading pocket — HME Vault" },
       {
         name: "description",
         content:
           "Hand one trading pocket to a service that asked for it, after its signed request verifies.",
       },
-      { property: "og:title", content: "Share branch access — HME Vault" },
+      { property: "og:title", content: "Share a trading pocket — HME Vault" },
       {
         property: "og:description",
         content:
@@ -49,7 +51,7 @@ export const Route = createFileRoute("/branch-access")({
 
 function BranchAccessPage() {
   return (
-    <Unlocked title="Share branch access" back>
+    <Unlocked title="Share a pocket" back>
       <BranchFlow />
     </Unlocked>
   );
@@ -60,7 +62,7 @@ function secondsLeft(expiresAt: number): number {
 }
 
 function BranchFlow() {
-  const { seeds, checkPassword, status } = useVault();
+  const { seeds, save, checkPassword, status } = useVault();
   const [scan, setScan] = useState(false);
   const [paste, setPaste] = useState("");
   const [request, setRequest] = useState<BranchRequest | null>(null);
@@ -71,6 +73,7 @@ function BranchFlow() {
   const [answer, setAnswer] = useState("");
   const [left, setLeft] = useState(0);
   const [bioOn, setBioOn] = useState(false);
+  const [showPaths, setShowPaths] = useState(false);
 
   useEffect(() => {
     getBiometricStatus()
@@ -99,6 +102,7 @@ function BranchFlow() {
     setSeedId("");
     setPw("");
     setPaste("");
+    setShowPaths(false);
   }
 
   function accept(text: string) {
@@ -114,7 +118,8 @@ function BranchFlow() {
     }
   }
 
-  const usable = useMemo(() => seeds.filter((s) => s.handsOff !== true), [seeds]);
+  // Hands-off copies never share; passphrase seeds would hand over a different wallet.
+  const usable = useMemo(() => seeds.filter((s) => s.handsOff !== true && !s.passphrase), [seeds]);
   const seed = usable.find((s) => s.id === seedId);
 
   async function handOver() {
@@ -122,7 +127,17 @@ function BranchFlow() {
     setBusy(true);
     setErr("");
     try {
-      setAnswer(await buildBranchAnswer(request, seed));
+      const built = await buildBranchAnswer(request, seed);
+      // Record first: if the record can't be saved (for example Vault locked),
+      // the answer is never shown.
+      await save(
+        recordPocketShare(seeds, seed.id, {
+          service: request.service,
+          pocket: request.pocket,
+          at: Date.now(),
+        }),
+      );
+      setAnswer(built);
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -224,30 +239,51 @@ function BranchFlow() {
       </div>
 
       <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 space-y-2">
-        <p className="flex items-start gap-2 text-sm font-medium">
-          <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
-          {request.service} will be able to trade from pocket {request.pocket} without asking you
-          again. Your savings and recovery phrase stay on this phone.
-        </p>
-        <p className="text-sm">Only link from a {request.service} screen you started yourself.</p>
+        {branchConsequence(request).map((line, i) => (
+          <p
+            key={line}
+            className={i === 0 ? "flex items-start gap-2 text-sm font-medium" : "text-sm"}
+          >
+            {i === 0 && <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />}
+            {line}
+          </p>
+        ))}
         <p className="text-xs text-muted-foreground">
-          Handing over a pocket cannot be undone from here. To take it back you revoke access on
-          {request.service}, which does not rotate the keys — move funds to fresh keys if you think
-          they were exposed.
+          Only share from a {request.service} screen you started yourself. If you think the keys
+          were exposed, move the coins to a fresh pocket.
         </p>
       </div>
 
       <div className="space-y-2">
         <p className="text-sm font-medium">
-          Pocket {request.pocket} covers {POCKET_COINS.length} chains
+          Pocket {request.pocket} covers {request.paths.length} chains
         </p>
         <ul className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-muted-foreground">
-          {POCKET_COINS.map((c) => (
-            <li key={c}>
-              <span className="font-medium text-foreground">{c}</span> {POCKET_SPECS[c].name}
-            </li>
-          ))}
+          {request.paths.map((path) => {
+            const coin = parseAccountPath(path)?.coin;
+            return (
+              <li key={path}>
+                <span className="font-medium text-foreground">{coin ?? "?"}</span>{" "}
+                {coin ? POCKET_SPECS[coin].name : path}
+              </li>
+            );
+          })}
         </ul>
+        <Button
+          type="button"
+          variant="link"
+          className="h-auto p-0 text-xs"
+          onClick={() => setShowPaths((v) => !v)}
+        >
+          {showPaths ? "Hide exact paths" : "Show exact paths"}
+        </Button>
+        {showPaths && (
+          <ul className="space-y-0.5 rounded-md border p-2 font-mono text-xs break-all">
+            {request.paths.map((path) => (
+              <li key={path}>{path}</li>
+            ))}
+          </ul>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -266,11 +302,13 @@ function BranchFlow() {
         </Select>
         {usable.length === 0 && (
           <p className="text-sm text-destructive">
-            This Vault has no seed that can hand over access.
+            This Vault has no seed that can share a trading pocket.
           </p>
         )}
         {seeds.length > usable.length && (
-          <p className="text-xs text-muted-foreground">Hands-off copies can't hand over access.</p>
+          <p className="text-xs text-muted-foreground">
+            Hands-off copies and seeds with a passphrase can't share a trading pocket.
+          </p>
         )}
       </div>
 

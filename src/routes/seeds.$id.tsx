@@ -198,6 +198,28 @@ function SeedPage() {
           </CardContent>
         </Card>
 
+        {seed.pocketShares && seed.pocketShares.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Trading pockets shared</CardTitle>
+              <CardDescription>
+                These services were shown the keys for a pocket of this seed. They can spend from it
+                until you move the coins out.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-1 text-sm">
+                {[...seed.pocketShares].reverse().map((p, i) => (
+                  <li key={`${p.at}-${i}`}>
+                    Pocket <span className="font-mono">{p.pocket}</span> · {p.service} ·{" "}
+                    {new Date(p.at).toLocaleDateString()}
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
+
         {revealable && (
           <Card>
             <CardHeader>

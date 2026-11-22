@@ -119,6 +119,16 @@ describe("the app path stays inert until a reviewed key is pinned", () => {
   it("only the Seeds profile exists today", () => {
     expect(BRANCH_PROFILES.map((p) => p.id)).toEqual(["seeds"]);
   });
+
+  it("every profile's production trust holds only reviewed key ids", () => {
+    // Pinning a key means updating this table in the same reviewed change.
+    const REVIEWED: Record<string, string[]> = { seeds: [] };
+    expect(BRANCH_PROFILES.map((p) => p.id).sort()).toEqual(Object.keys(REVIEWED).sort());
+    for (const p of BRANCH_PROFILES) {
+      expect(Object.keys(p.productionTrust).sort()).toEqual(REVIEWED[p.id]);
+      expect(p.productionTrust).toBe(SEEDS_REQUEST_KEYS);
+    }
+  });
 });
 
 describe("a verified request names exactly one pocket", () => {
@@ -177,6 +187,19 @@ describe("the approved answer", () => {
   it("refuses a hands-off copy before deriving anything", async () => {
     const r = readBranchRequest(signedRequest(), TEST_TRUST);
     await expect(buildBranchAnswer(r, seed({ handsOff: true }))).rejects.toThrow(/hands-off/i);
+  });
+
+  it("refuses a seed with a passphrase, whose pocket would be a different wallet", async () => {
+    const r = readBranchRequest(signedRequest(), TEST_TRUST);
+    await expect(buildBranchAnswer(r, seed({ passphrase: "extra" }))).rejects.toThrow(
+      /passphrase/i,
+    );
+  });
+
+  it("refuses an approved request whose scope was altered after reading", async () => {
+    const r = readBranchRequest(signedRequest(), TEST_TRUST);
+    const widened = { ...r, paths: [...r.paths, "m/44'/0'/1106'"] };
+    await expect(buildBranchAnswer(widened, seed())).rejects.toThrow();
   });
 
   it("carries only Seeds' envelope fields and never the recovery words", async () => {

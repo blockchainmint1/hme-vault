@@ -1,5 +1,5 @@
 /**
- * Reusable "share branch access" core.
+ * Reusable "share a trading pocket" core.
  *
  * A service asks for one pocket by showing Vault a request it has signed with a
  * key Vault already trusts. Only after that request verifies does Vault derive
@@ -20,6 +20,7 @@ import {
   type KeyManifest,
 } from "@/lib/key-signin/seeds-key-reference";
 import { canRevealSeed, type SeedEntry } from "@/lib/vault/seeds";
+import { assertPolicySound, assertScopeWithinPolicy, type BranchPolicy } from "./branch-policy";
 import {
   readSeedsRequestWithTrust,
   SEEDS_POCKET,
@@ -50,6 +51,10 @@ export interface BranchRequest {
 export interface BranchProfile {
   readonly id: string;
   readonly service: string;
+  /** Reviewed, compiled-in limits: which pockets and the exact path list. */
+  readonly policy: BranchPolicy;
+  /** The pinned production trust. Changing it is a Vault release plus review. */
+  readonly productionTrust: SeedsRequestTrust;
   /** Authenticates a scanned request; throws before any key is derived. */
   readRequest(text: string, trust?: SeedsRequestTrust): BranchRequest;
   /** Derives and seals the approved pocket. Re-checks the request first. */
@@ -59,6 +64,23 @@ export interface BranchProfile {
 /** Re-authenticate an already-read request. A lapsed or swapped one never derives. */
 function requireLive(request: BranchRequest): SignedSeedsRequest {
   return verifySignedSeedsRequest(request.verified, request.trust);
+}
+
+const SEEDS_POLICY: BranchPolicy = Object.freeze({
+  pockets: Object.freeze([SEEDS_POCKET]),
+  paths: SEEDS_POCKET_PATHS,
+});
+
+/**
+ * The consequence the owner must read before approving. Shared by every
+ * profile so a new service can't ship without it.
+ */
+export function branchConsequence(request: Pick<BranchRequest, "service" | "pocket">): string[] {
+  return [
+    `${request.service} will be able to spend from pocket ${request.pocket} until you move the coins out of it.`,
+    `Revoking access on ${request.service} does not take the keys back.`,
+    "Your savings and recovery phrase stay on this phone.",
+  ];
 }
 
 function seedsAnswer(request: BranchRequest, seed: SeedEntry): Promise<string> {
@@ -98,6 +120,12 @@ function seedsAnswer(request: BranchRequest, seed: SeedEntry): Promise<string> {
     account: SEEDS_POCKET,
   })
     .then(async (h) => {
+      // The derivation must have produced exactly the scope the owner approved.
+      if (
+        h.body.paths.length !== request.paths.length ||
+        h.body.paths.some((path, i) => path !== request.paths[i])
+      )
+        throw new Error("The keys didn't match the approved list, so nothing was handed over.");
       const signature = signTxcMessage(key, h.message).signature;
       // Derivation takes time; never display an answer whose request has lapsed.
       requireLive(request);
@@ -117,8 +145,12 @@ function seedsAnswer(request: BranchRequest, seed: SeedEntry): Promise<string> {
 export const SEEDS_BRANCH_PROFILE: BranchProfile = {
   id: "seeds",
   service: "Seeds Exchange",
+  policy: SEEDS_POLICY,
+  productionTrust: SEEDS_REQUEST_KEYS,
   readRequest(text, trust = SEEDS_REQUEST_KEYS) {
     const verified = readSeedsRequestWithTrust(text, trust);
+    // Scope is settled here, before the approval screen and before any derivation.
+    assertScopeWithinPolicy(verified.paths, verified.pocket, SEEDS_POLICY);
     return {
       profileId: "seeds",
       service: "Seeds Exchange",
@@ -132,14 +164,24 @@ export const SEEDS_BRANCH_PROFILE: BranchProfile = {
   },
   async buildAnswer(request, seed) {
     if (request.profileId !== "seeds") throw new Error("That request is for a different service.");
-    if (!canRevealSeed(seed)) throw new Error("Hands-off copies can't hand over branch access.");
+    if (!canRevealSeed(seed)) throw new Error("Hands-off copies can't share a trading pocket.");
+    // Seeds' contract derives from the words alone; a passphrase seed would hand
+    // over a different wallet than the one this Vault shows.
+    if (seed.passphrase) throw new Error("Seeds with a passphrase can't share a trading pocket.");
+    assertScopeWithinPolicy(request.paths, request.pocket, SEEDS_POLICY);
     requireLive(request);
     return seedsAnswer(request, seed);
   },
 };
 
 /** Every service Vault will consider. A new one is added here, not as a new screen. */
-export const BRANCH_PROFILES: readonly BranchProfile[] = Object.freeze([SEEDS_BRANCH_PROFILE]);
+export const BRANCH_PROFILES: readonly BranchProfile[] = Object.freeze(
+  [SEEDS_BRANCH_PROFILE].map((profile) => {
+    // A profile whose own policy breaks the export rules never loads.
+    assertPolicySound(profile.policy);
+    return profile;
+  }),
+);
 
 /**
  * Authenticate a scanned request against the pinned trust of every profile.

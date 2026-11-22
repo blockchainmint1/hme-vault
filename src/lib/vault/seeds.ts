@@ -34,6 +34,49 @@ export interface SeedEntry {
    * still decrypts the open HMVAULT1 format.
    */
   handsOff?: true;
+  /**
+   * Trading pockets whose keys this Vault showed to a service. Not secret, but it
+   * lives in the locked vault only and is never put in a shared copy.
+   */
+  pocketShares?: PocketShare[];
+}
+
+/** One record of a pocket shown to a service. `at` is Unix milliseconds. */
+export interface PocketShare {
+  service: string;
+  pocket: number;
+  at: number;
+}
+
+export const MAX_POCKET_SHARES = 50;
+const MAX_SHARE_SERVICE = 60;
+
+function cleanShare(x: unknown): PocketShare {
+  if (!x || typeof x !== "object") throw new Error("Invalid seed in backup.");
+  const r = x as Record<string, unknown>;
+  if (
+    typeof r["service"] !== "string" ||
+    !Number.isInteger(r["pocket"]) ||
+    (r["pocket"] as number) < 0 ||
+    (r["pocket"] as number) >= 0x80000000 ||
+    !Number.isFinite(r["at"])
+  )
+    throw new Error("Invalid seed in backup.");
+  return {
+    service: cleanSeedName(r["service"]).slice(0, MAX_SHARE_SERVICE),
+    pocket: r["pocket"] as number,
+    at: r["at"] as number,
+  };
+}
+
+/** Remember that a pocket was shown to a service; keeps the newest records only. */
+export function recordPocketShare(seeds: SeedEntry[], id: string, share: PocketShare): SeedEntry[] {
+  const entry = cleanShare(share);
+  return seeds.map((s) =>
+    s.id === id
+      ? { ...s, pocketShares: [...(s.pocketShares ?? []), entry].slice(-MAX_POCKET_SHARES) }
+      : s,
+  );
 }
 
 export interface VaultPayload {
@@ -161,11 +204,13 @@ export function parsePayload(text: string): VaultPayload {
       !Number.isFinite(s.createdAt) ||
       (s.passphrase !== undefined && typeof s.passphrase !== "string") ||
       (s.sharedAt !== undefined && !Number.isFinite(s.sharedAt)) ||
-      (s.handsOff !== undefined && s.handsOff !== true)
+      (s.handsOff !== undefined && s.handsOff !== true) ||
+      (s.pocketShares !== undefined && !Array.isArray(s.pocketShares))
     )
       throw new Error("Invalid seed in backup.");
     const words = normalizeSeed(s.words);
     const passphrase = s.passphrase || undefined;
+    const pocketShares = (s.pocketShares ?? []).map(cleanShare).slice(-MAX_POCKET_SHARES);
     // Never trust a stored fingerprint: a crafted backup could disguise a look-alike seed.
     const entry: SeedEntry = {
       id: s.id.slice(0, 64),
@@ -176,6 +221,7 @@ export function parsePayload(text: string): VaultPayload {
       createdAt: s.createdAt,
       ...(s.sharedAt !== undefined ? { sharedAt: s.sharedAt } : {}),
       ...(s.handsOff === true ? { handsOff: true as const } : {}),
+      ...(pocketShares.length ? { pocketShares } : {}),
     };
     if (seeds.some((e) => sameSeed(e, entry))) continue;
     seeds.push(entry);
