@@ -1,5 +1,7 @@
 # Roadmap — HME Seed Vault
 
+- [ ] Add Seeds Key / SEEDS pocket-1106 linking: reviewed Seeds Key c327e69f and SEEDS 10288a21 against Vault a72e8a9; implementation waits on owner decision about unauthenticated recipient requests. Preserve 240-character reply frames, reject hands-off delegation, respect seed passphrases, isolate reference crypto dependencies and guard asynchronous results on lock/close. Auditor assessment: HME-Vault-Seeds-Link-Assessment-2026-11-22.md. No app or APK changes yet.
+
 - [x] Apply the owner-approved hands-off audit follow-up: explicit app-only limitation and lost-phone replacement warnings; shared phone-only import guard for Backup/Receive and Secrets; 455/455 tests passed, changed-file lint has no errors, preview build OK, and both browser import paths refuse mixed hands-off payloads without changing encrypted storage while normal imports read back successfully. Desktop/390px warnings checked. Auditor handoff: HME-Vault-Hands-Off-Followup-Audit-2026-11-21.md. APK build/publication remains outside this task.
 
 - [x] Apply the 2026-11-17 batch-sweep audit follow-up at owner decision: pinned Zero Chill fee ceilings (0.02 ZCU per payment, 0.1 ZCU per batch) in the new shared `EVM_FEE_CEILINGS`, stated in the setup guide that a new seed exists only on this phone until a backup is made, and switched batch review to public-only key derivation so no private key is derived before signing. 442/442 tests, typecheck, formatting and changed-file lint pass. Auditor handoff: HME-Vault-Batch-Sweep-Followup-Audit-2026-11-17.md.
