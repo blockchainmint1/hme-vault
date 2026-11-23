@@ -35,17 +35,22 @@ export const SEEDS_POCKET_PATHS: readonly string[] = Object.freeze([
 
 export type SeedsRequestTrust = Readonly<Record<string, string>>;
 /**
- * SEEDS' production request-signing public key (Ed25519, 32 bytes, base64url).
- * Pinned 2026-11-22. SHA-256 of the decoded bytes:
- * b81366bf60017f6ce50379f3dea1868c18c311bec9ba31292116e6552163307c.
+ * SEEDS' production request-signing public key (Ed25519, 32 bytes, base64url),
+ * held in AWS KMS so its private half never leaves AWS. Pinned 2026-11-23.
+ * SHA-256 of the decoded bytes:
+ * 0556577f852b0cf2a05a1c75ecbf806e6657ce193393d9e800137b6537c86d4d.
  * Four sources matched before pinning: the SEEDS release record
  * (docs/vault-request-signer.md), the live seeds.honest.money signer endpoint
  * (checked by a person; Vault never fetches it), the owner reading the
- * fingerprint on his own phone, and a recomputed fingerprint. Rotation adds a
- * new id alongside this one in a reviewed release; never edit a value in place.
+ * fingerprint from his own device, and a recomputed fingerprint.
+ *
+ * The earlier key `seeds-vault-2026-11` (b81366bf…2163307c) was removed in the
+ * same change at the owner's decision: SEEDS deleted its secret and no member
+ * relied on it. Rotation otherwise adds a new id alongside the old one in a
+ * reviewed release; never edit a value in place.
  */
 export const SEEDS_REQUEST_KEYS: SeedsRequestTrust = Object.freeze({
-  "seeds-vault-2026-11": "KuDdTWX-bDwxkSff2lULKVwvUS_Dfa0tZLy_iWefuxc",
+  "seeds-vault-kms-2026-11": "6_06ZOHGeDeGX7O1ToRTAmdiGs0_AOSSX70VbTd9IjA",
 });
 
 export interface SignedSeedsRequest {

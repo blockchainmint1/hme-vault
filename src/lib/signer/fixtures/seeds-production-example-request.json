@@ -1,7 +1,7 @@
 {
   "type": "hm-seeds-key-vault-request",
   "v": 2,
-  "signing_key_id": "seeds-vault-2026-11",
+  "signing_key_id": "seeds-vault-kms-2026-11",
   "domain": "seeds.honest.money",
   "key_host": "key.seeds.honest.money",
   "challenge_id": "00000000000000000000000000000001",
@@ -28,5 +28,5 @@
     "m/1852'/1815'/1106'",
     "m/44'/128'/1106'"
   ],
-  "request_sig": "aSLdBvjd3AiIFXfA8jUEJeGxUdUAnIr6SgnQ8vmJCCk5zF3NL4zMb_UskaVoqjEiyEFzW3_7zJb-O07880C4DQ"
+  "request_sig": "FUn5Jqz5FFupj8BucCnR4St3AoVYvzAamzSWU9tqYMtLKV-wIuI3beuWfaS_mPsOPWqJ2qZdrFZzQRNOgpW6Aw"
 }

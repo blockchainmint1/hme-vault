@@ -117,19 +117,26 @@ Vault locks.
 
 ## SEEDS' pinned signing key
 
-Pinned on 2026-11-22 in `SEEDS_REQUEST_KEYS` (`src/lib/signer/seeds-request.ts`):
+Pinned on 2026-11-23 in `SEEDS_REQUEST_KEYS` (`src/lib/signer/seeds-request.ts`).
+The private half lives in AWS KMS (us-east-1) and never leaves AWS:
 
 | Field | Value |
 |---|---|
-| `signing_key_id` | `seeds-vault-2026-11` |
-| Public key (Ed25519, base64url, 32 bytes) | `KuDdTWX-bDwxkSff2lULKVwvUS_Dfa0tZLy_iWefuxc` |
-| SHA-256 of the decoded bytes | `b81366bf60017f6ce50379f3dea1868c18c311bec9ba31292116e6552163307c` |
+| `signing_key_id` | `seeds-vault-kms-2026-11` |
+| Public key (Ed25519, base64url, 32 bytes) | `6_06ZOHGeDeGX7O1ToRTAmdiGs0_AOSSX70VbTd9IjA` |
+| SHA-256 of the decoded bytes | `0556577f852b0cf2a05a1c75ecbf806e6657ce193393d9e800137b6537c86d4d` |
 
 All four checks in SEEDS' release record matched before pinning: the record
-itself (`docs/vault-request-signer.md` in SEEDS), the live
+itself (`docs/vault-request-signer.md` in SEEDS, commit `582c6f71`), the live
 `seeds.honest.money/api/public/key-signin/vault-signer` endpoint (checked by a
-person; Vault never fetches it), the owner reading the fingerprint on his own
-phone, and a recomputed fingerprint. SEEDS' production-signed, already-expired
+person; Vault never fetches it), the owner reading the full fingerprint from
+his own device, and a recomputed fingerprint.
+
+The earlier key `seeds-vault-2026-11` (`b81366bf…2163307c`, pinned 2026-11-22)
+was removed in the same change at the owner's decision: SEEDS deleted its
+server secret and no member relied on it. Its signed example is kept at
+`src/lib/signer/fixtures/seeds-retired-key-example-request.json` and a test
+proves it is now refused. SEEDS' production-signed, already-expired
 example is kept at `src/lib/signer/fixtures/seeds-production-example-request.json`
 and verifies at its own clock, which proves Vault's canonical bytes match the
 real signer.

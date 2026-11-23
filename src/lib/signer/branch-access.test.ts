@@ -119,7 +119,7 @@ async function openPayload(payload: string): Promise<Record<string, string>> {
 
 describe("the app path trusts only SEEDS' pinned production key", () => {
   it("production trust is exactly the reviewed SEEDS key", () => {
-    expect(Object.keys(SEEDS_REQUEST_KEYS)).toEqual(["seeds-vault-2026-11"]);
+    expect(Object.keys(SEEDS_REQUEST_KEYS)).toEqual(["seeds-vault-kms-2026-11"]);
   });
 
   it("a request signed by any other key is refused", () => {
@@ -145,7 +145,7 @@ describe("the app path trusts only SEEDS' pinned production key", () => {
 
   it("every profile's production trust holds only reviewed key ids", () => {
     // Pinning a key means updating this table in the same reviewed change.
-    const REVIEWED: Record<string, string[]> = { seeds: ["seeds-vault-2026-11"] };
+    const REVIEWED: Record<string, string[]> = { seeds: ["seeds-vault-kms-2026-11"] };
     expect(BRANCH_PROFILES.map((p) => p.id).sort()).toEqual(Object.keys(REVIEWED).sort());
     for (const p of BRANCH_PROFILES) {
       expect(Object.keys(p.productionTrust).sort()).toEqual(REVIEWED[p.id]);

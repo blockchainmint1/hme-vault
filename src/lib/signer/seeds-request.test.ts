@@ -48,20 +48,25 @@ const PRODUCTION_EXAMPLE = readFileSync(
   "utf8",
 );
 const EXAMPLE_CLOCK = Date.parse("2026-01-01T00:05:00.000Z");
+/** The same example signed with SEEDS' retired key; must no longer open. */
+const RETIRED_EXAMPLE = readFileSync(
+  new URL("./fixtures/seeds-retired-key-example-request.json", import.meta.url),
+  "utf8",
+);
 
 describe("SEEDS' pinned production signing key", () => {
   it("pins exactly one reviewed key id and value", () => {
     expect(SEEDS_REQUEST_KEYS).toEqual({
-      "seeds-vault-2026-11": "KuDdTWX-bDwxkSff2lULKVwvUS_Dfa0tZLy_iWefuxc",
+      "seeds-vault-kms-2026-11": "6_06ZOHGeDeGX7O1ToRTAmdiGs0_AOSSX70VbTd9IjA",
     });
     expect(Object.isFrozen(SEEDS_REQUEST_KEYS)).toBe(true);
   });
 
   it("matches the fingerprint the owner confirmed on his phone", () => {
-    const key = base64urlnopad.decode(SEEDS_REQUEST_KEYS["seeds-vault-2026-11"]!);
+    const key = base64urlnopad.decode(SEEDS_REQUEST_KEYS["seeds-vault-kms-2026-11"]!);
     expect(key).toHaveLength(32);
     expect(bytesToHex(sha256(key))).toBe(
-      "b81366bf60017f6ce50379f3dea1868c18c311bec9ba31292116e6552163307c",
+      "0556577f852b0cf2a05a1c75ecbf806e6657ce193393d9e800137b6537c86d4d",
     );
   });
 
@@ -71,7 +76,7 @@ describe("SEEDS' pinned production signing key", () => {
       SEEDS_REQUEST_KEYS,
       EXAMPLE_CLOCK,
     );
-    expect(r.signing_key_id).toBe("seeds-vault-2026-11");
+    expect(r.signing_key_id).toBe("seeds-vault-kms-2026-11");
     expect(r.pocket).toBe(1106);
     expect(r.paths).toEqual([...SEEDS_POCKET_PATHS]);
   });
@@ -96,8 +101,29 @@ describe("SEEDS' pinned production signing key", () => {
     expect(() => readSeedsRequest(JSON.stringify(request()))).toThrow(/doesn't trust/);
   });
 
+  it("the retired key no longer opens anything, even its own signed example", () => {
+    expect(SEEDS_REQUEST_KEYS).not.toHaveProperty("seeds-vault-2026-11");
+    expect(Object.values(SEEDS_REQUEST_KEYS)).not.toContain(
+      "KuDdTWX-bDwxkSff2lULKVwvUS_Dfa0tZLy_iWefuxc",
+    );
+    expect(() =>
+      verifySignedSeedsRequest(JSON.parse(RETIRED_EXAMPLE), SEEDS_REQUEST_KEYS, EXAMPLE_CLOCK),
+    ).toThrow(/doesn't trust/);
+  });
+
+  it("the retired example relabelled with the new id fails the signature check", () => {
+    const x = JSON.parse(RETIRED_EXAMPLE) as Record<string, unknown>;
+    expect(() =>
+      verifySignedSeedsRequest(
+        { ...x, signing_key_id: "seeds-vault-kms-2026-11" },
+        SEEDS_REQUEST_KEYS,
+        EXAMPLE_CLOCK,
+      ),
+    ).toThrow(/couldn't be verified/);
+  });
+
   it("a different key cannot reuse the pinned id", () => {
-    const r = request({ signing_key_id: "seeds-vault-2026-11" });
+    const r = request({ signing_key_id: "seeds-vault-kms-2026-11" });
     expect(() => verifySignedSeedsRequest(r, SEEDS_REQUEST_KEYS, NOW)).toThrow();
   });
 });
