@@ -2,7 +2,8 @@
  * Fingerprints of the modules copied from the Seeds Key project. Each value was
  * recorded after checking the file against Seeds Key: the pockets modules and
  * rules.ts at commit 80fd70a2, and seeds-key-reference.ts (with Key's optional
- * extra-password support) at commit 0af0ba5b. After our Prettier formatting the
+ * extra-password support) at commit 0af0ba5b, and vault-label.ts byte-for-byte at
+ * commit 6d9e1e46. After our Prettier formatting the
  * code is identical, except one line in seeds-key-reference.ts adapted from
  * noble 2.x to Vault's noble 1.9.7 (vectors.test.ts proves the signature bytes
  * are the same).
@@ -24,6 +25,8 @@ const PINNED: Readonly<Record<string, string>> = {
   "../key-signin/rules.ts": "147d423f9e87ecd0133f2ed27198d01decaf108ef41240edb6bdaa86c4df2280",
   "../key-signin/seeds-key-reference.ts":
     "47d7a937a5af0eeb1ed42cbbeb249241a154cab88f3f6ca17eb4492e5d061f58",
+  "../key-signin/vault-label.ts":
+    "b3871497bf90198a6c2d065c19b02934ec9c8747d6300596b220b3f5c4825fb5",
 };
 
 describe("files copied from Seeds Key are unchanged", () => {

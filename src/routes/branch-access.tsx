@@ -20,6 +20,7 @@ import { getBiometricStatus, unlockWithBiometric } from "@/lib/native/biometric"
 import { parseAccountPath, POCKET_SPECS } from "@/lib/pockets/coins";
 import { SIGNING_PART_SIZE } from "@/lib/signer/qr-parts";
 import {
+  branchAnswerSeedId,
   branchConsequence,
   handOverPocket,
   HandoverGuard,
@@ -203,6 +204,12 @@ function BranchFlow() {
           Show these codes to {request.service}. They expire in {left}s.
         </p>
         <AnimatedQr value={answer} frameSize={SIGNING_PART_SIZE} size={300} />
+        {branchAnswerSeedId(answer) && (
+          <p className="text-sm">
+            {request.service} will name this account{" "}
+            <span className="font-mono font-medium">Vault {branchAnswerSeedId(answer)}</span>.
+          </p>
+        )}
         <p className="text-xs text-muted-foreground">
           Nothing is sent from this phone. The answer is sealed so only {request.service} can open
           it, and it holds pocket {request.pocket} only — not your recovery words.
@@ -342,6 +349,13 @@ function BranchFlow() {
             ))}
           </SelectContent>
         </Select>
+        {seed && (
+          <p className="text-xs text-muted-foreground">
+            {request.service} will also see this seed's ID,{" "}
+            <span className="font-mono">{seed.fingerprint}</span>, and use it as the account name.
+            Its name and recovery words stay here.
+          </p>
+        )}
         {usable.length === 0 && (
           <p className="text-sm text-destructive">
             This Vault has no seed that can share a trading pocket.

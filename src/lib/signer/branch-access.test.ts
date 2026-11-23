@@ -8,9 +8,13 @@ import { describe, expect, it, vi } from "vitest";
 import { ed25519, x25519 } from "@noble/curves/ed25519.js";
 import { hkdf } from "@noble/hashes/hkdf.js";
 import { sha256 } from "@noble/hashes/sha2.js";
-import { base64urlnopad } from "@scure/base";
+import { secp256k1 } from "@noble/curves/secp256k1.js";
+import { ripemd160 } from "@noble/hashes/legacy.js";
+import { base64, base64urlnopad, createBase58check } from "@scure/base";
+import { readVaultLabel, vaultLabelMessage } from "@/lib/key-signin/vault-label";
 import { accountPath, POCKET_COINS } from "@/lib/pockets/coins";
 import {
+  branchAnswerSeedId,
   BRANCH_ANSWER_TYPE,
   BRANCH_PROFILES,
   buildBranchAnswer,
@@ -274,7 +278,17 @@ describe("the approved answer", () => {
     expect(answer).not.toContain("abandon");
     const body = parsed.body as Record<string, unknown>;
     expect(Object.keys(body).sort()).toEqual(
-      ["account", "identity_address", "kind", "paths", "payload", "token", "xpubs"].sort(),
+      [
+        "account",
+        "identity_address",
+        "kind",
+        "paths",
+        "payload",
+        "token",
+        "vault_fingerprint",
+        "vault_label_signature",
+        "xpubs",
+      ].sort(),
     );
     expect(body.account).toBe(1106);
     expect(body.kind).toBe("coin");
@@ -438,5 +452,108 @@ describe("cancelling a hand-over never shows or records a late answer", () => {
       record: () => new Promise((res) => setTimeout(res, 500)),
     });
     await expect(result).rejects.toThrow(/expired/i);
+  });
+});
+
+/** What Seeds Key and SEEDS do with a TXC signature: recover the signer's address. */
+function txcSignedBy(address: string, message: string, signature: string): boolean {
+  try {
+    const varint = (n: number) =>
+      n < 0xfd ? Uint8Array.of(n) : Uint8Array.of(0xfd, n & 0xff, n >> 8);
+    const p = new TextEncoder().encode("Bitcoin Signed Message:\n");
+    const m = new TextEncoder().encode(message);
+    const hash = sha256(sha256(concat(varint(p.length), p, varint(m.length), m)));
+    const raw = base64.decode(signature);
+    if (raw.length !== 65 || raw[0]! < 31 || raw[0]! > 34) return false;
+    const point = secp256k1.Signature.fromBytes(
+      concat(Uint8Array.of(raw[0]! - 31), raw.slice(1)),
+      "recovered",
+    ).recoverPublicKey(hash);
+    const b58c = createBase58check(sha256);
+    return (
+      b58c.encode(concat(Uint8Array.of(66), ripemd160(sha256(point.toBytes(true))))) === address
+    );
+  } catch {
+    return false;
+  }
+}
+
+type LabeledAnswer = {
+  message: string;
+  signature: string;
+  body: Record<string, unknown> & { identity_address: string; vault_fingerprint: string };
+};
+
+async function labeled(over: Partial<SeedEntry> = {}): Promise<LabeledAnswer> {
+  const r = readBranchRequest(signedRequest(), TEST_TRUST);
+  return JSON.parse(
+    await buildBranchAnswer(r, seed(over), over.name ?? "Trading"),
+  ) as LabeledAnswer;
+}
+
+describe("the answer names the seed by the ID Vault shows beside it", () => {
+  it("carries the official BIP39 vector seed's ID, 73c5da0a, signed by the same identity", async () => {
+    const a = await labeled();
+    expect(a.body.vault_fingerprint).toBe("73c5da0a");
+    // Exactly the check Seeds Key runs before forwarding to SEEDS.
+    expect(readVaultLabel(a.body, a.message, a.body.identity_address, txcSignedBy)).toEqual({
+      vault_fingerprint: "73c5da0a",
+      vault_label_signature: a.body["vault_label_signature"],
+    });
+    expect(txcSignedBy(a.body.identity_address, a.message, a.signature)).toBe(true);
+  });
+
+  it("recomputes the ID from the words, ignoring a wrong stored one", async () => {
+    const a = await labeled({ fingerprint: "deadbeef" });
+    expect(a.body.vault_fingerprint).toBe("73c5da0a");
+  });
+
+  it("keeps a leading zero so the ID is always eight characters", async () => {
+    const words = "baby mass dust captain baby mass dust captain baby mass dust casino";
+    const a = await labeled({ words });
+    expect(a.body.vault_fingerprint).toBe("0be174ee");
+    expect(readVaultLabel(a.body, a.message, a.body.identity_address, txcSignedBy)).toBeDefined();
+  });
+
+  it("uses the extra-password wallet's ID, never the bare words' ID or the password", async () => {
+    const a = await labeled({ passphrase: "TREZOR" });
+    expect(a.body.vault_fingerprint).toBe("b4e3f5ed");
+    expect(a.body.identity_address).toBe(TREZOR_IDENTITY);
+    expect(JSON.stringify(a)).not.toContain("TREZOR");
+    expect(readVaultLabel(a.body, a.message, TREZOR_IDENTITY, txcSignedBy)).toBeDefined();
+  });
+
+  it("gives the same ID however the keyboard composed the extra password", async () => {
+    expect((await labeled({ passphrase: "caf\u00e9" })).body.vault_fingerprint).toBe("75902abe");
+    expect((await labeled({ passphrase: "cafe\u0301" })).body.vault_fingerprint).toBe("75902abe");
+  });
+
+  it("a changed ID or a label lifted from another hand-over fails verification", async () => {
+    const a = await labeled();
+    const changed = { ...a.body, vault_fingerprint: "73c5da0b" };
+    expect(() =>
+      readVaultLabel(changed, a.message, a.body.identity_address, txcSignedBy),
+    ).toThrow();
+    const b = await labeled();
+    expect(b.message).not.toBe(a.message);
+    const lifted = { ...b.body, vault_label_signature: a.body["vault_label_signature"] };
+    expect(() => readVaultLabel(lifted, b.message, b.body.identity_address, txcSignedBy)).toThrow();
+    expect(vaultLabelMessage(a.message, "73c5da0a")).toBe(
+      JSON.stringify(["HME Vault seed label", 1, a.message, "73c5da0a"]),
+    );
+  });
+
+  it("never discloses the seed's name or recovery words", async () => {
+    const text = JSON.stringify(await labeled({ name: "My Secret Savings Name" }));
+    expect(text).not.toContain("Secret Savings");
+    expect(text).not.toContain("abandon");
+  });
+
+  it("the screen reads back exactly the ID the answer carries", async () => {
+    const r = readBranchRequest(signedRequest(), TEST_TRUST);
+    const answer = await buildBranchAnswer(r, seed(), "Trading");
+    expect(branchAnswerSeedId(answer)).toBe("73c5da0a");
+    expect(branchAnswerSeedId("{}")).toBeNull();
+    expect(branchAnswerSeedId("not json")).toBeNull();
   });
 });

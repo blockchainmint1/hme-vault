@@ -109,6 +109,19 @@ The answer is `hm-seeds-key-vault-response` v2:
   pocket's TXC identity, binding the answer to the challenge;
 - `body` — the pocket's xprv map, sealed with X25519 + AES-256-GCM to the
   request's `recipient_pubkey` (`eph(32) ‖ nonce(12) ‖ ciphertext+tag`).
+- `body.vault_fingerprint` and `body.vault_label_signature` — optional display
+  metadata so the service can name the account `Vault <id>` using the same
+  eight-character seed ID Vault shows beside the seed name. The ID is the BIP32
+  master fingerprint (lowercase hex, zero-padded), recomputed from the words and
+  stored extra password at hand-over time, never read from storage. The label
+  signature is a second TXC message signature by the same identity over
+  `JSON.stringify(["HME Vault seed label", 1, message, vault_fingerprint])`
+  (Seeds Key's `vault-label.ts`, copied byte for byte), so it cannot be moved to
+  another hand-over. The original message, signature, `kind`, identity, pocket,
+  paths and sealed payload are unchanged; services that predate the label ignore
+  it. The ID is 32 bits and display-only: it must never decide login, ownership,
+  matching or derivation. It is the only extra seed information disclosed, and
+  the review screen tells the owner it will be shared.
 
 Sixteen chains are covered by the pinned list: TXC, ISK, BTC, LTC, EVM, DOGE,
 BCH, ZEC, XRP, TRX, SOL, DASH, ATOM, RUNE, ADA, XMR. The answer is never

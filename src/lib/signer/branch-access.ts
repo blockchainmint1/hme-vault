@@ -19,7 +19,8 @@ import {
   signTxcMessage,
   type KeyManifest,
 } from "@/lib/key-signin/seeds-key-reference";
-import { canRevealSeed, type SeedEntry } from "@/lib/vault/seeds";
+import { vaultLabelMessage } from "@/lib/key-signin/vault-label";
+import { canRevealSeed, seedFingerprint, type SeedEntry } from "@/lib/vault/seeds";
 import { assertPolicySound, assertScopeWithinPolicy, type BranchPolicy } from "./branch-policy";
 import {
   readSeedsRequestWithTrust,
@@ -114,8 +115,13 @@ function seedsAnswer(request: BranchRequest, seed: SeedEntry): Promise<string> {
     return Promise.reject(new Error("The answer couldn't be built."));
   };
   let identity: string;
+  let seedId: string;
   try {
     identity = signTxcMessage(key, "x").address;
+    // The seed ID Vault shows beside the seed name, recomputed from the words and
+    // extra password rather than read from storage, so a restored backup can't
+    // put a different ID on this hand-over.
+    seedId = seedFingerprint(seed.words, passphrase);
   } catch (error) {
     return finish(error);
   }
@@ -135,6 +141,11 @@ function seedsAnswer(request: BranchRequest, seed: SeedEntry): Promise<string> {
       )
         throw new Error("The keys didn't match the approved list, so nothing was handed over.");
       const signature = signTxcMessage(key, h.message).signature;
+      // Optional display label (Seeds Key's vault-label.ts): a second signature by
+      // the same identity over the seed ID and this exact hand-over text, so it
+      // can't be moved to another hand-over. The original message, signature and
+      // body fields are unchanged; older services simply ignore the label.
+      const labelSignature = signTxcMessage(key, vaultLabelMessage(h.message, seedId)).signature;
       // Derivation takes time; never display an answer whose request has lapsed.
       requireLive(request);
       key.fill(0);
@@ -144,7 +155,7 @@ function seedsAnswer(request: BranchRequest, seed: SeedEntry): Promise<string> {
         challenge_id: r.challenge_id,
         message: h.message,
         signature,
-        body: h.body,
+        body: { ...h.body, vault_fingerprint: seedId, vault_label_signature: labelSignature },
       });
     })
     .catch(finish);
@@ -211,6 +222,20 @@ export function readBranchRequest(text: string, trust?: SeedsRequestTrust): Bran
  */
 export function seedNameConfirmed(typed: string, seed: Pick<SeedEntry, "name">): boolean {
   return typed.length > 0 && typed === seed.name;
+}
+
+/**
+ * The seed ID an answer will show the service, read back from the answer itself
+ * so the screen names exactly what was signed. Null when the answer has none.
+ */
+export function branchAnswerSeedId(answer: string): string | null {
+  try {
+    const id = (JSON.parse(answer) as { body?: { vault_fingerprint?: unknown } }).body
+      ?.vault_fingerprint;
+    return typeof id === "string" && /^[0-9a-f]{8}$/.test(id) ? id : null;
+  } catch {
+    return null;
+  }
 }
 
 /** The approved answer for the chosen seed, as JSON ready for QR display. */
