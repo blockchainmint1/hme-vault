@@ -13,7 +13,7 @@ export function AppVersion() {
     let live = true;
     const show = (label: string, v: string) => {
       const day = versionBuiltOn(v);
-      if (live) setLine(`${label} ${v}${day ? ` · built ${day}` : ""}`);
+      if (live) setLine(`${label} v${v}${day ? ` · built ${day}` : ""}`);
     };
     if (!isNative()) {
       show("Latest Android app:", APK_VERSION);

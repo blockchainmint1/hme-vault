@@ -53,7 +53,7 @@ export function SiteFooter() {
         <details className="text-xs">
           <summary className="cursor-pointer">Verify the APK before installing</summary>
           <div className="mt-2 space-y-1 break-all font-mono">
-            <p>Version {APK_VERSION}</p>
+            <p>Version v{APK_VERSION}</p>
             <p>File SHA-256: {APK_SHA256}</p>
             <p>Signing certificate SHA-256: {SIGNING_CERT_SHA256}</p>
           </div>

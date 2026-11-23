@@ -1,10 +1,12 @@
 /**
  * Published fingerprints for the APK linked in the footer (audit M6).
- * Update APK_VERSION and APK_SHA256 whenever src/assets/vault-apk.apk.asset.json changes.
- * The next APK's own version lives in package.json and must be newer than APK_VERSION.
+ * APK_VERSION is the latest version we announce; it may run ahead of the downloadable file
+ * while a new APK awaits its build and swap. APK_SHA256 always matches the file actually
+ * linked, so update it whenever src/assets/vault-apk.apk.asset.json changes.
+ * The next APK's own version lives in package.json and must never be older than APK_VERSION.
  * The signing-certificate fingerprint stays the same for every release signed with Vault's key.
  */
-export const APK_VERSION = "0.1.202611191758";
+export const APK_VERSION = "1.0.0";
 export const APK_SHA256 = "d2be204b9c4d721e2596bf5162b80d9aef64e3718cf74d13b4d1591dfef9de79";
 export const SIGNING_CERT_SHA256 =
   "6a7c4e47173911aafc20db541ad23a530b898e87be66e1ab095d529addfd5498";

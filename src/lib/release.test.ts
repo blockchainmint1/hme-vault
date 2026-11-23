@@ -4,8 +4,12 @@ import pkg from "../../package.json";
 import { APK_VERSION, compareVersions, versionBuiltOn } from "./release";
 
 describe("published APK fingerprint", () => {
-  it("matches the APK the footer links to", () => {
-    expect(asset.original_filename).toContain(APK_VERSION);
+  it("links a real versioned APK that is never newer than the announced version", () => {
+    // The announced APK_VERSION may run ahead of the downloadable file while a new APK
+    // awaits its build and swap, but the file on offer must never claim to be newer.
+    const m = /(\d+\.\d+\.\d+)/.exec(asset.original_filename);
+    expect(m, "APK file name carries a dotted version").toBeTruthy();
+    expect(compareVersions(m![1], APK_VERSION)).toBeLessThanOrEqual(0);
   });
 });
 

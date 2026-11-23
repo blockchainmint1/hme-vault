@@ -131,8 +131,12 @@ jobs:
           if [ -z "$PUBLISHED" ]; then
             echo "::error::Could not read APK_VERSION from src/lib/release.ts."; exit 1
           fi
-          if [ "$V" = "$PUBLISHED" ]; then
-            echo "::error::Version $V is already the APK on the website. Raise the version in package.json first."; exit 1
+          # The website may announce a version before its APK is built and swapped in, so
+          # equality is fine (this build then fulfills the announcement); only refuse a
+          # build that would be older than what the website already announces.
+          older="$(printf '%s\n%s\n' "$V" "$PUBLISHED" | sort -t. -k1,1n -k2,2n -k3,3n | head -1)"
+          if [ "$older" = "$V" ] && [ "$V" != "$PUBLISHED" ]; then
+            echo "::error::Version $V is older than the version $PUBLISHED announced on the website. Raise the version in package.json first."; exit 1
           fi
           echo "version=$V" >> $GITHUB_OUTPUT
           echo "version_code=$((26101900 + GITHUB_RUN_NUMBER))" >> $GITHUB_OUTPUT
