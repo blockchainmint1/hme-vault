@@ -20,6 +20,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { HomeBlurbs } from "@/components/vault/HomeBlurbs";
 import { CredentialInput } from "@/components/vault/CredentialInput";
 import { OfflineCheck } from "@/components/vault/OfflineCheck";
+import { AppVersion } from "@/components/vault/AppVersion";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -62,6 +63,7 @@ function Home() {
         <p className="mt-1 text-sm text-muted-foreground">
           Your seeds, locked on this device.{"\u00a0\n"}Nothing ever leaves it.
         </p>
+        <AppVersion />
       </div>
       {status === "none" && <Setup />}
       {status === "locked" && <UnlockForm />}
