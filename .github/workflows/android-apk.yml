@@ -117,13 +117,22 @@ jobs:
       - name: Patch launcher icons (dollar-sign brand mark, dark/light adaptive)
         run: bun scripts/patch-android-icons.mjs
 
-      - name: Derive version
+      - name: Read app version (chosen by hand in package.json)
         id: ver
         run: |
-          if [[ "$GITHUB_REF" == refs/tags/android-v* ]]; then
-            V="${GITHUB_REF#refs/tags/android-v}"
-          else
-            V="0.1.$(date +%Y%m%d%H%M)"
+          V="$(jq -r .version package.json)"
+          if ! [[ "$V" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::package.json version must look like 1.2.3 (found '$V')."; exit 1
+          fi
+          if [[ "$GITHUB_REF" == refs/tags/android-v* && "${GITHUB_REF#refs/tags/android-v}" != "$V" ]]; then
+            echo "::error::Tag ${GITHUB_REF#refs/tags/} does not match package.json version $V."; exit 1
+          fi
+          PUBLISHED="$(sed -n 's/^export const APK_VERSION = "\(.*\)";$/\1/p' src/lib/release.ts)"
+          if [ -z "$PUBLISHED" ]; then
+            echo "::error::Could not read APK_VERSION from src/lib/release.ts."; exit 1
+          fi
+          if [ "$V" = "$PUBLISHED" ]; then
+            echo "::error::Version $V is already the APK on the website. Raise the version in package.json first."; exit 1
           fi
           echo "version=$V" >> $GITHUB_OUTPUT
           echo "version_code=$((26101900 + GITHUB_RUN_NUMBER))" >> $GITHUB_OUTPUT

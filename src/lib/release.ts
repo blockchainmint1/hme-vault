@@ -1,6 +1,7 @@
 /**
  * Published fingerprints for the APK linked in the footer (audit M6).
- * Update APK_SHA256 whenever src/assets/vault-apk.apk.asset.json changes.
+ * Update APK_VERSION and APK_SHA256 whenever src/assets/vault-apk.apk.asset.json changes.
+ * The next APK's own version lives in package.json and must be newer than APK_VERSION.
  * The signing-certificate fingerprint stays the same for every release signed with Vault's key.
  */
 export const APK_VERSION = "0.1.202611191758";
@@ -11,8 +12,23 @@ export const SIGNING_CERT_SHA256 =
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 /**
- * APK versions are stamped by the build as `0.1.YYYYMMDDHHMM` (UTC). Returns the build day in
- * plain words, e.g. "23 Nov 2026", or null for any other version text.
+ * Compares two dotted version numbers part by part (1.0.10 is newer than 1.0.9). Returns a
+ * positive number when `a` is newer, negative when older and 0 when equal.
+ */
+export function compareVersions(a: string, b: string): number {
+  const pa = a.split(".").map(Number);
+  const pb = b.split(".").map(Number);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const d = (pa[i] ?? 0) - (pb[i] ?? 0);
+    if (d !== 0) return d;
+  }
+  return 0;
+}
+
+/**
+ * APKs up to 0.1.202611230057 carried build stamps `0.1.YYYYMMDDHHMM` (UTC); from 1.0.0 on the
+ * version is chosen by hand in package.json. Returns the build day of a legacy stamp in plain
+ * words, e.g. "23 Nov 2026", or null for any other version text.
  */
 export function versionBuiltOn(version: string): string | null {
   const m = /^\d+\.\d+\.(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})$/.exec(version.trim());

@@ -147,3 +147,4 @@
 - [ ] Release 0.1.202611171732 to site — blocked on Pixel checklist + gated workflow run URL/source commit
 
 - [x] Phone checks (2026-11-19, Bobby): Vault stays unlocked after saving a backup file; no self-lock during camera or fingerprint prompts.
+- [x] Owner request (2026-11-23): own version numbering. APK versionName now comes from the hand-set `version` in package.json (starting 1.0.0, owner-confirmed) instead of a build timestamp; the workflow refuses malformed versions, tag mismatches and the version already on the website, and tests keep it never older. Needs auditor review before the next APK build.
