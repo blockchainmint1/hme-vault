@@ -16,6 +16,7 @@ import { reviewEvm, signEvm, type EvmReview } from "@/lib/signer/evm";
 import { reviewThorSwap, signThorSwap, type ThorSwapReview } from "@/lib/signer/thor-evm";
 import { format1e8 } from "@/lib/signer/thor";
 import { COIN_IDS, type CoinId } from "@/lib/signer/networks";
+import { EMPTY_GATE, gateFor, updateGate, type ReviewGate } from "@/components/vault/review-gate";
 import { EvmPaymentReview } from "@/components/vault/EvmPaymentReview";
 import { SweepPaymentReview } from "@/components/vault/SweepPaymentReview";
 import { reviewSweep, signSweep, type SweepReview } from "@/lib/signer/sweep";
@@ -67,15 +68,13 @@ function SignPage() {
   const [network, setNetwork] = useState<CoinId | "EVM">("TXC");
   const [evm, setEvm] = useState<EvmReview | null>(null);
   const [thor, setThor] = useState<ThorSwapReview | null>(null);
-  const [listSeen, setListSeen] = useState(false);
-  const [listOk, setListOk] = useState(false);
   const [sweep, setSweep] = useState<SweepReview | null>(null);
-  const [extOk, setExtOk] = useState(false);
-  useEffect(() => {
-    setListSeen(false);
-    setListOk(false);
-    setExtOk(false);
-  }, [evm, sweep]);
+  const [gateState, setGateState] = useState<ReviewGate>(EMPTY_GATE);
+  const gateReview = evm ?? sweep;
+  const { seen: listSeen, ok: listOk, extOk } = gateFor(gateState, gateReview);
+  const setListSeen = (seen: boolean) => setGateState((g) => updateGate(g, gateReview, { seen }));
+  const setListOk = (ok: boolean) => setGateState((g) => updateGate(g, gateReview, { ok }));
+  const setExtOk = (ext: boolean) => setGateState((g) => updateGate(g, gateReview, { extOk: ext }));
   const generation = useRef(0);
   const [bioOn, setBioOn] = useState(false);
   useEffect(() => {
