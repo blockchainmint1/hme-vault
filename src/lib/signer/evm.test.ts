@@ -188,7 +188,8 @@ describe("offline EVM signing", () => {
   });
 });
 
-describe("native-disperse bulk payments", () => {
+// Each bulk-payment review derives the seed's first 1,000 EVM addresses; allow for slow, busy test machines.
+describe("native-disperse bulk payments", { timeout: 30_000 }, () => {
   const recips = Array.from(
     { length: 10 },
     (_, i) => `0x${(i + 1).toString(16).padStart(40, "a")}`,

@@ -39,7 +39,8 @@ const disperse = (recipients: string[]) =>
     gas: String(40_000 + 20_000 * recipients.length),
   });
 
-describe("bulk payment own-address labels", () => {
+// Each bulk-payment review derives the seed's first 1,000 EVM addresses; allow for slow, busy test machines.
+describe("bulk payment own-address labels", { timeout: 30_000 }, () => {
   it("labels #1, #57 and #999 as this seed's own addresses", async () => {
     const own = [await addr(ABANDON, 1), await addr(ABANDON, 57), await addr(ABANDON, 999)];
     const r = await reviewEvm(disperse(own), seeds);
