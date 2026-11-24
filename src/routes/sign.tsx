@@ -16,6 +16,7 @@ import { reviewEvm, signEvm, type EvmReview } from "@/lib/signer/evm";
 import { reviewThorSwap, signThorSwap, type ThorSwapReview } from "@/lib/signer/thor-evm";
 import { format1e8 } from "@/lib/signer/thor";
 import { COIN_IDS, type CoinId } from "@/lib/signer/networks";
+import { wrongNetworkHint } from "@/lib/signer/network-hint";
 import { EMPTY_GATE, gateFor, updateGate, type ReviewGate } from "@/components/vault/review-gate";
 import { EvmPaymentReview } from "@/components/vault/EvmPaymentReview";
 import { SweepPaymentReview } from "@/components/vault/SweepPaymentReview";
@@ -200,6 +201,8 @@ function SignPage() {
     setSigned(null);
     const run = ++generation.current;
     try {
+      const hint = wrongNetworkHint(text, network);
+      if (hint) throw new Error(hint);
       if (network === "EVM") {
         if (text.includes('"sweep-batch"')) {
           const review = await reviewSweep(text, seeds);

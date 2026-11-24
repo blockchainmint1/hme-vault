@@ -6,7 +6,7 @@
  * The next APK's own version lives in package.json and must never be older than APK_VERSION.
  * The signing-certificate fingerprint stays the same for every release signed with Vault's key.
  */
-export const APK_VERSION = "1.0.3";
+export const APK_VERSION = "1.0.4";
 export const APK_SHA256 = "9dece1f75fa46df23599a07fa015f0b99b3cbfcbaca7444aae0f17105061c77d";
 export const SIGNING_CERT_SHA256 =
   "6a7c4e47173911aafc20db541ad23a530b898e87be66e1ab095d529addfd5498";
