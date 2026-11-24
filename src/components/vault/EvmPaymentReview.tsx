@@ -35,6 +35,7 @@ export function EvmPaymentReview({
             <p className="text-sm font-medium">
               If any recipient cannot receive, the whole payment fails and nothing is sent.
             </p>
+            <OwnershipSummary payouts={r.payouts} />
             <ol
               ref={list}
               onScroll={check}
@@ -45,7 +46,24 @@ export function EvmPaymentReview({
                 <li key={p.address} className="text-sm">
                   <span className="text-muted-foreground">{i + 1}. </span>
                   <span className="font-medium">{p.amountLabel}</span>
-                  <span className="block break-all font-mono text-xs">{p.address}</span>
+                  {p.ownIndex === null ? (
+                    <span className="ml-2 font-semibold text-destructive">
+                      Not one of your addresses
+                    </span>
+                  ) : (
+                    <span className="ml-2 font-medium text-primary">
+                      Your own address #{p.ownIndex}
+                    </span>
+                  )}
+                  <span
+                    className={
+                      p.ownIndex === null
+                        ? "block break-all font-mono text-xs text-destructive"
+                        : "block break-all font-mono text-xs"
+                    }
+                  >
+                    {p.address}
+                  </span>
                 </li>
               ))}
             </ol>
@@ -101,5 +119,29 @@ export function EvmPaymentReview({
         ))}
       </CardContent>
     </Card>
+  );
+}
+
+function OwnershipSummary({ payouts }: { payouts: NonNullable<EvmReview["payouts"]> }) {
+  const own = payouts.filter((p) => p.ownIndex !== null).length;
+  const others = payouts.length - own;
+  return (
+    <>
+      <p className="text-sm">
+        {own} of {payouts.length} recipients are your own addresses
+      </p>
+      {others > 0 && (
+        <p
+          role="alert"
+          className="flex gap-2 rounded-md border border-destructive/50 p-2 text-sm font-semibold text-destructive"
+        >
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          {others === 1
+            ? "1 recipient is someone else."
+            : `${others} recipients are someone else.`}{" "}
+          Only continue if you meant to pay them.
+        </p>
+      )}
+    </>
   );
 }

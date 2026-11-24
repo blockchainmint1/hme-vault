@@ -37,4 +37,43 @@ describe("bulk payment review", () => {
     expect(html).toContain(warning);
     expect(html.indexOf(warning)).toBeLessThan(html.indexOf("<ol"));
   });
+
+  const review = (labels: (number | null)[]) =>
+    ({
+      request: { ...dummyEvm, to: "0xD152f549545093347A162Dce210e7293f1452150" },
+      seedName: "Dummy",
+      chainName: "Ethereum",
+      symbol: "ETH",
+      amountLabel: "0.003 ETH",
+      feeLabel: "0.001 ETH",
+      totalLabel: "0.004 ETH",
+      warnings: [],
+      payouts: labels.map((ownIndex, i) => ({
+        address: `0x${(i + 1).toString(16).padStart(40, "a")}`,
+        amountLabel: "0.001 ETH",
+        ownIndex,
+      })),
+    }) as unknown as Parameters<typeof EvmPaymentReview>[0]["review"];
+
+  it("labels an all-own list with each index and no stranger warning", () => {
+    const html = renderToStaticMarkup(<EvmPaymentReview review={review([1, 57, 999])} />);
+    for (const i of [1, 57, 999]) expect(html).toContain(`Your own address #${i}<`);
+    expect(html).toContain("3 of 3 recipients are your own addresses");
+    expect(html).not.toContain("someone else");
+    expect(html).not.toContain("Not one of your addresses");
+  });
+
+  it("shows strangers in red with correct counts above the list", () => {
+    const html = renderToStaticMarkup(<EvmPaymentReview review={review([4, null, 9, null])} />);
+    expect(html).toContain("2 of 4 recipients are your own addresses");
+    expect(html).toContain("2 recipients are someone else.");
+    expect(html.indexOf("someone else")).toBeLessThan(html.indexOf("<ol"));
+    expect((html.match(/Not one of your addresses/g) ?? []).length).toBe(2);
+    expect(html).toMatch(/text-destructive">0xa{39}2</);
+  });
+
+  it("uses the singular for one stranger", () => {
+    const html = renderToStaticMarkup(<EvmPaymentReview review={review([0, null])} />);
+    expect(html).toContain("1 recipient is someone else.");
+  });
 });

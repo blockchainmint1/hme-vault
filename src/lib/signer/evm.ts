@@ -14,6 +14,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import type { SignerSeed } from "./psbt";
 import { evmAddress } from "./evm-address";
 import { THOR_CHAINS } from "./thor";
+import { ownAddressIndexes } from "./own-addresses";
 
 const MAX_UINT256 = (1n << 256n) - 1n;
 const uint = z
@@ -180,8 +181,12 @@ export interface EvmReview {
   feeLabel: string;
   totalLabel: string;
   warnings: string[];
-  /** Every Disperse recipient, in order, for full on-screen review. */
-  payouts?: { address: string; amountLabel: string }[];
+  /**
+   * Every Disperse recipient, in order, for full on-screen review. `ownIndex` is i when the
+   * address is this seed's own m/44'/60'/0'/0/i (i ≤ 999), otherwise null. Display-only: it never
+   * changes what Vault will sign, and the request has no field that can switch it off.
+   */
+  payouts?: { address: string; amountLabel: string; ownIndex: number | null }[];
 }
 function parseRequest(text: string): EvmRequest {
   if (text.length > 8192) throw new Error("EVM payment is too large.");
@@ -248,13 +253,13 @@ async function accountFor(r: EvmRequest, seeds: SignerSeed[]) {
       `0x${Array.from(key.privateKey, (b) => b.toString(16).padStart(2, "0")).join("")}` as const;
     const account = privateKeyToAccount(privateKey);
     if (account.address.toLowerCase() === r.from.toLowerCase())
-      return { account, seedName: s.name };
+      return { account, seedName: s.name, root };
   }
   throw new Error("The EVM sender, fingerprint and path don't match any stored seed.");
 }
 export async function reviewEvm(text: string, seeds: SignerSeed[]): Promise<EvmReview> {
   const request = parseRequest(text);
-  const { seedName } = await accountFor(request, seeds);
+  const { seedName, root } = await accountFor(request, seeds);
   const chain = CHAINS[request.chainId];
   const fee = BigInt(request.gas) * BigInt(request.gasPrice ?? request.maxFeePerGas ?? "0");
   const value = request.kind === "erc20-transfer" ? 0n : BigInt(request.value);
@@ -286,12 +291,16 @@ export async function reviewEvm(text: string, seeds: SignerSeed[]): Promise<EvmR
     totalLabel: label(value + fee),
     warnings,
     ...(request.kind === "native-disperse"
-      ? {
-          payouts: request.recipients.map((a, i) => ({
-            address: getAddress(a),
-            amountLabel: label(BigInt(request.values[i])),
-          })),
-        }
+      ? (() => {
+          const own = ownAddressIndexes(root, request.recipients);
+          return {
+            payouts: request.recipients.map((a, i) => ({
+              address: getAddress(a),
+              amountLabel: label(BigInt(request.values[i])),
+              ownIndex: own[i] ?? null,
+            })),
+          };
+        })()
       : {}),
   };
 }
