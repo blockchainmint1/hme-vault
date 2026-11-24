@@ -7,7 +7,7 @@
  * The signing-certificate fingerprint stays the same for every release signed with Vault's key.
  */
 export const APK_VERSION = "1.0.2";
-export const APK_SHA256 = "b3af0c0b0313081d730a7656ef361ec73ab6e9e67e82727c691e8bf6b976751f";
+export const APK_SHA256 = "cf532787dfac057cdaf8bdd3bbd441f6fb5c574b8039c6e8b53db3b0e0c51fee";
 export const SIGNING_CERT_SHA256 =
   "6a7c4e47173911aafc20db541ad23a530b898e87be66e1ab095d529addfd5498";
 
