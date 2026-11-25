@@ -13,10 +13,11 @@ describe("published APK fingerprint", () => {
     if (!version) throw new Error("APK file name has no version");
     expect(compareVersions(version, APK_VERSION)).toBeLessThanOrEqual(0);
   });
-  it("offers the approved 1.0.4 installer with its verified fingerprint", () => {
-    expect(asset.original_filename).toBe("hme-vault-1.0.4-release.apk");
-    expect(asset.size).toBe(9017619);
-    expect(APK_SHA256).toBe("a29ae4598d3b26fbd064c390566ee8a6dd9462002dfee93e05d4ed10d3d1c03e");
+  it("offers the approved 1.0.5 installer with its verified fingerprint", () => {
+    expect(asset.original_filename).toBe("hme-vault-1.0.5-release.apk");
+    expect(asset.size).toBe(9018467);
+    expect(asset.content_type).toBe("application/vnd.android.package-archive");
+    expect(APK_SHA256).toBe("4723d5c1441d212960329a903af62d90418ef4b9581cb7df289f3ade7aa8337f");
   });
 });
 
