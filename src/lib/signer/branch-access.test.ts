@@ -21,6 +21,7 @@ import {
   handOverPocket,
   HandoverGuard,
   readBranchRequest,
+  unsupportedBranchPaths,
 } from "@/lib/signer/branch-access";
 import {
   readSeedsRequest,
@@ -344,6 +345,104 @@ describe("the approved answer", () => {
     );
     await new Promise((res) => setTimeout(res, 400));
     await expect(buildBranchAnswer(r, seed(), "Trading")).rejects.toThrow();
+  });
+});
+
+describe("newer Seeds requests never widen the approved export", () => {
+  const extraPaths = ["m/44'/148'/1106'", "m/44'/607'/1106'", "m/44'/784'/1106'/0'/0'"];
+
+  function expandedRequest() {
+    return readBranchRequest(
+      signedRequest({ paths: [...SEEDS_POCKET_PATHS, ...extraPaths].reverse() }),
+      TEST_TRUST,
+    );
+  }
+
+  it("keeps all 19 requested paths signed while approving only the pinned 16 paths", () => {
+    const r = expandedRequest();
+    expect(r.verified.paths).toEqual([...SEEDS_POCKET_PATHS, ...extraPaths].reverse());
+    expect(r.paths).toEqual(SEEDS_POCKET_PATHS);
+    expect(r.paths).toHaveLength(16);
+    expect(unsupportedBranchPaths(r)).toEqual([...extraPaths].reverse());
+    expect(Object.isFrozen(r)).toBe(true);
+  });
+
+  it("ordinary 16-key requests have no unsupported paths", () => {
+    const r = readBranchRequest(signedRequest(), TEST_TRUST);
+    expect(unsupportedBranchPaths(r)).toEqual([]);
+  });
+
+  it("an expanded request seals the identical existing 16 keys including EVM, ADA and XMR", async () => {
+    type Answer = {
+      message: string;
+      signature: string;
+      body: Record<string, unknown> & {
+        paths: string[];
+        payload: string;
+        identity_address: string;
+        vault_fingerprint: string;
+        xpubs: Record<string, string>;
+      };
+    };
+    const ownerSeed = seed({ passphrase: "TREZOR" });
+    const original = readBranchRequest(signedRequest(), TEST_TRUST);
+    const oldAnswer = JSON.parse(await buildBranchAnswer(original, ownerSeed, "Trading")) as Answer;
+    const text = await buildBranchAnswer(expandedRequest(), ownerSeed, "Trading");
+    const answer = JSON.parse(text) as Answer;
+    const secretKeys = await openPayload(answer.body.payload);
+    expect(secretKeys).toEqual(await openPayload(oldAnswer.body.payload));
+    expect(Object.keys(secretKeys).sort()).toEqual([...POCKET_COINS].sort());
+    expect(Object.keys(secretKeys)).toHaveLength(16);
+    expect(answer.body.xpubs).toEqual(oldAnswer.body.xpubs);
+    for (const coin of ["EVM", "ADA", "XMR"]) {
+      expect(secretKeys[coin]?.length).toBeGreaterThan(20);
+      expect(answer.body.xpubs[coin]?.length).toBeGreaterThan(20);
+    }
+    for (const coin of ["XLM", "TON", "SUI"]) {
+      expect(secretKeys).not.toHaveProperty(coin);
+      expect(answer.body.xpubs).not.toHaveProperty(coin);
+    }
+    expect(answer.body.paths).toEqual(SEEDS_POCKET_PATHS);
+    expect(answer.body.identity_address).toBe(TREZOR_IDENTITY);
+    expect(answer.body.vault_fingerprint).toBe("b4e3f5ed");
+    expect(txcSignedBy(answer.body.identity_address, answer.message, answer.signature)).toBe(true);
+    expect(
+      readVaultLabel(answer.body, answer.message, answer.body.identity_address, txcSignedBy),
+    ).toBeDefined();
+    expect(text).not.toContain("TREZOR");
+    expect(text).not.toContain("abandon");
+  });
+
+  it("refuses to add an authenticated but unsupported path to the approved export", async () => {
+    const r = expandedRequest();
+    const widened = { ...r, paths: [...r.paths, "m/44'/148'/1106'"] };
+    await expect(buildBranchAnswer(widened, seed(), "Trading")).rejects.toThrow();
+  });
+
+  it("rechecks the complete extended signature immediately before derivation", async () => {
+    const r = expandedRequest();
+    const tampered = {
+      ...r,
+      verified: { ...r.verified, paths: [...SEEDS_POCKET_PATHS, "m/44'/149'/1106'"] },
+    };
+    await expect(buildBranchAnswer(tampered, seed(), "Trading")).rejects.toThrow();
+  });
+
+  it("refuses a mismatched approved pocket even if the request signature remains valid", async () => {
+    const r = expandedRequest();
+    await expect(buildBranchAnswer({ ...r, pocket: 1107 }, seed(), "Trading")).rejects.toThrow();
+  });
+
+  it("expanded requests still require exact seed-name confirmation", async () => {
+    await expect(buildBranchAnswer(expandedRequest(), seed(), "trading")).rejects.toThrow(
+      /seed name/i,
+    );
+  });
+
+  it("expanded requests never export hands-off seeds", async () => {
+    await expect(
+      buildBranchAnswer(expandedRequest(), seed({ handsOff: true }), "Trading"),
+    ).rejects.toThrow(/hands-off/i);
   });
 });
 

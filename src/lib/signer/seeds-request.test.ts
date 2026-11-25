@@ -7,6 +7,7 @@ import { base64urlnopad } from "@scure/base";
 import {
   readSeedsRequest,
   SEEDS_CLOCK_TOLERANCE_MS,
+  SEEDS_REQUEST_MAX_PATHS,
   seedsRequestBytes,
   SEEDS_POCKET_PATHS,
   SEEDS_REQUEST_KEYS,
@@ -125,6 +126,130 @@ describe("SEEDS' pinned production signing key", () => {
   it("a different key cannot reuse the pinned id", () => {
     const r = request({ signing_key_id: "seeds-vault-kms-2026-11" });
     expect(() => verifySignedSeedsRequest(r, SEEDS_REQUEST_KEYS, NOW)).toThrow();
+  });
+});
+
+describe("Seeds forward-compatible requested scope", () => {
+  const extraPaths = ["m/44'/148'/1106'", "m/44'/607'/1106'", "m/44'/784'/1106'/0'/0'"];
+
+  it("authenticates 19 paths without removing the three future-coin paths from signed bytes", () => {
+    const paths = [...SEEDS_POCKET_PATHS, ...extraPaths];
+    const original = request({ paths });
+    const result = verifySignedSeedsRequest(original, TEST_TRUST, NOW);
+    expect(result.paths).toEqual(paths);
+    expect(result.paths).toHaveLength(19);
+    expect(seedsRequestBytes(result)).toEqual(seedsRequestBytes(original));
+  });
+
+  it("accepts a correctly signed reordered list and retains that exact order", () => {
+    const paths = [...SEEDS_POCKET_PATHS, ...extraPaths].reverse();
+    expect(verifySignedSeedsRequest(request({ paths }), TEST_TRUST, NOW).paths).toEqual(paths);
+  });
+
+  for (const removed of SEEDS_POCKET_PATHS) {
+    it(`refuses an expanded signed list missing ${removed}`, () => {
+      const paths = [...SEEDS_POCKET_PATHS.filter((path) => path !== removed), ...extraPaths];
+      expect(() => verifySignedSeedsRequest(request({ paths }), TEST_TRUST, NOW)).toThrow();
+    });
+  }
+
+  it("accepts exactly 40 unique signed paths", () => {
+    expect(SEEDS_REQUEST_MAX_PATHS).toBe(40);
+    const paths = [
+      ...SEEDS_POCKET_PATHS,
+      ...Array.from({ length: 24 }, (_, i) => `m/44'/${1000 + i}'/1106'`),
+    ];
+    expect(verifySignedSeedsRequest(request({ paths }), TEST_TRUST, NOW).paths).toHaveLength(40);
+  });
+
+  it("refuses 41 unique signed paths", () => {
+    const paths = [
+      ...SEEDS_POCKET_PATHS,
+      ...Array.from({ length: 25 }, (_, i) => `m/44'/${1000 + i}'/1106'`),
+    ];
+    expect(() => verifySignedSeedsRequest(request({ paths }), TEST_TRUST, NOW)).toThrow();
+  });
+
+  it("refuses a duplicate even when every old path remains", () => {
+    const paths = [...SEEDS_POCKET_PATHS, "m/44'/148'/1106'", "m/44'/148'/1106'"];
+    expect(() => verifySignedSeedsRequest(request({ paths }), TEST_TRUST, NOW)).toThrow();
+  });
+
+  for (const extra of [
+    "m/44'/148'/0'",
+    "m/44'/148'/1107'",
+    "m/44'/148'/1106/0'",
+    "m/44'/148'/1106'/0",
+    "m/49'/148'/1106'",
+    "m/44'/0148'/1106'",
+    "m/44'/148'/1106'/00'",
+    "m/44'/2147483648'/1106'",
+    "m/44'/148'/1106'/0'/0'/0'/0'",
+    " m/44'/148'/1106'",
+  ]) {
+    it(`refuses malformed or out-of-scope extension ${extra}`, () => {
+      expect(() =>
+        verifySignedSeedsRequest(
+          request({ paths: [...SEEDS_POCKET_PATHS, extra] }),
+          TEST_TRUST,
+          NOW,
+        ),
+      ).toThrow();
+    });
+  }
+
+  it("refuses an extension overlapping an existing exported account", () => {
+    expect(() =>
+      verifySignedSeedsRequest(
+        request({ paths: [...SEEDS_POCKET_PATHS, "m/44'/60'/1106'/0'"] }),
+        TEST_TRUST,
+        NOW,
+      ),
+    ).toThrow();
+  });
+
+  it("accepts depth six but refuses any deeper requested node", () => {
+    const extra = "m/44'/148'/1106'/0'/0'/0'";
+    const valid = request({ paths: [...SEEDS_POCKET_PATHS, extra] });
+    expect(verifySignedSeedsRequest(valid, TEST_TRUST, NOW).paths).toContain(extra);
+    expect(() =>
+      verifySignedSeedsRequest(
+        request({ paths: [...SEEDS_POCKET_PATHS, `${extra}/0'`] }),
+        TEST_TRUST,
+        NOW,
+      ),
+    ).toThrow();
+  });
+
+  it("refuses a non-string requested path before signature verification", () => {
+    expect(() =>
+      verifySignedSeedsRequest(
+        { ...request(), paths: [...SEEDS_POCKET_PATHS, 148] },
+        TEST_TRUST,
+        NOW,
+      ),
+    ).toThrow();
+  });
+
+  it("rejects tampering with an additional signed path", () => {
+    const original = request({ paths: [...SEEDS_POCKET_PATHS, ...extraPaths] });
+    const paths = [...SEEDS_POCKET_PATHS, ...extraPaths.slice(0, 2), "m/44'/785'/1106'/0'/0'"];
+    expect(() => verifySignedSeedsRequest({ ...original, paths }, TEST_TRUST, NOW)).toThrow();
+  });
+
+  it("rejects stripping extra paths from a previously signed expanded request", () => {
+    const original = request({ paths: [...SEEDS_POCKET_PATHS, ...extraPaths] });
+    expect(() =>
+      verifySignedSeedsRequest({ ...original, paths: SEEDS_POCKET_PATHS }, TEST_TRUST, NOW),
+    ).toThrow();
+  });
+
+  it("freezes its own copy of every additional path", () => {
+    const paths = [...SEEDS_POCKET_PATHS, ...extraPaths];
+    const result = verifySignedSeedsRequest(request({ paths }), TEST_TRUST, NOW);
+    paths[16] = "m/44'/149'/1106'";
+    expect(result.paths[16]).toBe("m/44'/148'/1106'");
+    expect(Object.isFrozen(result.paths)).toBe(true);
   });
 });
 

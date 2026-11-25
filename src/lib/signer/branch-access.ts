@@ -42,6 +42,7 @@ export interface BranchRequest {
   /** Trusted display name from the profile, never from the scanned QR. */
   readonly service: string;
   readonly pocket: number;
+  /** Exact compiled-in scope the owner approves and the answer exports. */
   readonly paths: readonly string[];
   readonly matchCode: string;
   /** When this phone stops accepting the request: expiry plus the clock tolerance. */
@@ -66,13 +67,24 @@ export interface BranchProfile {
 
 /** Re-authenticate an already-read request. A lapsed or swapped one never derives. */
 function requireLive(request: BranchRequest): SignedSeedsRequest {
-  return verifySignedSeedsRequest(request.verified, request.trust);
+  const verified = verifySignedSeedsRequest(request.verified, request.trust);
+  if (request.pocket !== verified.pocket)
+    throw new Error("The approved pocket changed. Start again on Seeds.");
+  assertScopeWithinPolicy(request.paths, request.pocket, SEEDS_POLICY);
+  return verified;
 }
 
 const SEEDS_POLICY: BranchPolicy = Object.freeze({
   pockets: Object.freeze([SEEDS_POCKET]),
   paths: SEEDS_POCKET_PATHS,
 });
+
+/** Requested extensions remain visible but are never silently exported. */
+export function unsupportedBranchPaths(
+  request: Pick<BranchRequest, "verified" | "paths">,
+): readonly string[] {
+  return request.verified.paths.filter((path) => !request.paths.includes(path));
+}
 
 /**
  * The consequence the owner must read before approving. Shared by every
@@ -168,9 +180,10 @@ export const SEEDS_BRANCH_PROFILE: BranchProfile = {
   productionTrust: SEEDS_REQUEST_KEYS,
   readRequest(text, trust = SEEDS_REQUEST_KEYS) {
     const verified = readSeedsRequestWithTrust(text, trust);
-    // Scope is settled here, before the approval screen and before any derivation.
-    assertScopeWithinPolicy(verified.paths, verified.pocket, SEEDS_POLICY);
-    return {
+    // Authenticate all requested paths, then approve only the exact compiled-in
+    // export scope. The reader requires every old path; no coin can be dropped.
+    assertScopeWithinPolicy(SEEDS_POCKET_PATHS, verified.pocket, SEEDS_POLICY);
+    return Object.freeze({
       profileId: "seeds",
       service: "Seeds Exchange",
       pocket: SEEDS_POCKET,
@@ -179,7 +192,7 @@ export const SEEDS_BRANCH_PROFILE: BranchProfile = {
       expiresAt: Date.parse(verified.expires_at) + SEEDS_CLOCK_TOLERANCE_MS,
       verified,
       trust,
-    };
+    });
   },
   async buildAnswer(request, seed) {
     if (request.profileId !== "seeds") throw new Error("That request is for a different service.");

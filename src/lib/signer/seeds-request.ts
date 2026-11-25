@@ -1,9 +1,11 @@
 /** Offline request authentication only. No delegation, private derivation or network I/O. */
 import { ed25519, x25519 } from "@noble/curves/ed25519";
 import { base64urlnopad } from "@scure/base";
+import { assertNoAncestors } from "./branch-policy";
 
 export const SEEDS_VAULT_REQUEST = "hm-seeds-key-vault-request";
 export const SEEDS_REQUEST_MAX_CHARS = 8192;
+export const SEEDS_REQUEST_MAX_PATHS = 40;
 /**
  * How far the phone's clock may be off, in either direction, when checking a
  * request's time window. Owner decision (2026-11-22): five minutes, because the
@@ -92,6 +94,35 @@ export function seedsRequestBytes(r: Omit<SignedSeedsRequest, "request_sig">): U
 
 const BAD = "The Seeds request couldn't be verified. Start again on Seeds.";
 
+/**
+ * Seeds HK3 compatibility: authenticate the whole requested list, but require
+ * every existing coin and only canonical, fully hardened pocket-1106 nodes.
+ * This is not the export policy: unknown paths never gain derivation rights.
+ * Based on the reviewed vault-protocol.ts (1329b5a8…107bb), retaining Vault's
+ * immutable fields, pinned trust, clock tolerance and low-order recipient check.
+ */
+function requestedPaths(value: unknown): readonly string[] {
+  if (!Array.isArray(value) || value.length > SEEDS_REQUEST_MAX_PATHS) throw new Error(BAD);
+  const paths: string[] = [];
+  const shape = /^m\/(44|84|1852)'\/(0|[1-9]\d{0,8})'\/1106'(\/(0|[1-9]\d{0,8})'){0,3}$/;
+  for (const path of value as unknown[]) {
+    if (typeof path !== "string" || !shape.test(path)) throw new Error(BAD);
+    paths.push(path);
+  }
+  if (
+    new Set(paths).size !== paths.length ||
+    SEEDS_POCKET_PATHS.some((path) => !paths.includes(path))
+  )
+    throw new Error(BAD);
+  // An authenticated extension must not overlap an existing account key.
+  try {
+    assertNoAncestors(paths);
+  } catch {
+    throw new Error(BAD);
+  }
+  return Object.freeze(paths);
+}
+
 function decode(value: string, size: number): Uint8Array {
   if (!/^[A-Za-z0-9_-]+$/.test(value)) throw new Error(BAD);
   let bytes: Uint8Array;
@@ -131,13 +162,7 @@ export function verifySignedSeedsRequest(
     x["key_host"] !== "key.seeds.honest.money"
   )
     throw new Error(BAD);
-  const paths = x["paths"];
-  if (
-    !Array.isArray(paths) ||
-    paths.length !== SEEDS_POCKET_PATHS.length ||
-    paths.some((path, i) => path !== SEEDS_POCKET_PATHS[i])
-  )
-    throw new Error(BAD);
+  const paths = requestedPaths(x["paths"]);
   // Reconstruct rather than retain the caller's object or unverified display fields.
   const r: SignedSeedsRequest = Object.freeze({
     type: SEEDS_VAULT_REQUEST,
@@ -152,7 +177,9 @@ export function verifySignedSeedsRequest(
     pocket: SEEDS_POCKET,
     issued_at: string("issued_at"),
     expires_at: string("expires_at"),
-    paths: SEEDS_POCKET_PATHS,
+    // Keep the exact received order and extra paths inside the signed bytes.
+    // A local export subset here would verify a different request.
+    paths,
   });
   if (
     !/^[A-Za-z0-9_-]{1,64}$/.test(r.signing_key_id) ||

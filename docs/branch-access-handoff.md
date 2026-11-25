@@ -32,8 +32,10 @@ a derivation path the profile did not pin.
 - No requested path may be a parent of another requested path, and duplicates
   are refused.
 - A profile whose own policy breaks these rules never loads.
-- The request's scope must equal the policy's list exactly before the review
-  screen appears. No widening, and no partial approval.
+- The approved export scope must equal the policy's list exactly before the review
+  screen appears. It is never widened or reduced. Seeds may request a signed
+  superset for future coins; those extra paths are displayed as unavailable and
+  are never derived or included in the answer.
 - After derivation, the derived path list must equal the approved list before
   anything is signed.
 - Seeds with a BIP39 passphrase (extra password) are supported. Vault passes
@@ -52,13 +54,17 @@ A request must be JSON, signed by a key Vault already trusts, and must contain:
 - `type`, `v: 2`, `signing_key_id`
 - `domain`, `key_host`, `challenge_id`, `challenge`
 - `recipient_pubkey` — the service's X25519 key; the answer is sealed to it
-- `pocket` (1106) and `paths` — the full ordered path list
+- `pocket` (1106) and `paths` — the exact received order is authenticated; it must
+  include every existing path, with no duplicates or ancestor/descendant overlap,
+  at most 40 paths, each fully hardened on pocket 1106, depth 3–6, purpose
+  44/84/1852 and canonical component numbers of at most nine digits
 - `issued_at`, `expires_at` — at most ten minutes apart, issued no more than
-  sixty seconds in the future
+  five minutes in the future; the offline phone may also be up to five minutes
+  past the stated expiry, with refusal at expiry plus five minutes
 
 Vault refuses: an unknown signing key, a tampered signature, an expired or
-not-yet-valid window, a pocket other than 1106, a path list that differs from
-the profile's, or a request over the size limit. A refusal never reveals which
+not-yet-valid window, a pocket other than 1106, missing existing paths,
+unsafe/overlapping/duplicate paths, or a request over the size limit. A refusal never reveals which
 check failed except for the deliberate "signed by a key this Vault doesn't
 trust" message, which tells the owner to update Vault (for example after a key
 rotation).
@@ -67,7 +73,9 @@ rotation).
 
 1. Scan or paste the request on the service's own screen.
 2. A short **match code** plus the service name, pocket and the full coin list,
-   so the owner can compare it against what the service displayed.
+   so the owner can compare it against what the service displayed. If a newer
+   Seeds requested additional coins, their paths appear in a separate notice:
+   those keys will not be shared; only the existing 16-chain list is included.
 3. The mandatory consequence sentences (shared by every profile): the service
    can spend from the pocket until the coins are moved out, and revoking access
    on the service does not take the keys back. The exact paths are one tap away.
@@ -127,6 +135,39 @@ Sixteen chains are covered by the pinned list: TXC, ISK, BTC, LTC, EVM, DOGE,
 BCH, ZEC, XRP, TRX, SOL, DASH, ATOM, RUNE, ADA, XMR. The answer is never
 persisted, never added to a backup, and is dropped when the screen is left or
 Vault locks.
+
+## Forward compatibility with Seeds' new coins (2026-11-25)
+
+The request reader is adapted from Seeds' HK3-reviewed `vault-protocol.ts`
+(SHA-256 `1329b5a87994ec56fbacad19d71fefe27dffc4dca5e16e18306091cdf67107bb`),
+not substituted wholesale. Vault retains immutable validated fields, its pinned
+KMS signing key, five-minute clock tolerance, and low-order X25519 recipient
+rejection. Both signatures continue to use the original message formats.
+
+`verified.paths` is the complete authenticated requested list. `BranchRequest.paths`
+is the exact pinned supported export list, in its original order. The extra paths
+are never passed to derivation; the answer's paths and sealed private/public maps
+remain exactly the existing 16 entries. Every liveness re-check authenticates the
+complete requested list again and verifies the approved export scope.
+
+Vault already hands over EVM, ADA (plain Icarus) and XMR keys on every link/re-link.
+HYPE on HyperEVM and AVAX on Avalanche C-Chain reuse the EVM key at
+`m/44'/60'/1106'`, receive child `0/0`; no HyperCore support is implied.
+Vault can derive hardened ed25519 SLIP-0010 keys, but XLM, TON and SUI exports
+remain absent pending Seeds' written acceptance go-ahead and independently
+verified derivation/address vectors. Ordinary offline payment signing is unchanged.
+
+Coordinated release check: Seeds and Seeds Key must accept the existing 16-key
+answer to an expanded signed request and retain every previous key on re-link.
+Their reference copy/version update and live activation are outside this project.
+An exact-expanded-answer requirement on either receiver still blocks linking and
+must be addressed there, not by secretly exporting extra keys here.
+
+The newer browser `buildHandoff` requires a real manifest URL and submit URL;
+Vault's offline signed request does not contain that online manifest contract.
+The copied derivation/sealing modules and package versions are unchanged in this
+compatibility preparation: no invented URL, fetch, auth middleware or library
+migration is introduced.
 
 ## SEEDS' pinned signing key
 

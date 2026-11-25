@@ -26,6 +26,7 @@ import {
   HandoverGuard,
   readBranchRequest,
   seedNameConfirmed,
+  unsupportedBranchPaths,
   type BranchRequest,
   type HandoverTicket,
 } from "@/lib/signer/branch-access";
@@ -144,6 +145,7 @@ function BranchFlow() {
   const usable = useMemo(() => seeds.filter((s) => s.handsOff !== true), [seeds]);
   const seed = usable.find((s) => s.id === seedId);
   const nameOk = seed ? seedNameConfirmed(typedName, seed) : false;
+  const unsupportedPaths = request ? unsupportedBranchPaths(request) : [];
 
   async function handOver(ticket: HandoverTicket) {
     if (!seed || !guard.current.isCurrent(ticket)) return;
@@ -295,9 +297,30 @@ function BranchFlow() {
         </p>
       </div>
 
+      {unsupportedPaths.length > 0 && (
+        <div className="border-l-2 border-destructive pl-3 space-y-2">
+          <p className="text-sm font-medium">
+            Seeds also requested {unsupportedPaths.length} additional coin
+            {unsupportedPaths.length === 1 ? "" : "s"}. This Vault will not share those keys.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Only the {request.paths.length} chains listed below are included. The additional coins
+            are unavailable through this link.
+          </p>
+          <ul className="space-y-1 text-xs font-mono break-all">
+            {unsupportedPaths.map((path) => (
+              <li key={path}>{path}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div className="space-y-2">
         <p className="text-sm font-medium">
           Pocket {request.pocket} covers {request.paths.length} chains
+        </p>
+        <p className="text-xs text-muted-foreground">
+          Ethereum, HyperEVM (HYPE) and Avalanche C-Chain (AVAX) use the same EVM pocket key.
         </p>
         <ul className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-muted-foreground">
           {request.paths.map((path) => {
