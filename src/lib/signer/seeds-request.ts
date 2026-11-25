@@ -15,8 +15,8 @@ export const SEEDS_CLOCK_TOLERANCE_MS = 5 * 60_000;
 
 export const SEEDS_POCKET = 1106;
 
-/** Exact Seeds Key f5a315cf POCKET_COINS ordering. Not Vault's payment network list. */
-export const SEEDS_POCKET_PATHS: readonly string[] = Object.freeze([
+/** Legacy request minimum: HK3 must keep accepting signed 16-path requests. */
+export const SEEDS_LEGACY_PATHS: readonly string[] = Object.freeze([
   "m/44'/696969'/1106'",
   "m/44'/969696'/1106'",
   "m/84'/0'/1106'",
@@ -33,6 +33,14 @@ export const SEEDS_POCKET_PATHS: readonly string[] = Object.freeze([
   "m/44'/931'/1106'",
   "m/1852'/1815'/1106'",
   "m/44'/128'/1106'",
+]);
+
+/** Exact Seeds Key f5063fca export order; independent of payment signing support. */
+export const SEEDS_POCKET_PATHS: readonly string[] = Object.freeze([
+  ...SEEDS_LEGACY_PATHS,
+  "m/44'/148'/1106'",
+  "m/44'/607'/1106'",
+  "m/44'/784'/1106'/0'/0'",
 ]);
 
 export type SeedsRequestTrust = Readonly<Record<string, string>>;
@@ -111,7 +119,7 @@ function requestedPaths(value: unknown): readonly string[] {
   }
   if (
     new Set(paths).size !== paths.length ||
-    SEEDS_POCKET_PATHS.some((path) => !paths.includes(path))
+    SEEDS_LEGACY_PATHS.some((path) => !paths.includes(path))
   )
     throw new Error(BAD);
   // An authenticated extension must not overlap an existing account key.

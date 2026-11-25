@@ -23,6 +23,7 @@ import {
   softPrivateChild,
   xprvToXpub,
 } from "./cardano";
+import { edKeysMatch, edPublicHalf, edReceiveAddress, type EdChain } from "./ed25519-chains";
 import {
   moneroAddress,
   moneroKeysFromSeedKey,
@@ -99,6 +100,14 @@ export function pocketsFromSeed(
         k.fill(0);
         continue;
       }
+      if (coin === "XLM" || coin === "TON" || coin === "SUI") {
+        const k = slip10Ed25519(seed, path);
+        out.xpubs[coin] = edPublicHalf(coin, k.publicKey);
+        out.addresses[coin] = addressFor(coin, k.publicKey);
+        out.xprvs[coin] = hex.encode(k.privateKey);
+        k.privateKey.fill(0);
+        continue;
+      }
       if (coin === "SOL" || coin === "XMR") {
         const k = slip10Ed25519(seed, path);
         if (coin === "SOL") {
@@ -117,7 +126,10 @@ export function pocketsFromSeed(
       const node = root.derive(path);
       out.xpubs[coin] = node.publicExtendedKey;
       out.xprvs[coin] = node.privateExtendedKey;
-      out.addresses[coin] = addressFor(coin, node.deriveChild(0).deriveChild(0).publicKey!);
+      out.addresses[coin] = addressFor(
+        coin,
+        requireBytes(node.deriveChild(0).deriveChild(0).publicKey),
+      );
       node.wipePrivateData();
     }
   } finally {
@@ -137,9 +149,10 @@ function extKey(key: string): HDKey {
 /** Receive address from what a wallet submitted (account xpub, SOL base58 key, ADA hex key, XMR address). */
 export function pocketReceiveAddress(coin: PocketCoin, pub: string): string {
   if (coin === "SOL") return addressFor("SOL", base58.decode(pub));
+  if (isEd(coin)) return edReceiveAddress(coin, pub);
   if (coin === "ADA") return cardanoBaseAddress(parseCardanoXpub(pub));
   if (coin === "XMR") return moneroPublicToAddress(pub);
-  return addressFor(coin, extKey(pub).deriveChild(0).deriveChild(0).publicKey!);
+  return addressFor(coin, requireBytes(extKey(pub).deriveChild(0).deriveChild(0).publicKey));
 }
 
 /** The private half a wallet sent must match its public half before Seeds stores it. */
@@ -147,6 +160,7 @@ export function pocketKeysMatch(coin: PocketCoin, priv: string, pub: string): bo
   try {
     if (coin === "ADA") return cardanoKeysMatch(priv, pub);
     if (coin === "XMR") return moneroKeysMatch(priv, pub);
+    if (isEd(coin)) return edKeysMatch(coin, priv, pub);
     if (coin === "SOL") {
       const k = hex.decode(priv);
       return k.length === 32 && base58.encode(ed25519.getPublicKey(k)) === pub;
@@ -156,7 +170,7 @@ export function pocketKeysMatch(coin: PocketCoin, priv: string, pub: string): bo
     if (!k.privateKey || !k.publicKey || !p.publicKey) return false;
     return (
       hex.encode(k.publicKey) === hex.encode(p.publicKey) &&
-      hex.encode(k.chainCode!) === hex.encode(p.chainCode!)
+      hex.encode(requireBytes(k.chainCode)) === hex.encode(requireBytes(p.chainCode))
     );
   } catch {
     return false;
@@ -168,7 +182,7 @@ export function pocketKeysMatch(coin: PocketCoin, priv: string, pub: string): bo
  * ADA: 64-byte extended key (kL‖kR) of account/0/0. XMR: the private spend key.
  */
 export function receivePrivateKey(coin: PocketCoin, priv: string): Uint8Array {
-  if (coin === "SOL") return hex.decode(priv);
+  if (coin === "SOL" || isEd(coin)) return hex.decode(priv);
   if (coin === "ADA") {
     const acct = hex.decode(priv);
     const role = softPrivateChild(acct, 0);
@@ -187,7 +201,17 @@ export function receivePrivateKey(coin: PocketCoin, priv: string): Uint8Array {
     return m.spendSec;
   }
   const node = extKey(priv).deriveChild(0).deriveChild(0);
-  const k = Uint8Array.from(node.privateKey!);
+  const k = Uint8Array.from(requireBytes(node.privateKey));
   node.wipePrivateData();
   return k;
+}
+
+function isEd(coin: PocketCoin): coin is EdChain {
+  return coin === "XLM" || coin === "TON" || coin === "SUI";
+}
+
+/** Vault strict-null compatibility; valid shared derivations are unchanged. */
+function requireBytes(value: Uint8Array | null): Uint8Array {
+  if (!value) throw new Error("Missing derived key bytes");
+  return value;
 }

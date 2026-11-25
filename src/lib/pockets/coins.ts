@@ -29,6 +29,9 @@ export const POCKET_COINS = [
   "RUNE",
   "ADA",
   "XMR",
+  "XLM",
+  "TON",
+  "SUI",
 ] as const;
 export type PocketCoin = (typeof POCKET_COINS)[number];
 
@@ -101,11 +104,11 @@ export const POCKET_SPECS: Record<PocketCoin, PocketSpec> = {
   },
   EVM: {
     id: "EVM",
-    name: "Ethereum / BNB Chain / Base / PulseChain",
+    name: "Ethereum / BNB Chain / Base / PulseChain / HyperEVM / Avalanche",
     curve: "secp256k1",
     purpose: 44,
     coinType: 60,
-    covers: ["ETH", "BNB", "USDC", "USDT", "HEX", "PLS", "pHEX"],
+    covers: ["ETH", "BNB", "USDC", "USDT", "HEX", "PLS", "pHEX", "HYPE", "AVAX"],
     hmeToday: true,
     signing: "ready",
     balanceReadable: true,
@@ -235,7 +238,46 @@ export const POCKET_SPECS: Record<PocketCoin, PocketSpec> = {
     recoveryNote:
       "restore the recovery phrase with Trezor's Monero method (not Ledger's — Ledger makes a different wallet from the same words), account",
   },
+  // Accepted and stored only; no deposits or sends until Seeds' signer ships and is audited.
+  XLM: {
+    id: "XLM",
+    name: "Stellar",
+    curve: "ed25519",
+    purpose: 44,
+    coinType: 148,
+    covers: ["XLM"],
+    hmeToday: false,
+    signing: "planned",
+    balanceReadable: false,
+  },
+  TON: {
+    id: "TON",
+    name: "TON",
+    curve: "ed25519",
+    purpose: 44,
+    coinType: 607,
+    covers: ["TON"],
+    hmeToday: false,
+    signing: "planned",
+    balanceReadable: false,
+    recoveryNote:
+      "restore the 12/24 recovery phrase (BIP39, not TON-only words) in a wallet that supports BIP39 for TON with wallet type W5, account",
+  },
+  SUI: {
+    id: "SUI",
+    name: "Sui",
+    curve: "ed25519",
+    purpose: 44,
+    coinType: 784,
+    covers: ["SUI"],
+    hmeToday: false,
+    signing: "planned",
+    balanceReadable: false,
+  },
 };
+
+const SINGLE_KEY: readonly PocketCoin[] = ["SOL", "XMR", "XLM", "TON", "SUI"];
+const PATH_TAIL: Partial<Record<PocketCoin, string>> = { SOL: "/0'", SUI: "/0'/0'" };
 
 export const FIRST_POCKET = 1106;
 export const LAST_POCKET = 2105;
@@ -251,12 +293,12 @@ export function validPocket(n: unknown): n is number {
 export function accountPath(coin: PocketCoin, account: number): string {
   const s = POCKET_SPECS[coin];
   const base = `m/${s.purpose}'/${s.coinType}'/${account}'`;
-  return coin === "SOL" ? `${base}/0'` : base;
+  return base + (PATH_TAIL[coin] ?? "");
 }
 
 /** Path of the pocket's receive address (child 0/0 for secp256k1 coins and Cardano's payment key). */
 export function receivePath(coin: PocketCoin, account: number): string {
-  return coin === "SOL" || coin === "XMR"
+  return SINGLE_KEY.includes(coin)
     ? accountPath(coin, account)
     : `${accountPath(coin, account)}/0/0`;
 }
@@ -265,7 +307,7 @@ export function receivePath(coin: PocketCoin, account: number): string {
 export function parseAccountPath(path: string): { coin: PocketCoin; account: number } | null {
   for (const coin of POCKET_COINS) {
     const s = POCKET_SPECS[coin];
-    const tail = coin === "SOL" ? "\\/0'" : "";
+    const tail = (PATH_TAIL[coin] ?? "").replace(/\//g, "\\/");
     const m = new RegExp(`^m\\/${s.purpose}'\\/${s.coinType}'\\/(\\d+)'${tail}$`).exec(path);
     if (m) return { coin, account: Number(m[1]) };
   }

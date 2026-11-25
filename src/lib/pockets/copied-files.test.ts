@@ -1,6 +1,8 @@
 /**
  * Fingerprints of the modules copied from the Seeds Key project. Each value was
- * recorded after checking the file against Seeds Key: the pockets modules and
+ * recorded after checking the file against Seeds Key: coins/derive/encode and
+ * ed25519-chains at f5063fca (Prettier plus guarded nullable reads only), the
+ * unchanged pockets modules and
  * rules.ts at commit 80fd70a2, and seeds-key-reference.ts (with Key's optional
  * extra-password support) at commit 0af0ba5b, and vault-label.ts byte-for-byte at
  * commit 6d9e1e46. After our Prettier formatting the
@@ -17,9 +19,10 @@ import { describe, expect, it } from "vitest";
 
 const PINNED: Readonly<Record<string, string>> = {
   "./cardano.ts": "052a690234d4cb0f1c11d4dab2395a98687bf267a3fa6355cbd009989c971d35",
-  "./coins.ts": "ebd31df92a864013c0f83fef177a364c5a5005e280eb37f5a70d161734f3ac51",
-  "./derive.ts": "33818360d4e9122bd31b937db2fb775c3a25f746f56e5cc4f5225b1ff77fd108",
-  "./encode.ts": "8fe02bff7660157f344b8d6d3625fc52e7f5ffcac82b63896d70355e90c66dc7",
+  "./coins.ts": "446b38b14d22a754308f97f1df5e05e7fb22f4e0e46e7d6cf2b8ecbcfe2e0edb",
+  "./derive.ts": "9e4783564487df389301311c3f2bdc03b89b782234c6bbd9fa84451c5897eac5",
+  "./encode.ts": "91ce1dd2a2bd984a9da956a29c752831814238eb13b440f14ac651a97e696d08",
+  "./ed25519-chains.ts": "c54cb4626cbe5ad15b4c24a2070a5bba1523d1970d0a2eefd7a756fded56631c",
   "./monero.ts": "af83d061df698fce1d5367da61685aac8d04efb533392d84c58935fffd8e20fc",
   "./slip10.ts": "862526390913aed722c155fdd97838b551da0f1cd52774f5a6309001fe89d344",
   "../key-signin/rules.ts": "147d423f9e87ecd0133f2ed27198d01decaf108ef41240edb6bdaa86c4df2280",

@@ -71,6 +71,8 @@ function requireLive(request: BranchRequest): SignedSeedsRequest {
   if (request.pocket !== verified.pocket)
     throw new Error("The approved pocket changed. Start again on Seeds.");
   assertScopeWithinPolicy(request.paths, request.pocket, SEEDS_POLICY);
+  if (request.paths.some((path) => !verified.paths.includes(path)))
+    throw new Error("Start a new link on Seeds for all 19 coins. This request is missing a key.");
   return verified;
 }
 
@@ -180,6 +182,9 @@ export const SEEDS_BRANCH_PROFILE: BranchProfile = {
   productionTrust: SEEDS_REQUEST_KEYS,
   readRequest(text, trust = SEEDS_REQUEST_KEYS) {
     const verified = readSeedsRequestWithTrust(text, trust);
+    // Never seal a new key unless the service authenticated that exact path.
+    if (SEEDS_POCKET_PATHS.some((path) => !verified.paths.includes(path)))
+      throw new Error("Start a new link on Seeds for all 19 coins. This request is missing a key.");
     // Authenticate all requested paths, then approve only the exact compiled-in
     // export scope. The reader requires every old path; no coin can be dropped.
     assertScopeWithinPolicy(SEEDS_POCKET_PATHS, verified.pocket, SEEDS_POLICY);

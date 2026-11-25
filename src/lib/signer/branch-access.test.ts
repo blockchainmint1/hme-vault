@@ -12,6 +12,7 @@ import { secp256k1 } from "@noble/curves/secp256k1.js";
 import { ripemd160 } from "@noble/hashes/legacy.js";
 import { base64, base64urlnopad, createBase58check } from "@scure/base";
 import { readVaultLabel, vaultLabelMessage } from "@/lib/key-signin/vault-label";
+import { pocketKeysMatch } from "@/lib/pockets/derive";
 import { accountPath, POCKET_COINS } from "@/lib/pockets/coins";
 import {
   branchAnswerSeedId,
@@ -27,6 +28,7 @@ import {
   readSeedsRequest,
   SEEDS_CLOCK_TOLERANCE_MS,
   SEEDS_POCKET_PATHS,
+  SEEDS_LEGACY_PATHS,
   SEEDS_REQUEST_KEYS,
   SEEDS_VAULT_REQUEST,
   seedsRequestBytes,
@@ -131,14 +133,12 @@ describe("the app path trusts only SEEDS' pinned production key", () => {
     expect(() => readBranchRequest(signedRequest())).toThrow(/doesn't trust/);
   });
 
-  it("SEEDS' production-signed example opens the review screen at its own clock", () => {
+  it("the legacy production example authenticates but cannot authorize new keys", () => {
     vi.useFakeTimers();
     try {
       vi.setSystemTime(Date.parse("2026-01-01T00:05:00.000Z"));
-      const r = readBranchRequest(PRODUCTION_EXAMPLE);
-      expect(r.service).toBe("Seeds Exchange");
-      expect(r.pocket).toBe(1106);
-      expect(r.paths).toEqual([...SEEDS_POCKET_PATHS]);
+      expect(readSeedsRequest(PRODUCTION_EXAMPLE).paths).toEqual(SEEDS_LEGACY_PATHS);
+      expect(() => readBranchRequest(PRODUCTION_EXAMPLE)).toThrow(/new link.*19 coins/);
     } finally {
       vi.useRealTimers();
     }
@@ -296,7 +296,7 @@ describe("the approved answer", () => {
     expect(body.paths).toEqual(SEEDS_POCKET_PATHS);
   });
 
-  it("seals exactly the 16 pocket keys and nothing else", async () => {
+  it("seals exactly the 19 pocket keys and nothing else", async () => {
     const r = readBranchRequest(signedRequest(), TEST_TRUST);
     const answer = await buildBranchAnswer(r, seed(), "Trading");
     const body = (JSON.parse(answer) as { body: { payload: string } }).body;
@@ -316,7 +316,7 @@ describe("the approved answer", () => {
     // Opens only with the one-time key the request named, and names the identity
     // the owner was shown.
     const xprvs = await openPayload(parsed.body.payload);
-    expect(Object.keys(xprvs).length).toBe(16);
+    expect(Object.keys(xprvs).length).toBe(19);
     expect(parsed.body.identity_address).toBe("TZZCuca5ntPVCJL5ryTjh465Jvw5vHxsVd");
   });
 
@@ -348,98 +348,122 @@ describe("the approved answer", () => {
   });
 });
 
-describe("newer Seeds requests never widen the approved export", () => {
-  const extraPaths = ["m/44'/148'/1106'", "m/44'/607'/1106'", "m/44'/784'/1106'/0'/0'"];
-
+describe("the reviewed 19-key export", () => {
+  const futurePath = "m/44'/999'/1106'";
   function expandedRequest() {
     return readBranchRequest(
-      signedRequest({ paths: [...SEEDS_POCKET_PATHS, ...extraPaths].reverse() }),
+      signedRequest({ paths: [...SEEDS_POCKET_PATHS, futurePath].reverse() }),
       TEST_TRUST,
     );
   }
 
-  it("keeps all 19 requested paths signed while approving only the pinned 16 paths", () => {
+  it("approves 19 keys, preserves received signed order and excludes future keys", () => {
     const r = expandedRequest();
-    expect(r.verified.paths).toEqual([...SEEDS_POCKET_PATHS, ...extraPaths].reverse());
+    expect(r.verified.paths).toEqual([...SEEDS_POCKET_PATHS, futurePath].reverse());
     expect(r.paths).toEqual(SEEDS_POCKET_PATHS);
-    expect(r.paths).toHaveLength(16);
-    expect(unsupportedBranchPaths(r)).toEqual([...extraPaths].reverse());
+    expect(r.paths).toHaveLength(19);
+    expect(unsupportedBranchPaths(r)).toEqual([futurePath]);
     expect(Object.isFrozen(r)).toBe(true);
   });
 
-  it("ordinary 16-key requests have no unsupported paths", () => {
-    const r = readBranchRequest(signedRequest(), TEST_TRUST);
-    expect(unsupportedBranchPaths(r)).toEqual([]);
+  it("a signed 19-key request has no unavailable paths", () => {
+    expect(unsupportedBranchPaths(readBranchRequest(signedRequest(), TEST_TRUST))).toEqual([]);
   });
 
-  it("an expanded request seals the identical existing 16 keys including EVM, ADA and XMR", async () => {
-    type Answer = {
-      message: string;
-      signature: string;
-      body: Record<string, unknown> & {
-        paths: string[];
-        payload: string;
-        identity_address: string;
-        vault_fingerprint: string;
-        xpubs: Record<string, string>;
+  for (const path of SEEDS_POCKET_PATHS.slice(16)) {
+    it(`refuses a handover if signed scope omits ${path}`, () => {
+      expect(() =>
+        readBranchRequest(
+          signedRequest({ paths: SEEDS_POCKET_PATHS.filter((p) => p !== path) }),
+          TEST_TRUST,
+        ),
+      ).toThrow(/new link.*19 coins/);
+    });
+  }
+
+  for (const [label, passphrase] of [
+    ["plain", ""],
+    ["trezor", "TREZOR"],
+  ] as const) {
+    it(`seals all 19 matching key pairs and preserves all 16 original ${label} keys`, async () => {
+      const baseline = JSON.parse(
+        readFileSync(new URL("./fixtures/pocket-16-test-vector.json", import.meta.url), "utf8"),
+      ) as Record<string, { xpubs: Record<string, string>; xprvs: Record<string, string> }>;
+      const expected = baseline[label];
+      if (!expected) throw new Error("Missing baseline");
+      const answerText = await buildBranchAnswer(
+        expandedRequest(),
+        seed({ passphrase }),
+        "Trading",
+      );
+      const answer = JSON.parse(answerText) as {
+        message: string;
+        signature: string;
+        body: Record<string, unknown> & {
+          paths: string[];
+          payload: string;
+          identity_address: string;
+          xpubs: Record<string, string>;
+        };
       };
-    };
-    const ownerSeed = seed({ passphrase: "TREZOR" });
-    const original = readBranchRequest(signedRequest(), TEST_TRUST);
-    const oldAnswer = JSON.parse(await buildBranchAnswer(original, ownerSeed, "Trading")) as Answer;
-    const text = await buildBranchAnswer(expandedRequest(), ownerSeed, "Trading");
-    const answer = JSON.parse(text) as Answer;
-    const secretKeys = await openPayload(answer.body.payload);
-    expect(secretKeys).toEqual(await openPayload(oldAnswer.body.payload));
-    expect(Object.keys(secretKeys).sort()).toEqual([...POCKET_COINS].sort());
-    expect(Object.keys(secretKeys)).toHaveLength(16);
-    expect(answer.body.xpubs).toEqual(oldAnswer.body.xpubs);
-    for (const coin of ["EVM", "ADA", "XMR"]) {
-      expect(secretKeys[coin]?.length).toBeGreaterThan(20);
-      expect(answer.body.xpubs[coin]?.length).toBeGreaterThan(20);
-    }
-    for (const coin of ["XLM", "TON", "SUI"]) {
-      expect(secretKeys).not.toHaveProperty(coin);
-      expect(answer.body.xpubs).not.toHaveProperty(coin);
-    }
-    expect(answer.body.paths).toEqual(SEEDS_POCKET_PATHS);
-    expect(answer.body.identity_address).toBe(TREZOR_IDENTITY);
-    expect(answer.body.vault_fingerprint).toBe("b4e3f5ed");
-    expect(txcSignedBy(answer.body.identity_address, answer.message, answer.signature)).toBe(true);
-    expect(
-      readVaultLabel(answer.body, answer.message, answer.body.identity_address, txcSignedBy),
-    ).toBeDefined();
-    expect(text).not.toContain("TREZOR");
-    expect(text).not.toContain("abandon");
-  });
+      const keys = await openPayload(answer.body.payload);
+      expect(Object.keys(keys)).toHaveLength(19);
+      expect(Object.keys(answer.body.xpubs)).toHaveLength(19);
+      for (const [coin, value] of Object.entries(expected.xprvs)) expect(keys[coin]).toBe(value);
+      for (const [coin, value] of Object.entries(expected.xpubs))
+        expect(answer.body.xpubs[coin]).toBe(value);
+      for (const coin of POCKET_COINS) {
+        const priv = keys[coin];
+        const pub = answer.body.xpubs[coin];
+        if (!priv || !pub) throw new Error(`Missing ${coin}`);
+        expect(pocketKeysMatch(coin, priv, pub)).toBe(true);
+      }
+      expect(keys).not.toHaveProperty("999");
+      expect(answer.body.paths).toEqual(SEEDS_POCKET_PATHS);
+      expect(txcSignedBy(answer.body.identity_address, answer.message, answer.signature)).toBe(
+        true,
+      );
+      expect(
+        readVaultLabel(answer.body, answer.message, answer.body.identity_address, txcSignedBy),
+      ).toBeDefined();
+      expect(answerText).not.toContain("abandon");
+      expect(answerText).not.toContain("TREZOR");
+    });
+  }
 
-  it("refuses to add an authenticated but unsupported path to the approved export", async () => {
+  it("refuses to add an authenticated future path to the approved export", async () => {
     const r = expandedRequest();
-    const widened = { ...r, paths: [...r.paths, "m/44'/148'/1106'"] };
-    await expect(buildBranchAnswer(widened, seed(), "Trading")).rejects.toThrow();
+    await expect(
+      buildBranchAnswer({ ...r, paths: [...r.paths, futurePath] }, seed(), "Trading"),
+    ).rejects.toThrow();
   });
 
-  it("rechecks the complete extended signature immediately before derivation", async () => {
+  it("rechecks complete extended signature before derivation", async () => {
     const r = expandedRequest();
-    const tampered = {
-      ...r,
-      verified: { ...r.verified, paths: [...SEEDS_POCKET_PATHS, "m/44'/149'/1106'"] },
-    };
-    await expect(buildBranchAnswer(tampered, seed(), "Trading")).rejects.toThrow();
+    await expect(
+      buildBranchAnswer(
+        { ...r, verified: { ...r.verified, paths: SEEDS_POCKET_PATHS } },
+        seed(),
+        "Trading",
+      ),
+    ).rejects.toThrow();
   });
 
-  it("refuses a mismatched approved pocket even if the request signature remains valid", async () => {
+  it("refuses validly signed reduced scope substituted after approval", async () => {
     const r = expandedRequest();
-    await expect(buildBranchAnswer({ ...r, pocket: 1107 }, seed(), "Trading")).rejects.toThrow();
+    const reduced = JSON.parse(signedRequest({ paths: SEEDS_LEGACY_PATHS })) as typeof r.verified;
+    await expect(buildBranchAnswer({ ...r, verified: reduced }, seed(), "Trading")).rejects.toThrow(
+      /new link.*19 coins/,
+    );
   });
 
-  it("expanded requests still require exact seed-name confirmation", async () => {
+  it("still requires exact seed name", async () => {
     await expect(buildBranchAnswer(expandedRequest(), seed(), "trading")).rejects.toThrow(
       /seed name/i,
     );
   });
 
-  it("expanded requests never export hands-off seeds", async () => {
+  it("still refuses hands-off seeds", async () => {
     await expect(
       buildBranchAnswer(expandedRequest(), seed({ handsOff: true }), "Trading"),
     ).rejects.toThrow(/hands-off/i);

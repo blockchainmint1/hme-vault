@@ -41,7 +41,7 @@ a derivation path the profile did not pin.
 - Seeds with a BIP39 passphrase (extra password) are supported. Vault passes
   the stored password unchanged to Seeds Key's own copied `coinIdentityKey` and
   `buildHandoff`, which normalise it once (NFKD) and use it for the identity and
-  all 16 families, Cardano included. The password never appears in the answer.
+  all 19 families, Cardano included. The password never appears in the answer.
   Vault writes no passphrase-aware derivation of its own. Tests check the
   identity against the official BIP39 "TREZOR" vector seed and against the first
   TXC address Vault itself shows for that seed, and check that composed and
@@ -222,3 +222,7 @@ it now would break SEEDS and Seeds Key.
   revoke them, watch them, or tell what it did with them. That is why the screen
   says so out loud and why the pocket is a trading pocket, not the savings
   pocket.
+
+## 1.0.5 — actual 19-key handover (2026-11-25)
+
+Seeds' written live acceptance permits adding XLM at m/44'/148'/1106', TON W5 at m/44'/607'/1106', and SUI at m/44'/784'/1106'/0'/0'. The approved scope is now 19 keys, using Seeds Key f5063fca's coins/derive/encode/ed25519-chains files (formatting and explicit nullable-read guards only). All existing 16 key pairs remain identical. Extra unknown paths still never export. Legacy signed 16-path requests still authenticate under HK3, but cannot authorize the new keys: start a fresh 19-path request on Seeds. Liveness checks enforce this again before sealing. This changes trading-pocket handover only, not ordinary pairing, Receive or payment signing. Seeds currently accepts-and-holds these three coins, with deposits/balances/sends disabled until its signers are audited. The released APK remains 1.0.4 pending independent review, gated build and phone check of 1.0.5.

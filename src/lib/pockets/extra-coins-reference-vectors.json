@@ -1,0 +1,98 @@
+{
+  "source": "Independent @stellar/stellar-base 15.0.0, @ton/ton 16.3.0 WalletContractV5R1, @mysten/sui 3.0.1 and micro-key-producer 0.10.2; Seeds Key f5063fca entire 19-key bundles match",
+  "words": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+  "cases": [
+    {
+      "passphrase": "",
+      "coins": {
+        "XLM": {
+          "path": "m/44'/148'/1106'",
+          "address": "GARWV2LPPTIXJYVWMINIZHNKNUCR3FDVANOPTZXGYV3765UZKSHWV5AI",
+          "publicHalf": "GARWV2LPPTIXJYVWMINIZHNKNUCR3FDVANOPTZXGYV3765UZKSHWV5AI",
+          "privateHalf": "0fdab0742065a7ec36f68617c3bceda2cbb0774fb589dc87fa3ab9d6604da8a3"
+        },
+        "TON": {
+          "path": "m/44'/607'/1106'",
+          "address": "UQCsq4rzqzuJvOOkCj00SPdMru6-SHmeDuGf2_ecmdjlNwcm",
+          "publicHalf": "2245ee2dd08b4ce328561f4b22d812df5861b817bbdeac31cb4fa03b0dd3b5f6",
+          "privateHalf": "b333d41e6f9b79e438ce522ed025c2012506abea12c7759349a00515e888ab2d"
+        },
+        "SUI": {
+          "path": "m/44'/784'/1106'/0'/0'",
+          "address": "0xc103715616f6451c7d969ef90d20d1016924dad27e9c36cd3c1bd5ee5c36b8a1",
+          "publicHalf": "0xc103715616f6451c7d969ef90d20d1016924dad27e9c36cd3c1bd5ee5c36b8a1",
+          "privateHalf": "57028a22396abecaac2b7f5bd147202ef24e779d2c7542b348f700e1bb467e05"
+        }
+      }
+    },
+    {
+      "passphrase": "TREZOR",
+      "coins": {
+        "XLM": {
+          "path": "m/44'/148'/1106'",
+          "address": "GDBSA7S4YVNIPCYU2HDQ4SNJPBNEEHUS6XZXXOHT5SSBY4K3WE6VOMUO",
+          "publicHalf": "GDBSA7S4YVNIPCYU2HDQ4SNJPBNEEHUS6XZXXOHT5SSBY4K3WE6VOMUO",
+          "privateHalf": "116e64c4ccd8810a95b7c33739a96979c3b63510fa3297e759bc1f999985745c"
+        },
+        "TON": {
+          "path": "m/44'/607'/1106'",
+          "address": "UQCVlNwdzEwzefpHI40uqN0D0Hx_S3qgn_PwRKCWOo170leH",
+          "publicHalf": "fa1e7dc7aa441bb58e72a75a669cd40e939e7645e9450e51e3344710c303be8f",
+          "privateHalf": "8555e415686f12bc2d850b8b99e10d20803636b063a0df9a3e39249953d64fde"
+        },
+        "SUI": {
+          "path": "m/44'/784'/1106'/0'/0'",
+          "address": "0xb2a7321ed92a7bff65ebd5ac89697097e423b7689c901acf5e269fe48fdfc76d",
+          "publicHalf": "0xb2a7321ed92a7bff65ebd5ac89697097e423b7689c901acf5e269fe48fdfc76d",
+          "privateHalf": "0ae46a354f960a781f354e6f4d06429daccebbe9498a083493d0988b6c54fc88"
+        }
+      }
+    },
+    {
+      "passphrase": "café",
+      "coins": {
+        "XLM": {
+          "path": "m/44'/148'/1106'",
+          "address": "GAAJVQB5SLO52RCAYEMAMIDREXGF25U3U5FHGTEIPL2EB76IGZHXWC73",
+          "publicHalf": "GAAJVQB5SLO52RCAYEMAMIDREXGF25U3U5FHGTEIPL2EB76IGZHXWC73",
+          "privateHalf": "006fa4ad24fa8751883827ae0e5232163045301cf1a0503663cfb13dbc7a3664"
+        },
+        "TON": {
+          "path": "m/44'/607'/1106'",
+          "address": "UQB4RlJB5twfKTDgl0O_SXAtpaVkf-qfX-8_XmQmOmWoZrwr",
+          "publicHalf": "d8714267de156f04484d3ab3b43d14a0061af1b879fa33d82e030209563b8a45",
+          "privateHalf": "1c2fd945a63a56909b0333452d99c3ff99959193119fe78c4024607b698cef33"
+        },
+        "SUI": {
+          "path": "m/44'/784'/1106'/0'/0'",
+          "address": "0xe7e43140bbc2463d19b01a91c9dc3122d7e8fd480a55aab556e9ff5838887136",
+          "publicHalf": "0xe7e43140bbc2463d19b01a91c9dc3122d7e8fd480a55aab556e9ff5838887136",
+          "privateHalf": "5f4bc41cf73211d828807bafd088bad1372c1963bf017d372fefaeacec4a0035"
+        }
+      }
+    },
+    {
+      "passphrase": "café",
+      "coins": {
+        "XLM": {
+          "path": "m/44'/148'/1106'",
+          "address": "GAAJVQB5SLO52RCAYEMAMIDREXGF25U3U5FHGTEIPL2EB76IGZHXWC73",
+          "publicHalf": "GAAJVQB5SLO52RCAYEMAMIDREXGF25U3U5FHGTEIPL2EB76IGZHXWC73",
+          "privateHalf": "006fa4ad24fa8751883827ae0e5232163045301cf1a0503663cfb13dbc7a3664"
+        },
+        "TON": {
+          "path": "m/44'/607'/1106'",
+          "address": "UQB4RlJB5twfKTDgl0O_SXAtpaVkf-qfX-8_XmQmOmWoZrwr",
+          "publicHalf": "d8714267de156f04484d3ab3b43d14a0061af1b879fa33d82e030209563b8a45",
+          "privateHalf": "1c2fd945a63a56909b0333452d99c3ff99959193119fe78c4024607b698cef33"
+        },
+        "SUI": {
+          "path": "m/44'/784'/1106'/0'/0'",
+          "address": "0xe7e43140bbc2463d19b01a91c9dc3122d7e8fd480a55aab556e9ff5838887136",
+          "publicHalf": "0xe7e43140bbc2463d19b01a91c9dc3122d7e8fd480a55aab556e9ff5838887136",
+          "privateHalf": "5f4bc41cf73211d828807bafd088bad1372c1963bf017d372fefaeacec4a0035"
+        }
+      }
+    }
+  ]
+}

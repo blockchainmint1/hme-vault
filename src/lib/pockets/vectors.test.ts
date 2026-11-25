@@ -29,7 +29,7 @@ describe("pocket derivation matches Seeds Key exactly", () => {
     );
   });
 
-  it("pocket 1106 covers all 16 chains with Key's known addresses", () => {
+  it("pocket 1106 covers all 19 chains with Key's known addresses", () => {
     const bundle = pocketsFromMnemonic(PHRASE, { account: 1106 });
     expect(Object.keys(bundle.xpubs).sort()).toEqual([...POCKET_COINS].sort());
     expect(bundle.paths).toEqual([
@@ -49,6 +49,9 @@ describe("pocket derivation matches Seeds Key exactly", () => {
       "m/44'/931'/1106'",
       "m/1852'/1815'/1106'",
       "m/44'/128'/1106'",
+      "m/44'/148'/1106'",
+      "m/44'/607'/1106'",
+      "m/44'/784'/1106'/0'/0'",
     ]);
     const all = JSON.stringify(bundle.addresses);
     for (const v of [
@@ -111,7 +114,7 @@ describe("extra password (BIP39 passphrase) matches the standard and this Vault"
     );
   });
 
-  it("a password changes every one of the 16 pocket keys", () => {
+  it("a password changes every one of the 19 pocket keys", () => {
     const plain = pocketsFromMnemonic(PHRASE, { account: 1106 });
     const extra = pocketsFromMnemonic(PHRASE, {
       account: 1106,
