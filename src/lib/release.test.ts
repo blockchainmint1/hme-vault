@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import asset from "@/assets/vault-apk.apk.asset.json";
 import pkg from "../../package.json";
-import { APK_VERSION, compareVersions, versionBuiltOn } from "./release";
+import { APK_SHA256, APK_VERSION, compareVersions, versionBuiltOn } from "./release";
 
 describe("published APK fingerprint", () => {
   it("links a real versioned APK that is never newer than the announced version", () => {
@@ -9,7 +9,14 @@ describe("published APK fingerprint", () => {
     // awaits its build and swap, but the file on offer must never claim to be newer.
     const m = /(\d+\.\d+\.\d+)/.exec(asset.original_filename);
     expect(m, "APK file name carries a dotted version").toBeTruthy();
-    expect(compareVersions(m![1], APK_VERSION)).toBeLessThanOrEqual(0);
+    const version = m?.[1];
+    if (!version) throw new Error("APK file name has no version");
+    expect(compareVersions(version, APK_VERSION)).toBeLessThanOrEqual(0);
+  });
+  it("offers the approved 1.0.4 installer with its verified fingerprint", () => {
+    expect(asset.original_filename).toBe("hme-vault-1.0.4-release.apk");
+    expect(asset.size).toBe(9017619);
+    expect(APK_SHA256).toBe("a29ae4598d3b26fbd064c390566ee8a6dd9462002dfee93e05d4ed10d3d1c03e");
   });
 });
 
